@@ -1,0 +1,6 @@
+# Standard web development stack
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+python-dotenv
