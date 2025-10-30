@@ -52,6 +52,18 @@ CREATE TABLE relaciones_institucion (
     relacion VARCHAR(20) NOT NULL UNIQUE
 );
 
+-- Editoriales de libros
+CREATE TABLE marcas_equipo_computo(
+    id SERIAL PRIMARY KEY,
+    marca VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- Tipos de equipo
+CREATE TABLE tipos_equipo_computo (
+    id SERIAL PRIMARY KEY,
+    tipo VARCHAR(15) NOT NULL UNIQUE
+);
+
 -- Tipos de usuario (permisos)
 CREATE TABLE tipos_usuario (
     id SERIAL PRIMARY KEY,
@@ -68,12 +80,12 @@ CREATE TABLE usuarios (
     codigo_universitario VARCHAR(20) NOT NULL UNIQUE,
     clave_acceso VARCHAR(255) NOT NULL,
     nombre_completo VARCHAR(255) NOT NULL,
-    relacion_id INTEGER NOT NULL REFERENCES relaciones_institucion(id),
+    relacion_institucional_id INTEGER NOT NULL REFERENCES relaciones_institucion(id),
     tipo_usuario_id INTEGER NOT NULL REFERENCES tipos_usuario(id),
-    usuario_creador_id INTEGER REFERENCES usuarios(id),  -- Quién dio de alta al usuario
-    ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario_creador_id INTEGER REFERENCES usuarios(id),  
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    esta_activo BOOLEAN DEFAULT TRUE
+    esta_activo BOOLEAN DEFAULT TRUE,
+    fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Áreas físicas de la biblioteca
@@ -82,9 +94,10 @@ CREATE TABLE areas (
     nombre VARCHAR(100) NOT NULL UNIQUE,
     capacidad INTEGER,
     es_prestable BOOLEAN NOT NULL DEFAULT FALSE,
-    usuario_creador_id INTEGER NOT NULL REFERENCES usuarios(id),  -- Quién creó el área
+    usuario_registro_id INTEGER NOT NULL REFERENCES usuarios(id),
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
     estado_id INTEGER NOT NULL REFERENCES estados_area(id),
-    ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Libros físicos
@@ -101,17 +114,17 @@ CREATE TABLE libros (
     editorial_id INTEGER NOT NULL REFERENCES editoriales(id),
     edicion VARCHAR(50),
     numero_paginas INTEGER,
-    area_id INTEGER NOT NULL REFERENCES areas_conocimiento(id),
+    area_conocimiento_id INTEGER NOT NULL REFERENCES areas_conocimiento(id),
     -- Información de adquisición
-    fecha_adquisicion DATE DEFAULT CURRENT_DATE,
+    fecha_adquisicion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     metodo_adquisicion VARCHAR(20) NOT NULL,
     proveedor_nombre VARCHAR(255),
     precio DECIMAL(10,2),
+    es_prestable BOOLEAN NOT NULL DEFAULT TRUE,
     -- Seguimiento y estado
-    usuario_creador_id INTEGER NOT NULL REFERENCES usuarios(id),  -- Quién registró el libro
+    usuario_registro_id INTEGER NOT NULL REFERENCES usuarios(id),
     estado_id INTEGER NOT NULL REFERENCES estados_libro(id),
     fecha_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    es_prestable BOOLEAN NOT NULL DEFAULT TRUE,
     -- Constraints de unicidad
     UNIQUE(codigo_decimal, etiqueta, numero_ejemplar)
 );
@@ -120,16 +133,16 @@ CREATE TABLE libros (
 CREATE TABLE equipos_computo (
     id SERIAL PRIMARY KEY,
     numero_serie VARCHAR(50) NOT NULL UNIQUE,
-    marca VARCHAR(50) NOT NULL,
+    marca INTEGER NOT NULL REFERENCES marcas_equipo_computo,
     modelo VARCHAR(50) NOT NULL,
-    tipo_equipo VARCHAR(20) NOT NULL,
+    tipo_equipo INTEGER NOT NULL REFERENCES tipos_equipo_computo(id),
     especificaciones TEXT,
-    fecha_adquisicion DATE DEFAULT CURRENT_DATE,
-    destino_uso VARCHAR(30) NOT NULL,
-    usuario_creador_id INTEGER NOT NULL REFERENCES usuarios(id),  -- Quién registró el equipo
+    es_prestable BOOLEAN NOT NULL DEFAULT TRUE,
+    usuario_registro_id INTEGER NOT NULL REFERENCES usuarios(id),  
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     area_id INTEGER NOT NULL REFERENCES areas(id),
     estado_id INTEGER NOT NULL REFERENCES estados_equipo(id),
-    ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Mobiliario
@@ -137,23 +150,22 @@ CREATE TABLE mobiliario (
     id SERIAL PRIMARY KEY,
     tipo_mobiliario VARCHAR(30) NOT NULL,
     descripcion VARCHAR(255),
-    fecha_ingreso DATE DEFAULT CURRENT_DATE,
-    usuario_creador_id INTEGER NOT NULL REFERENCES usuarios(id),  -- Quién registró el mobiliario
+    fecha_ingreso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario_creador_id INTEGER NOT NULL REFERENCES usuarios(id),  
     area_id INTEGER NOT NULL REFERENCES areas(id),
     estado_id INTEGER NOT NULL REFERENCES estados_mobiliario(id),
-    ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Libros virtuales/digitales
 CREATE TABLE libros_virtuales (
     id SERIAL PRIMARY KEY,
     archivo_digital VARCHAR(255) NOT NULL,
-    formato VARCHAR(10),
     tamanio_bytes BIGINT,
-    usuario_subio_id INTEGER NOT NULL REFERENCES usuarios(id),    -- Quién subió el archivo
+    usuario_subio_id INTEGER NOT NULL REFERENCES usuarios(id),    
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     estado_virtual_id INTEGER NOT NULL REFERENCES estados_virtual(id),
-    fecha_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tesis
@@ -162,23 +174,24 @@ CREATE TABLE tesis (
     codigo_decimal VARCHAR(20) NOT NULL UNIQUE,
     titulo VARCHAR(500) NOT NULL,
     numero_paginas INTEGER,
-    fecha_publicacion DATE NOT NULL,
+    fecha_publicacion TIMESTAMP NOT NULL,
     -- Información del autor
     nombre_autor VARCHAR(255) NOT NULL,
     codigo_universitario VARCHAR(20) NOT NULL,
     generacion VARCHAR(10),
     carrera VARCHAR(100) NOT NULL,
     nivel_estudios VARCHAR(20) NOT NULL,
-    -- Tracking de subida
-    usuario_subio_id INTEGER NOT NULL REFERENCES usuarios(id),    -- Quién registró la tesis
-    link_copia_virtual VARCHAR(255),
+    -- Fisico
+    usuario_ingreso_id INTEGER NOT NULL REFERENCES usuarios(id),  
+    fecha_ingreso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    estado_fisico_id INTEGER NOT NULL REFERENCES estados_libro(id),
+    fecha_ultimo_cambio_estado_fisico TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Virtual
+    usuario_subio_virtual_id INTEGER REFERENCES usuarios(id),
     fecha_subida_virtual TIMESTAMP,
-    usuario_subio_virtual_id INTEGER REFERENCES usuarios(id),     -- Quién subió la copia virtual
-    estado_virtual_id INTEGER REFERENCES estados_virtual(id),
-    fecha_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- Seguimiento
-    estado VARCHAR(20) DEFAULT 'Disponible',
-    fecha_ingreso DATE DEFAULT CURRENT_DATE
+    link_copia_virtual VARCHAR(255),     
+    estado_virtual_id INTEGER NOT NULL REFERENCES estados_virtual(id),
+    fecha_ultimo_cambio_estado_virtual TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =============================================

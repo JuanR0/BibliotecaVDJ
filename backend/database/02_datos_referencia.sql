@@ -53,6 +53,17 @@ INSERT INTO relaciones_institucion (relacion) VALUES
 ('Administrativo'), 
 ('Otro');
 
+-- Marcas equipo computo
+INSERT INTO marcas_equipo_computo (marca) VALUES 
+('HP'),
+('LENOVO'),
+('DELL');
+
+-- Tipos de equipo computo
+INSERT INTO tipos_equipo_computo (tipo) VALUES 
+('Portatil'),
+('De escritorio');
+
 -- Tipos de usuario
 INSERT INTO tipos_usuario (tipo) VALUES 
 ('Comun'),
