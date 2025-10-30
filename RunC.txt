@@ -4,3 +4,10 @@ npm start
 Backend
 venv\Scripts\activate
 uvicorn main:app --reload
+
+Migracion
+
+psql -h localhost -U postgres -f reset_bd.sql
+
+psql -h localhost -p 5432 -U postgres -d BibliotecaVDJ  -f 01_esquema_completo.sql
+psql -h localhost -p 5432 -U postgres -d BibliotecaVDJ  -f 02_datos_referencia.sql
