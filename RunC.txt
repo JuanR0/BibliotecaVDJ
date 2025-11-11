@@ -3,7 +3,7 @@ npm start
 
 Backend
 venv\Scripts\activate
-uvicorn main:app --reload
+uvicorn src.main:app --reload
 
 Migracion
 

@@ -5,3 +5,4 @@ sqlalchemy
 psycopg2-binary
 python-dotenv
 pydantic
+bcrypt 4.3.0.
