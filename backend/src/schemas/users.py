@@ -166,3 +166,18 @@ class UsuarioConRelacionesResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+class UsuarioRegister(UsuarioBase):
+        """Esquema para registro público - sin tipo_usuario_id"""
+        clave_acceso: str = Field(..., min_length=6, max_length=72)
+        relacion_institucional_id: int = Field(..., gt=0)
+        # ✅ NO incluye tipo_usuario_id - siempre será usuario común
+        
+        @field_validator('clave_acceso')
+        @classmethod
+        def clave_longitud_valida(cls, v: str) -> str:
+            if len(v) < 6:
+                raise ValueError('La clave debe tener al menos 6 caracteres')
+            if len(v.encode('utf-8')) > 72:
+                raise ValueError('La clave es demasiado larga (máximo 72 bytes)')
+            return v

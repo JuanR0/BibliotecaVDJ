@@ -12,12 +12,13 @@ from config.database import get_db, verify_connection, create_tables
 from models import Usuario
 
 from schemas.auth import UsuarioLogin, Token
-from schemas.users import UsuarioResponse, UsuarioCreate
+from schemas.users import UsuarioResponse, UsuarioCreate, UsuarioRegister    
 from auth import (
     autenticar_usuario, 
     crear_token_acceso, 
     obtener_usuario_actual,
-    obtener_hash_clave
+    obtener_hash_clave,
+    requerir_admin   
 )
 
 
@@ -136,7 +137,7 @@ async def get_current_user(usuario_actual: Usuario = Depends(obtener_usuario_act
     return usuario_actual
 
 @app.post("/api/auth/register", response_model=UsuarioResponse)
-async def register_user(usuario_data: UsuarioCreate, db: Session = Depends(get_db)):
+async def register_user(usuario_data: UsuarioRegister, db: Session = Depends(get_db)):
     try:
         logger.info(f"Intentando registrar usuario: {usuario_data.codigo_universitario}")
         
@@ -169,6 +170,51 @@ async def register_user(usuario_data: UsuarioCreate, db: Session = Depends(get_d
         logger.info(f"✅ Usuario creado exitosamente: {nuevo_usuario.codigo_universitario}")
         return nuevo_usuario
         
+    except Exception as e:
+        logger.error(f"❌ Error en registro: {str(e)}")
+        logger.error(f"Tipo de error: {type(e).__name__}")
+        db.rollback()  # Importante: hacer rollback en caso de error
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno del servidor: {str(e)}"
+        )
+
+@app.post("/api/admin/usuarios", response_model=UsuarioResponse)
+async def crear_usuario_admin(
+    usuario_data: UsuarioCreate, 
+    db: Session = Depends(get_db),
+    admin_actual: Usuario = Depends(requerir_admin)  # ← Solo admins pueden usar este endpoint
+):
+    try:
+        logger.info(f"Intentando registrar usuario: {usuario_data.codigo_universitario}")
+        """Crear usuario con cualquier rol (solo administradores)"""
+        usuario_existente = db.query(Usuario).filter(
+            Usuario.codigo_universitario == usuario_data.codigo_universitario
+        ).first()
+        
+        if usuario_existente:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El código universitario ya está registrado"
+            )
+        
+        nuevo_usuario = Usuario(
+            codigo_universitario=usuario_data.codigo_universitario,
+            clave_acceso=obtener_hash_clave(usuario_data.clave_acceso),
+            nombre_completo=usuario_data.nombre_completo,
+            relacion_institucional_id=usuario_data.relacion_institucional_id,
+            tipo_usuario_id=usuario_data.tipo_usuario_id,  # ✅ Respeta el tipo enviado
+            usuario_creador_id=admin_actual.id,  # ✅ Registra quién creó el usuario
+            esta_activo=True
+        )
+        
+        db.add(nuevo_usuario)
+        db.commit()
+        db.refresh(nuevo_usuario)
+    
+        logger.info(f"✅ Usuario creado por admin {admin_actual.codigo_universitario}: {nuevo_usuario.codigo_universitario} (tipo: {nuevo_usuario.tipo_usuario_id})")
+        return nuevo_usuario
+
     except Exception as e:
         logger.error(f"❌ Error en registro: {str(e)}")
         logger.error(f"Tipo de error: {type(e).__name__}")

@@ -6,6 +6,7 @@ from .users import (
     UsuarioBase,
     UsuarioCreate,
     UsuarioCreateAdmin,
+    UsuarioRegister,  # ✅ AGREGAR ESTA LÍNEA
     
     # Schemas de actualización
     UsuarioUpdate,
@@ -58,13 +59,13 @@ class EstadoUsuarioEnum(str, Enum):
     activo = "activo"
     inactivo = "inactivo"
 
-# Exportar todo
+# Exportar todo - AGREGAR UsuarioRegister aquí también
 __all__ = [
     # Auth
     "UsuarioLogin", "Token", "TokenData",
     
     # Users - Principales
-    "UsuarioBase", "UsuarioCreate", "UsuarioCreateAdmin", 
+    "UsuarioBase", "UsuarioCreate", "UsuarioCreateAdmin", "UsuarioRegister",  # ✅ AGREGAR ESTA LÍNEA
     "UsuarioUpdate", "UsuarioUpdateSelf", "PasswordChange",
     "UsuarioResponse", "UsuarioDetailResponse", "UsuarioSearchResponse",
     "UsuarioListResponse", "UsuarioStatusChange",
