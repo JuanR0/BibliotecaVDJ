@@ -1,83 +1,86 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 import logging
 from dotenv import load_dotenv
 
-load_dotenv()  # ✅ Cargar variables de entorno
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Construir DATABASE_URL desde variables de entorno
+# Construir DATABASE_URL async
 DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_NAME = os.getenv("DB_NAME", "bibliotecavdj")  # ← Tu base de datos
+DB_NAME = os.getenv("DB_NAME", "bibliotecavdj")
 DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "Jalisco2025.")  # ← Tu password
+DB_PASSWORD = os.getenv("DB_PASSWORD", "Jalisco2025.")
 DB_PORT = os.getenv("DB_PORT", "5432")
 
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# ✅ CAMBIO: postgresql+asyncpg en lugar de postgresql
+DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-logger.info(f"🔗 Configurando conexión a PostgreSQL...")
+logger.info(f"🔗 Configurando conexión ASINCRONA a PostgreSQL...")
 
-# Crear engine SIN verificar conexión inmediatamente
-engine = create_engine(
+# Crear engine async
+engine = create_async_engine(
     DATABASE_URL,
+    echo=False,  # ✅ Útil para debug durante migración
+    future=True,
     pool_size=10,
     max_overflow=20,
-    pool_pre_ping=True,  # Verifica conexión antes de usar
-    echo=False,
-    future=True
 )
 
-SessionLocal = sessionmaker(
-    autocommit=False,
+# Session async
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
     autoflush=False,
-    bind=engine,
-    future=True
+    autocommit=False
 )
 
 Base = declarative_base()
 
-def get_db():
+# Dependencia async
+async def get_db():
     """
-    Dependencia para obtener sesión de base de datos.
+    Dependencia async para obtener sesión de base de datos.
     """
-    db = SessionLocal()
-    try:
-        yield db
-    except SQLAlchemyError as e:
-        logger.error(f"Error de base de datos: {e}")
-        db.rollback()
-        raise
-    finally:
-        db.close()
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except SQLAlchemyError as e:
+            await session.rollback()
+            logger.error(f"Error de base de datos: {e}")
+            raise
+        finally:
+            await session.close()
 
-def verify_connection():
+# Funciones async para verificación
+async def verify_connection():
     """
-    Verificar conexión manualmente - se llama en startup
+    Verificar conexión manualmente - async
     """
     try:
-        with engine.connect() as conn:
-            logger.info("✅ Conexión a PostgreSQL establecida correctamente")
+        async with engine.begin() as conn:
+            await conn.execute(text("SELECT 1"))
+            logger.info("✅ Conexión ASINCRONA a PostgreSQL establecida correctamente")
             return True
     except SQLAlchemyError as e:
         logger.error(f"❌ Error conectando a PostgreSQL: {e}")
-        logger.error("💡 Verifica que:")
-        logger.error("   - PostgreSQL esté ejecutándose")
-        logger.error("   - Las credenciales en .env sean correctas") 
-        logger.error("   - La base de datos 'bibliotecavdj' exista")
         return False
 
-def create_tables():
+async def create_tables():
     """
-    Crear tablas solo si la conexión es exitosa
+    Crear tablas async
     """
     try:
-        Base.metadata.create_all(bind=engine)
-        logger.info("✅ Tablas creadas/verificadas correctamente")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+            logger.info("✅ Tablas creadas/verificadas correctamente")
     except SQLAlchemyError as e:
         logger.error(f"❌ Error creando tablas: {e}")
         raise

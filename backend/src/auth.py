@@ -4,7 +4,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession  # ✅ Import correcto
+from sqlalchemy import select
 import os
 from dotenv import load_dotenv
 import logging
@@ -38,8 +39,6 @@ def obtener_hash_clave(clave: str) -> str:
     Genera un hash bcrypt para una clave.
     Versión compatible con bcrypt 4.0+
     """
-    # La validación de longitud ya se hizo en el schema
-    # Si llegamos aquí, la contraseña es válida
     return pwd_context.hash(clave)
 
 def verificar_clave(clave_plana: str, clave_hash: str) -> bool:
@@ -73,7 +72,7 @@ def verificar_token(token: str) -> Optional[dict]:
 
 async def obtener_usuario_actual(
     token: str = Depends(oauth2_scheme), 
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)  # ✅ CORREGIDO: AsyncSession
 ) -> Usuario:
     """
     Dependencia de FastAPI para obtener el usuario actual desde el token JWT.
@@ -97,12 +96,15 @@ async def obtener_usuario_actual(
         if codigo_universitario is None or user_id is None:
             raise credenciales_exception
         
-        # Buscar usuario en la base de datos
-        usuario = db.query(Usuario).filter(
-            Usuario.codigo_universitario == codigo_universitario,
-            Usuario.id == user_id,
-            Usuario.esta_activo == True
-        ).first()
+        result = await db.execute(
+            select(Usuario).filter(
+                Usuario.codigo_universitario == codigo_universitario,
+                Usuario.id == user_id,
+                Usuario.esta_activo == True
+            )
+        )
+        
+        usuario = result.scalar_one_or_none()
         
         if usuario is None:
             raise credenciales_exception
@@ -113,7 +115,7 @@ async def obtener_usuario_actual(
         raise credenciales_exception
 
 async def obtener_usuario_actual_optcional(
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),  # ✅ CORREGIDO: AsyncSession
     token: Optional[str] = Depends(oauth2_scheme)
 ) -> Optional[Usuario]:
     """
@@ -150,18 +152,21 @@ def requerir_super_admin(usuario_actual: Usuario = Depends(obtener_usuario_actua
         )
     return usuario_actual
 
-def autenticar_usuario(
-    db: Session, 
+async def autenticar_usuario(
+    db: AsyncSession,  # ✅ CORREGIDO: AsyncSession
     codigo_universitario: str, 
     clave_acceso: str
 ) -> Optional[Usuario]:
     """
     Autentica un usuario con código universitario y clave.
     """
-    usuario = db.query(Usuario).filter(
-        Usuario.codigo_universitario == codigo_universitario,
-        Usuario.esta_activo == True
-    ).first()
+    result = await db.execute(
+        select(Usuario).filter(
+            Usuario.codigo_universitario == codigo_universitario,
+            Usuario.esta_activo == True
+        )
+    )
+    usuario = result.scalar_one_or_none()
     
     if not usuario:
         return None

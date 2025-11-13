@@ -1,8 +1,11 @@
 # Standard web development stack
+
 fastapi
 uvicorn
 sqlalchemy
-psycopg2-binary
 python-dotenv
 pydantic
-bcrypt 4.3.0.
+bcrypt==4.3.0
+python-jose[cryptography]
+passlib[bcrypt]
+asyncpg

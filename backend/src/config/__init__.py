@@ -8,16 +8,17 @@ las dependencias de conexión para SQLAlchemy y FastAPI.
 from .database import (
     Base,
     engine,
-    SessionLocal,
+    AsyncSessionLocal,  # ✅ CAMBIAR: SessionLocal → AsyncSessionLocal
     get_db,
+    verify_connection,
     create_tables
 )
 
 __all__ = [
     "Base",
     "engine", 
-    "SessionLocal",
+    "AsyncSessionLocal",  # ✅ CAMBIAR
     "get_db",
+    "verify_connection",
     "create_tables"
 ]
-
