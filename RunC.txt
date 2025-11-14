@@ -1,5 +1,5 @@
 Frontend
-npm start
+npm run dev
 
 instalar dependencias
 pip install -r requirements.txt
