@@ -67,5 +67,6 @@ INSERT INTO tipos_equipo_computo (tipo) VALUES
 -- Tipos de usuario
 INSERT INTO tipos_usuario (tipo) VALUES 
 ('Comun'),
-('Admin'),
+('Admin_basico'),
+('Admin_avanzado'),
 ('SuperAdmin');

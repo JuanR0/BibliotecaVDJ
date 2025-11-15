@@ -1,9 +1,12 @@
 Frontend
-npm start
+npm run dev
+
+instalar dependencias
+pip install -r requirements.txt
 
 Backend
-venv\Scripts\activate
-uvicorn main:app --reload
+venv313\Scripts\activate
+uvicorn src.main:app --reload
 
 Migracion
 

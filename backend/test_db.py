@@ -1,4 +1,4 @@
-from config.database import get_db_connection
+from database import get_db_connection
 
 def test_connection():
     """Prueba básica de conexión a la base de datos"""
