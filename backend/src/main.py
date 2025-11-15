@@ -7,24 +7,32 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from config.database import verify_connection, create_tables
-from api.routes import auth
+from api.routes import auth, usuarios  
 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Sistema de Biblioteca VDJ")
+app = FastAPI(
+    title="Sistema de Biblioteca VDJ",
+    version="1.0.0",
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+        "displayRequestDuration": True
+    }
+)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173"],  # ← AGREGAR 5173
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"],    
 )
 
 # Incluir routers
 app.include_router(auth.router)
+app.include_router(usuarios.router) 
 
 @app.on_event("startup")
 async def startup_event():

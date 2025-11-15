@@ -27,7 +27,7 @@ class UsuarioCreate(UsuarioBase):
     clave_acceso: str = Field(..., min_length=6, max_length=72)  # ✅ Límite real de bcrypt
     relacion_institucional_id: int = Field(..., gt=0)
     tipo_usuario_id: int = Field(..., gt=0)
-    usuario_creador_id: Optional[int] = Field(None, gt=0)
+    #usuario_creador_id: Optional[int] = Field(None, gt=0)
     
     @field_validator('clave_acceso')
     @classmethod
