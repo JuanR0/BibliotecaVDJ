@@ -133,9 +133,9 @@ CREATE TABLE libros (
 CREATE TABLE equipos_computo (
     id SERIAL PRIMARY KEY,
     numero_serie VARCHAR(50) NOT NULL UNIQUE,
-    marca INTEGER NOT NULL REFERENCES marcas_equipo_computo,
+    marca_id INTEGER NOT NULL REFERENCES marcas_equipo_computo,
     modelo VARCHAR(50) NOT NULL,
-    tipo_equipo INTEGER NOT NULL REFERENCES tipos_equipo_computo(id),
+    tipo_equipo_id INTEGER NOT NULL REFERENCES tipos_equipo_computo(id),
     especificaciones TEXT,
     es_prestable BOOLEAN NOT NULL DEFAULT TRUE,
     usuario_registro_id INTEGER NOT NULL REFERENCES usuarios(id),  
@@ -160,6 +160,15 @@ CREATE TABLE mobiliario (
 -- Libros virtuales/digitales
 CREATE TABLE libros_virtuales (
     id SERIAL PRIMARY KEY,
+    -- Metadatos del libro
+    isbn VARCHAR(20),
+    titulo VARCHAR(255) NOT NULL,
+    autor VARCHAR(255) NOT NULL,
+    editorial_id INTEGER NOT NULL REFERENCES editoriales(id),
+    edicion VARCHAR(50),
+    numero_paginas INTEGER,
+    area_conocimiento_id INTEGER NOT NULL REFERENCES areas_conocimiento(id),
+    -- Relevante a lo digital
     archivo_digital VARCHAR(255) NOT NULL,
     tamanio_bytes BIGINT,
     usuario_subio_id INTEGER NOT NULL REFERENCES usuarios(id),    
@@ -174,10 +183,10 @@ CREATE TABLE tesis (
     codigo_decimal VARCHAR(20) NOT NULL UNIQUE,
     titulo VARCHAR(500) NOT NULL,
     numero_paginas INTEGER,
-    fecha_publicacion TIMESTAMP NOT NULL,
+    fecha_publicacion VARCHAR(50) NOT NULL,
     -- Información del autor
     nombre_autor VARCHAR(255) NOT NULL,
-    codigo_universitario VARCHAR(20) NOT NULL,
+    codigo_universitario_autor VARCHAR(20) NOT NULL,
     generacion VARCHAR(10),
     carrera VARCHAR(100) NOT NULL,
     nivel_estudios VARCHAR(20) NOT NULL,

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from config.database import verify_connection, create_tables
-from api.routes import auth, usuarios  
+from api.routes import auth, usuarios, libros, libros_virtuales, areas, equipos_computo, mobiliario, tesis
 
 
 logging.basicConfig(level=logging.INFO)
@@ -33,6 +33,12 @@ app.add_middleware(
 # Incluir routers
 app.include_router(auth.router)
 app.include_router(usuarios.router) 
+app.include_router(libros.router)
+app.include_router(libros_virtuales.router)  
+app.include_router(areas.router)
+app.include_router(equipos_computo.router)
+app.include_router(mobiliario.router)
+app.include_router(tesis.router)
 
 @app.on_event("startup")
 async def startup_event():
