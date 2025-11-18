@@ -1,12 +1,12 @@
 Frontend
 npm run dev
 
-instalar dependencias
-pip install -r requirements.txt
-
 Backend
 venv313\Scripts\activate
 uvicorn src.main:app --reload
+
+instalar dependencias
+pip install -r requirements.txt
 
 Migracion
 
