@@ -5,7 +5,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from config.database import get_db
-from schemas.users import (
+from schemas.usuarios import (
     UsuarioCreateAdmin, 
     UsuarioResponse, 
     UsuarioUpdate,

@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from config.database import get_db
 from schemas.auth import UsuarioLogin, Token
-from schemas.users import UsuarioResponse, UsuarioRegister
+from schemas.usuarios import UsuarioResponse, UsuarioRegister
 from core.security import (
     autenticar_usuario, 
     crear_token_acceso, 
