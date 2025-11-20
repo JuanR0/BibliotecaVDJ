@@ -1,9 +1,11 @@
-Frontend
-npm run dev
+Correr
 
-Backend
-venv\Scripts\activate
-uvicorn src.main:app --reload
+    Frontend
+    npm run dev
+
+    Backend
+    venv\Scripts\activate
+    uvicorn src.main:app --reload
 
 instalar dependencias
 pip install -r requirements.txt
