@@ -9,5 +9,3 @@ CREATE DATABASE bibliotecavdj;
 
 -- Ejecutar datos de referencia
 \i 02_datos_referencia.sql
-
---Un comentario otra vez
