@@ -52,16 +52,34 @@ CREATE TABLE relaciones_institucion (
     relacion VARCHAR(20) NOT NULL UNIQUE
 );
 
--- Editoriales de libros
+-- Marca equipos de computo
 CREATE TABLE marcas_equipo_computo(
     id SERIAL PRIMARY KEY,
     marca VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- Metodos adquisicion
+CREATE TABLE metodos_adquisicion (
+    id SERIAL PRIMARY KEY,
+    tipo VARCHAR(15) NOT NULL UNIQUE
+);
+
+-- Niveles estudio
+CREATE TABLE niveles_estudio(
+    id SERIAL PRIMARY KEY,
+    nivel VARCHAR(100) NOT NULL UNIQUE
 );
 
 -- Tipos de equipo
 CREATE TABLE tipos_equipo_computo (
     id SERIAL PRIMARY KEY,
     tipo VARCHAR(15) NOT NULL UNIQUE
+);
+
+-- Tipos mobiliario
+CREATE TABLE tipos_mobiliario (
+    id SERIAL PRIMARY KEY,
+    tipo VARCHAR(25) NOT NULL UNIQUE
 );
 
 -- Tipos de usuario (permisos)
@@ -112,12 +130,12 @@ CREATE TABLE libros (
     titulo VARCHAR(255) NOT NULL,
     autor VARCHAR(255) NOT NULL,
     editorial_id INTEGER NOT NULL REFERENCES editoriales(id),
-    edicion VARCHAR(50),
+    edicion INTEGER, 
     numero_paginas INTEGER,
     area_conocimiento_id INTEGER NOT NULL REFERENCES areas_conocimiento(id),
     -- Información de adquisición
     fecha_adquisicion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    metodo_adquisicion VARCHAR(20) NOT NULL,
+    metodo_adquisicion_id INTEGER NOT NULL REFERENCES metodos_adquisicion(id),  
     proveedor_nombre VARCHAR(255),
     precio DECIMAL(10,2),
     es_prestable BOOLEAN NOT NULL DEFAULT TRUE,
@@ -145,10 +163,10 @@ CREATE TABLE equipos_computo (
     fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Mobiliario
+-- Mobiliario 
 CREATE TABLE mobiliario (
     id SERIAL PRIMARY KEY,
-    tipo_mobiliario VARCHAR(30) NOT NULL,
+    tipo_mobiliario_id INTEGER NOT NULL REFERENCES tipos_mobiliario(id),  
     descripcion VARCHAR(255),
     fecha_ingreso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     usuario_creador_id INTEGER NOT NULL REFERENCES usuarios(id),  
@@ -165,12 +183,11 @@ CREATE TABLE libros_virtuales (
     titulo VARCHAR(255) NOT NULL,
     autor VARCHAR(255) NOT NULL,
     editorial_id INTEGER NOT NULL REFERENCES editoriales(id),
-    edicion VARCHAR(50),
+    edicion INTEGER,
     numero_paginas INTEGER,
     area_conocimiento_id INTEGER NOT NULL REFERENCES areas_conocimiento(id),
     -- Relevante a lo digital
     archivo_digital VARCHAR(255) NOT NULL,
-    tamanio_bytes BIGINT,
     usuario_subio_id INTEGER NOT NULL REFERENCES usuarios(id),    
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     estado_virtual_id INTEGER NOT NULL REFERENCES estados_virtual(id),
@@ -189,7 +206,7 @@ CREATE TABLE tesis (
     codigo_universitario_autor VARCHAR(20) NOT NULL,
     generacion VARCHAR(10),
     carrera VARCHAR(100) NOT NULL,
-    nivel_estudios VARCHAR(20) NOT NULL,
+    nivel_estudios_id INTEGER NOT NULL REFERENCES niveles_estudio(id),
     -- Fisico
     usuario_ingreso_id INTEGER NOT NULL REFERENCES usuarios(id),  
     fecha_ingreso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

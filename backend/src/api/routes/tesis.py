@@ -19,7 +19,7 @@ from core.security import (
     requerir_puede_consultar,
     requerir_puede_gestionar_recursos
 )
-from models import Tesis, EstadoLibro, EstadoVirtual, Usuario
+from models import Tesis, EstadoLibro, EstadoVirtual, Usuario, NivelEstudio
 
 router = APIRouter(prefix="/api/tesis", tags=["tesis"])
 
@@ -42,7 +42,8 @@ async def verificar_relaciones_tesis(db: AsyncSession, tesis_data: dict):
     """Verifica que existan las relaciones de la tesis"""
     relaciones = [
         (tesis_data.get('estado_fisico_id'), EstadoLibro, "Estado físico"),
-        (tesis_data.get('estado_virtual_id'), EstadoVirtual, "Estado virtual")
+        (tesis_data.get('estado_virtual_id'), EstadoVirtual, "Estado virtual"),
+        (tesis_data.get('nivel_estudios_id'), NivelEstudio, "Nivel de estudios")  # ← Nueva verificación
     ]
     
     for valor, modelo, nombre in relaciones:
@@ -90,6 +91,7 @@ async def listar_tesis(
     nombre_autor: Optional[str] = Query(None, description="Filtrar por nombre del autor"),
     carrera: Optional[str] = Query(None, description="Filtrar por carrera"),
     codigo_decimal: Optional[str] = Query(None, description="Filtrar por código decimal"),
+    nivel_estudios_id: Optional[int] = Query(None, description="Filtrar por nivel de estudios"),  # ← Cambiado
     estado_fisico_id: Optional[int] = Query(None, description="Filtrar por estado físico"),
     estado_virtual_id: Optional[int] = Query(None, description="Filtrar por estado virtual"),
     incluir_retiradas: bool = Query(False, description="Incluir tesis retiradas físicamente"),
@@ -105,7 +107,8 @@ async def listar_tesis(
         selectinload(Tesis.estado_fisico),
         selectinload(Tesis.estado_virtual),
         selectinload(Tesis.usuario_ingreso),
-        selectinload(Tesis.usuario_subio_virtual)
+        selectinload(Tesis.usuario_subio_virtual),
+        selectinload(Tesis.nivel_estudio)  # ← Nueva relación
     )
     
     # Excluir tesis retiradas físicamente por defecto
@@ -121,6 +124,8 @@ async def listar_tesis(
         query = query.filter(Tesis.carrera.ilike(f"%{carrera}%"))
     if codigo_decimal:
         query = query.filter(Tesis.codigo_decimal.ilike(f"%{codigo_decimal}%"))
+    if nivel_estudios_id:  # ← Nuevo filtro
+        query = query.filter(Tesis.nivel_estudios_id == nivel_estudios_id)
     if estado_fisico_id:
         query = query.filter(Tesis.estado_fisico_id == estado_fisico_id)
     if estado_virtual_id:
@@ -140,6 +145,8 @@ async def listar_tesis(
         total_query = total_query.filter(Tesis.carrera.ilike(f"%{carrera}%"))
     if codigo_decimal:
         total_query = total_query.filter(Tesis.codigo_decimal.ilike(f"%{codigo_decimal}%"))
+    if nivel_estudios_id:  # ← Nuevo filtro
+        total_query = total_query.filter(Tesis.nivel_estudios_id == nivel_estudios_id)
     if estado_fisico_id:
         total_query = total_query.filter(Tesis.estado_fisico_id == estado_fisico_id)
     if estado_virtual_id:
@@ -163,6 +170,7 @@ async def listar_tesis(
         tesis_dict.estado_fisico_nombre = tesis.estado_fisico.estado
         tesis_dict.estado_virtual_nombre = tesis.estado_virtual.estado
         tesis_dict.usuario_ingreso_nombre = tesis.usuario_ingreso.nombre_completo
+        tesis_dict.nivel_estudio_nombre = tesis.nivel_estudio.nivel  # ← Nuevo campo
         if tesis.usuario_subio_virtual:
             tesis_dict.usuario_subio_virtual_nombre = tesis.usuario_subio_virtual.nombre_completo
         tesis_con_relaciones.append(tesis_dict)
@@ -191,7 +199,8 @@ async def obtener_tesis(
             selectinload(Tesis.estado_fisico),
             selectinload(Tesis.estado_virtual),
             selectinload(Tesis.usuario_ingreso),
-            selectinload(Tesis.usuario_subio_virtual)
+            selectinload(Tesis.usuario_subio_virtual),
+            selectinload(Tesis.nivel_estudio)  # ← Nueva relación
         )
         .filter(Tesis.id == tesis_id)
     )
@@ -208,6 +217,7 @@ async def obtener_tesis(
     tesis_response.estado_fisico_nombre = tesis.estado_fisico.estado
     tesis_response.estado_virtual_nombre = tesis.estado_virtual.estado
     tesis_response.usuario_ingreso_nombre = tesis.usuario_ingreso.nombre_completo
+    tesis_response.nivel_estudio_nombre = tesis.nivel_estudio.nivel  # ← Nuevo campo
     if tesis.usuario_subio_virtual:
         tesis_response.usuario_subio_virtual_nombre = tesis.usuario_subio_virtual.nombre_completo
     

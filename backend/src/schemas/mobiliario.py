@@ -5,17 +5,12 @@ from datetime import datetime
 
 class MobiliarioBase(BaseModel):
     """Esquema base para mobiliario"""
-    tipo_mobiliario: str = Field(..., min_length=1, max_length=30)
+    tipo_mobiliario_id: int = Field(..., gt=0)  # ✅ CAMBIADO: str → int
     descripcion: Optional[str] = Field(None, max_length=255)
     area_id: int = Field(..., gt=0)
     estado_id: int = Field(..., gt=0)
 
-    @field_validator('tipo_mobiliario')
-    @classmethod
-    def tipo_mobiliario_no_vacio(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError('El tipo de mobiliario no puede estar vacío')
-        return v.strip()
+    # ❌ ELIMINADO: validador de tipo_mobiliario (ya no es string)
 
 class MobiliarioCreate(MobiliarioBase):
     """Esquema para crear nuevo mobiliario"""
@@ -23,17 +18,12 @@ class MobiliarioCreate(MobiliarioBase):
 
 class MobiliarioUpdate(BaseModel):
     """Esquema para actualizar mobiliario"""
-    tipo_mobiliario: Optional[str] = Field(None, min_length=1, max_length=30)
+    tipo_mobiliario_id: Optional[int] = Field(None, gt=0)  # ✅ CAMBIADO
     descripcion: Optional[str] = Field(None, max_length=255)
     area_id: Optional[int] = Field(None, gt=0)
     estado_id: Optional[int] = Field(None, gt=0)
 
-    @field_validator('tipo_mobiliario')
-    @classmethod
-    def tipo_mobiliario_valido(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and not v.strip():
-            raise ValueError('El tipo de mobiliario no puede estar vacío')
-        return v.strip() if v else v
+    # ❌ ELIMINADO: validador de tipo_mobiliario
 
 class MobiliarioResponse(MobiliarioBase):
     """Esquema para respuesta de mobiliario"""
@@ -48,6 +38,7 @@ class MobiliarioResponse(MobiliarioBase):
 
 class MobiliarioConRelacionesResponse(MobiliarioResponse):
     """Esquema para mobiliario con relaciones anidadas"""
+    tipo_mobiliario_nombre: Optional[str] = None  # ✅ NUEVO: para mostrar el nombre
     area_nombre: Optional[str] = None
     estado_nombre: Optional[str] = None
     usuario_creador_nombre: Optional[str] = None
@@ -65,7 +56,7 @@ class MobiliarioListResponse(BaseModel):
 
 class MobiliarioSearchFilters(BaseModel):
     """Esquema para filtros de búsqueda de mobiliario"""
-    tipo_mobiliario: Optional[str] = None
+    tipo_mobiliario_id: Optional[int] = None  # ✅ CAMBIADO: str → int
     area_id: Optional[int] = None
     estado_id: Optional[int] = None
 
@@ -73,6 +64,15 @@ class MobiliarioSearchFilters(BaseModel):
 class EstadoMobiliarioResponse(BaseModel):
     id: int
     estado: str
+
+    model_config = {
+        "from_attributes": True
+    }
+
+# ✅ NUEVO: Schema para tipos de mobiliario
+class TipoMobiliarioResponse(BaseModel):
+    id: int
+    tipo: str
 
     model_config = {
         "from_attributes": True

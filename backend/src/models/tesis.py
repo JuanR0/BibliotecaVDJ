@@ -1,4 +1,4 @@
-from config.database import Base  # ← Con punto
+from config.database import Base
 from sqlalchemy import Column, Integer, String, Boolean, TIMESTAMP, ForeignKey, Text, DECIMAL, BigInteger
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -20,7 +20,7 @@ class Tesis(Base):
     codigo_universitario_autor = Column(String(20), nullable=False)
     generacion = Column(String(10))
     carrera = Column(String(100), nullable=False)
-    nivel_estudios = Column(String(20), nullable=False)
+    nivel_estudios_id = Column(Integer, ForeignKey("niveles_estudio.id"), nullable=False)  # ← Cambiado
     # Fisico
     usuario_ingreso_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     fecha_ingreso = Column(TIMESTAMP, server_default=func.now())
@@ -38,3 +38,4 @@ class Tesis(Base):
     usuario_subio_virtual = relationship("Usuario", back_populates="tesis_subidas_virtual", foreign_keys=[usuario_subio_virtual_id])
     estado_fisico = relationship("EstadoLibro", foreign_keys=[estado_fisico_id])
     estado_virtual = relationship("EstadoVirtual", back_populates="tesis_estado_virtual", foreign_keys=[estado_virtual_id])
+    nivel_estudio = relationship("NivelEstudio", back_populates="tesis")  # ← Nueva relación

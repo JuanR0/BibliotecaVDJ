@@ -17,6 +17,7 @@ from schemas.libros import (
     EditorialResponse,
     AreaConocimientoResponse,
     EstadoLibroResponse,
+    MetodoAdquisicionResponse,  # ← Nuevo import
     LibroCreateConEjemplares
 )
 from core.security import (
@@ -24,7 +25,7 @@ from core.security import (
     requerir_puede_consultar,
     requerir_puede_gestionar_recursos
 )
-from models import Libro, Editorial, AreaConocimiento, EstadoLibro, Usuario
+from models import Libro, Editorial, AreaConocimiento, EstadoLibro, Usuario, MetodoAdquisicion  # ← Nuevo import
 
 router = APIRouter(prefix="/api/libros", tags=["libros"])
 
@@ -102,6 +103,24 @@ async def verificar_unicidad_libro(
     
     return True
 
+async def verificar_relaciones_libro(db: AsyncSession, libro_data: dict):
+    """Verifica que existan las relaciones del libro"""
+    relaciones = [
+        (libro_data.get('editorial_id'), Editorial, "Editorial"),
+        (libro_data.get('area_conocimiento_id'), AreaConocimiento, "Área de conocimiento"),
+        (libro_data.get('estado_id'), EstadoLibro, "Estado de libro"),
+        (libro_data.get('metodo_adquisicion_id'), MetodoAdquisicion, "Método de adquisición")  # ← Nueva verificación
+    ]
+    
+    for valor, modelo, nombre in relaciones:
+        if valor is not None:
+            result = await db.execute(select(modelo).filter(modelo.id == valor))
+            if not result.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"{nombre} no encontrado"
+                )
+
 # =============================================
 # ENDPOINTS DE CONSULTA (Todos los usuarios autenticados)
 # =============================================
@@ -114,22 +133,23 @@ async def listar_libros(
     autor: Optional[str] = Query(None, description="Filtrar por autor"),
     editorial_id: Optional[int] = Query(None, description="Filtrar por editorial"),
     area_conocimiento_id: Optional[int] = Query(None, description="Filtrar por área de conocimiento"),
+    metodo_adquisicion_id: Optional[int] = Query(None, description="Filtrar por método de adquisición"),  # ← Nuevo filtro
     estado_id: Optional[int] = Query(None, description="Filtrar por estado"),
     es_prestable: Optional[bool] = Query(None, description="Filtrar por prestable"),
-     incluir_retirados: bool = Query(False, description="Incluir libros retirados"),
+    incluir_retirados: bool = Query(False, description="Incluir libros retirados"),
     db: AsyncSession = Depends(get_db),
     usuario_actual: Usuario = Depends(requerir_puede_consultar)
 ):
     """
     Listar libros con filtros (todos los usuarios autenticados)
     """
-
     # Construir query base con joins para relaciones
     query = select(Libro).options(
         selectinload(Libro.editorial),
         selectinload(Libro.area_conocimiento),
         selectinload(Libro.estado),
-        selectinload(Libro.usuario_registro)
+        selectinload(Libro.usuario_registro),
+        selectinload(Libro.metodo_adquisicion)  # ← Nueva relación
     )
     
     # Aplicar filtros
@@ -141,6 +161,8 @@ async def listar_libros(
         query = query.filter(Libro.editorial_id == editorial_id)
     if area_conocimiento_id:
         query = query.filter(Libro.area_conocimiento_id == area_conocimiento_id)
+    if metodo_adquisicion_id:  # ← Nuevo filtro
+        query = query.filter(Libro.metodo_adquisicion_id == metodo_adquisicion_id)
     if estado_id:
         query = query.filter(Libro.estado_id == estado_id)
     if es_prestable is not None:
@@ -169,6 +191,7 @@ async def listar_libros(
         libro_dict.area_conocimiento_nombre = libro.area_conocimiento.nombre
         libro_dict.estado_nombre = libro.estado.estado
         libro_dict.usuario_registro_nombre = libro.usuario_registro.nombre_completo
+        libro_dict.metodo_adquisicion_nombre = libro.metodo_adquisicion.tipo  # ← Nuevo campo
         libros_con_relaciones.append(libro_dict)
     
     return LibroListResponse(
@@ -187,14 +210,14 @@ async def obtener_libro(
     """
     Obtener información detallada de un libro
     """
-    
     result = await db.execute(
         select(Libro)
         .options(
             selectinload(Libro.editorial),
             selectinload(Libro.area_conocimiento),
             selectinload(Libro.estado),
-            selectinload(Libro.usuario_registro)
+            selectinload(Libro.usuario_registro),
+            selectinload(Libro.metodo_adquisicion)  # ← Nueva relación
         )
         .filter(Libro.id == libro_id)
     )
@@ -212,8 +235,10 @@ async def obtener_libro(
     libro_response.area_conocimiento_nombre = libro.area_conocimiento.nombre
     libro_response.estado_nombre = libro.estado.estado
     libro_response.usuario_registro_nombre = libro.usuario_registro.nombre_completo
+    libro_response.metodo_adquisicion_nombre = libro.metodo_adquisicion.tipo  # ← Nuevo campo
     
     return libro_response
+
 # =============================================
 # ENDPOINTS DE GESTIÓN (Solo admin avanzado y super admin)
 # =============================================
@@ -234,17 +259,7 @@ async def crear_libro(
     await verificar_unicidad_libro(db, libro_data.codigo_decimal, libro_data.etiqueta, libro_data.numero_ejemplar)
     
     # Verificar que las relaciones existan
-    for field, model, name in [
-        (libro_data.editorial_id, Editorial, "Editorial"),
-        (libro_data.area_conocimiento_id, AreaConocimiento, "Área de conocimiento"),
-        (libro_data.estado_id, EstadoLibro, "Estado de libro")
-    ]:
-        result = await db.execute(select(model).filter(model.id == field))
-        if not result.scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"{name} no encontrado"
-            )
+    await verificar_relaciones_libro(db, libro_data.model_dump())
     
     # Crear nuevo libro
     nuevo_libro = Libro(
@@ -292,6 +307,9 @@ async def actualizar_libro(
         numero_ejemplar = update_data.get('numero_ejemplar', libro.numero_ejemplar)
         await verificar_unicidad_libro(db, codigo_decimal, etiqueta, numero_ejemplar, libro_id)
     
+    # Verificar relaciones si se están actualizando
+    await verificar_relaciones_libro(db, update_data)
+    
     # Actualizar campos
     for field, value in update_data.items():
         setattr(libro, field, value)
@@ -335,6 +353,16 @@ async def listar_estados_libro(
     estados = result.scalars().all()
     return estados
 
+@router.get("/auxiliares/metodos-adquisicion", response_model=List[MetodoAdquisicionResponse])  # ← Nuevo endpoint
+async def listar_metodos_adquisicion(
+    db: AsyncSession = Depends(get_db),
+    usuario_actual: Usuario = Depends(requerir_puede_consultar)
+):
+    """Listar todos los métodos de adquisición"""
+    result = await db.execute(select(MetodoAdquisicion).order_by(MetodoAdquisicion.tipo))
+    metodos = result.scalars().all()
+    return metodos
+
 @router.post("/multiple", response_model=List[LibroResponse])
 async def crear_libros_multiple(
     libro_data: LibroCreateConEjemplares,
@@ -348,17 +376,7 @@ async def crear_libros_multiple(
     await validar_codigo_decimal_en_rango(db, libro_data.codigo_decimal, libro_data.area_conocimiento_id)
     
     # Verificar que las relaciones existan
-    for field, model, name in [
-        (libro_data.editorial_id, Editorial, "Editorial"),
-        (libro_data.area_conocimiento_id, AreaConocimiento, "Área de conocimiento"),
-        (libro_data.estado_id, EstadoLibro, "Estado de libro")
-    ]:
-        result = await db.execute(select(model).filter(model.id == field))
-        if not result.scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"{name} no encontrado"
-            )
+    await verificar_relaciones_libro(db, libro_data.model_dump())
     
     # Preparar datos base (excluyendo campos específicos de múltiples ejemplares)
     datos_base = libro_data.model_dump(exclude={'cantidad_ejemplares', 'numero_ejemplar_inicial'})

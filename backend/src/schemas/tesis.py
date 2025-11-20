@@ -14,24 +14,24 @@ class TesisBase(BaseModel):
     codigo_universitario_autor: str = Field(..., min_length=1, max_length=20)
     generacion: Optional[str] = Field(None, max_length=10)
     carrera: str = Field(..., min_length=1, max_length=100)
-    nivel_estudios: str = Field(..., min_length=1, max_length=20)
+    nivel_estudios_id: int = Field(..., ge=1, description="ID del nivel de estudios (1: Licenciatura, 2: Maestria, 3: Doctorado)")  # ← Cambiado
     # Estados
     estado_fisico_id: int = Field(..., ge=1, le=4)  # 1-4 (estados_libro)
     estado_virtual_id: int = Field(..., ge=1, le=2)  # 1-2 (estados_virtual)
 
-    @field_validator('fecha_publicacion')  # ✅ Nuevo validador para fecha
+    @field_validator('fecha_publicacion')
     @classmethod
     def validar_formato_fecha(cls, v: str) -> str:
         if not v.strip():
             raise ValueError('La fecha de publicación no puede estar vacía')
         
-        # Validar formato básico YYYY-MM-DD
         try:
             datetime.strptime(v, '%Y-%m-%d')
         except ValueError:
             raise ValueError('Formato de fecha inválido. Use YYYY-MM-DD (ej: 2025-11-18)')
         
         return v.strip()
+
     @field_validator('codigo_decimal')
     @classmethod
     def codigo_decimal_no_vacio(cls, v: str) -> str:
@@ -61,12 +61,12 @@ class TesisUpdate(BaseModel):
     """Esquema para actualizar tesis"""
     titulo: Optional[str] = Field(None, min_length=1, max_length=500)
     numero_paginas: Optional[int] = Field(None, ge=1)
-    fecha_publicacion: Optional[str] = Field(None, description="Fecha en formato YYYY-MM-DD")  # ✅ String
+    fecha_publicacion: Optional[str] = Field(None, description="Fecha en formato YYYY-MM-DD")
     nombre_autor: Optional[str] = Field(None, min_length=1, max_length=255)
     codigo_universitario_autor: Optional[str] = Field(None, min_length=1, max_length=20)
     generacion: Optional[str] = Field(None, max_length=10)
     carrera: Optional[str] = Field(None, min_length=1, max_length=100)
-    nivel_estudios: Optional[str] = Field(None, min_length=1, max_length=20)
+    nivel_estudios_id: Optional[int] = Field(None, ge=1, description="ID del nivel de estudios")  # ← Cambiado
     estado_fisico_id: Optional[int] = Field(None, ge=1, le=4)
     estado_virtual_id: Optional[int] = Field(None, ge=1, le=2)
     link_copia_virtual: Optional[str] = Field(None, max_length=255)
@@ -99,6 +99,7 @@ class TesisConRelacionesResponse(TesisResponse):
     estado_virtual_nombre: Optional[str] = None
     usuario_ingreso_nombre: Optional[str] = None
     usuario_subio_virtual_nombre: Optional[str] = None
+    nivel_estudio_nombre: Optional[str] = None  # ← Nuevo campo
 
     model_config = {
         "from_attributes": True
@@ -117,6 +118,7 @@ class TesisSearchFilters(BaseModel):
     nombre_autor: Optional[str] = None
     carrera: Optional[str] = None
     codigo_decimal: Optional[str] = None
+    nivel_estudios_id: Optional[int] = None  # ← Cambiado
     estado_fisico_id: Optional[int] = None
     estado_virtual_id: Optional[int] = None
 

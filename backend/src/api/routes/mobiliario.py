@@ -12,14 +12,15 @@ from schemas.mobiliario import (
     MobiliarioUpdate,
     MobiliarioListResponse,
     MobiliarioConRelacionesResponse,
-    EstadoMobiliarioResponse
+    EstadoMobiliarioResponse,
+    TipoMobiliarioResponse
 )
 from core.security import (
     obtener_usuario_actual, 
     requerir_puede_consultar,
     requerir_puede_gestionar_recursos
 )
-from models import Mobiliario, EstadoMobiliario, Usuario, Area
+from models import Mobiliario, EstadoMobiliario, Usuario, Area, TipoMobiliario  
 
 router = APIRouter(prefix="/api/mobiliario", tags=["mobiliario"])
 
@@ -37,7 +38,8 @@ async def verificar_relaciones_mobiliario(db: AsyncSession, mobiliario_data: dic
     """Verifica que existan las relaciones del mobiliario"""
     relaciones = [
         (mobiliario_data.get('area_id'), Area, "Área"),
-        (mobiliario_data.get('estado_id'), EstadoMobiliario, "Estado")
+        (mobiliario_data.get('estado_id'), EstadoMobiliario, "Estado"),
+        (mobiliario_data.get('tipo_mobiliario_id'), TipoMobiliario, "Tipo de mobiliario") 
     ]
     
     for valor, modelo, nombre in relaciones:
@@ -57,7 +59,7 @@ async def verificar_relaciones_mobiliario(db: AsyncSession, mobiliario_data: dic
 async def listar_mobiliario(
     pagina: int = Query(1, ge=1, description="Página actual"),
     por_pagina: int = Query(10, ge=1, le=100, description="Elementos por página"),
-    tipo_mobiliario: Optional[str] = Query(None, description="Filtrar por tipo de mobiliario"),
+    tipo_mobiliario_id: Optional[int] = Query(None, description="Filtrar por tipo de mobiliario"),  
     area_id: Optional[int] = Query(None, description="Filtrar por área"),
     estado_id: Optional[int] = Query(None, description="Filtrar por estado"),
     incluir_eliminados: bool = Query(False, description="Incluir mobiliario eliminado"),
@@ -70,6 +72,7 @@ async def listar_mobiliario(
     from sqlalchemy.orm import selectinload
     
     query = select(Mobiliario).options(
+        selectinload(Mobiliario.tipo_mobiliario),
         selectinload(Mobiliario.area),
         selectinload(Mobiliario.estado),
         selectinload(Mobiliario.usuario_creador)
@@ -80,8 +83,8 @@ async def listar_mobiliario(
         query = query.filter(Mobiliario.estado_id != ESTADO_DADO_DE_BAJA )
     
     # Aplicar filtros
-    if tipo_mobiliario:
-        query = query.filter(Mobiliario.tipo_mobiliario.ilike(f"%{tipo_mobiliario}%"))
+    if tipo_mobiliario_id:  # ✅ CAMBIADO: era 'tipo_mobiliario'
+        query = query.filter(Mobiliario.tipo_mobiliario_id == tipo_mobiliario_id)
     if area_id:
         query = query.filter(Mobiliario.area_id == area_id)
     if estado_id:
@@ -93,8 +96,8 @@ async def listar_mobiliario(
     # Aplicar mismos filtros al count
     if not incluir_eliminados:
         total_query = total_query.filter(Mobiliario.estado_id != ESTADO_DADO_DE_BAJA )
-    if tipo_mobiliario:
-        total_query = total_query.filter(Mobiliario.tipo_mobiliario.ilike(f"%{tipo_mobiliario}%"))
+    if tipo_mobiliario_id:
+        total_query = total_query.filter(Mobiliario.tipo_mobiliario.ilike(f"%{tipo_mobiliario_id}%"))
     if area_id:
         total_query = total_query.filter(Mobiliario.area_id == area_id)
     if estado_id:
@@ -115,6 +118,7 @@ async def listar_mobiliario(
     mobiliarios_con_relaciones = []
     for mobiliario in mobiliarios:
         mobiliario_dict = MobiliarioConRelacionesResponse.model_validate(mobiliario)
+        mobiliario_dict.tipo_mobiliario_nombre = mobiliario.tipo_mobiliario.tipo
         mobiliario_dict.area_nombre = mobiliario.area.nombre
         mobiliario_dict.estado_nombre = mobiliario.estado.estado
         mobiliario_dict.usuario_creador_nombre = mobiliario.usuario_creador.nombre_completo
@@ -141,6 +145,7 @@ async def obtener_mobiliario(
     result = await db.execute(
         select(Mobiliario)
         .options(
+            selectinload(Mobiliario.tipo_mobiliario), 
             selectinload(Mobiliario.area),
             selectinload(Mobiliario.estado),
             selectinload(Mobiliario.usuario_creador)
@@ -157,6 +162,7 @@ async def obtener_mobiliario(
     
     # Construir respuesta con nombres
     mobiliario_response = MobiliarioConRelacionesResponse.model_validate(mobiliario)
+    mobiliario_response.tipo_mobiliario_nombre = mobiliario.tipo_mobiliario.tipo 
     mobiliario_response.area_nombre = mobiliario.area.nombre
     mobiliario_response.estado_nombre = mobiliario.estado.estado
     mobiliario_response.usuario_creador_nombre = mobiliario.usuario_creador.nombre_completo
@@ -295,6 +301,17 @@ async def reactivar_mobiliario(
 # =============================================
 # ENDPOINTS PARA DATOS AUXILIARES
 # =============================================
+
+@router.get("/auxiliares/tipos-mobiliario", response_model=List[TipoMobiliarioResponse])
+async def listar_tipos_mobiliario(
+    db: AsyncSession = Depends(get_db),
+    usuario_actual: Usuario = Depends(requerir_puede_consultar)
+):
+    """Listar todos los tipos de mobiliario"""
+    result = await db.execute(select(TipoMobiliario).order_by(TipoMobiliario.tipo))
+    tipos = result.scalars().all()
+    return tipos
+
 
 @router.get("/auxiliares/estados-mobiliario", response_model=List[EstadoMobiliarioResponse])
 async def listar_estados_mobiliario(
