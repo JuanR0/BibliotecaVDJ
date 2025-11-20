@@ -12,10 +12,10 @@ class LibroBase(BaseModel):
     titulo: str = Field(..., min_length=1, max_length=255)
     autor: str = Field(..., min_length=1, max_length=255)
     editorial_id: int = Field(..., gt=0)
-    edicion: Optional[str] = Field(None, max_length=50)
+    edicion: Optional[int] = Field(None, ge=1)  # ← Cambiado a int
     numero_paginas: Optional[int] = Field(None, ge=1)
     area_conocimiento_id: int = Field(..., gt=0)
-    metodo_adquisicion: str = Field(..., min_length=1, max_length=20)
+    metodo_adquisicion_id: int = Field(..., gt=0, description="ID del método de adquisición (1: Compra, 2: Donacion)")  # ← Cambiado
     proveedor_nombre: Optional[str] = Field(None, max_length=255)
     precio: Optional[Decimal] = Field(None, ge=0)
     es_prestable: bool = True
@@ -46,9 +46,9 @@ class LibroUpdate(BaseModel):
     titulo: Optional[str] = Field(None, min_length=1, max_length=255)
     autor: Optional[str] = Field(None, min_length=1, max_length=255)
     editorial_id: Optional[int] = Field(None, gt=0)
-    edicion: Optional[str] = Field(None, max_length=50)
+    edicion: Optional[int] = Field(None, ge=1)  # ← Cambiado a int
     numero_paginas: Optional[int] = Field(None, ge=1)
-    metodo_adquisicion: Optional[str] = Field(None, min_length=1, max_length=20)
+    metodo_adquisicion_id: Optional[int] = Field(None, gt=0)  # ← Cambiado
     proveedor_nombre: Optional[str] = Field(None, max_length=255)
     precio: Optional[Decimal] = Field(None, ge=0)
     es_prestable: Optional[bool] = None
@@ -78,6 +78,7 @@ class LibroConRelacionesResponse(LibroResponse):
     area_conocimiento_nombre: Optional[str] = None
     estado_nombre: Optional[str] = None
     usuario_registro_nombre: Optional[str] = None
+    metodo_adquisicion_nombre: Optional[str] = None  # ← Nuevo campo
 
     model_config = {
         "from_attributes": True
@@ -96,6 +97,7 @@ class LibroSearchFilters(BaseModel):
     autor: Optional[str] = None
     editorial_id: Optional[int] = None
     area_conocimiento_id: Optional[int] = None
+    metodo_adquisicion_id: Optional[int] = None  # ← Cambiado
     estado_id: Optional[int] = None
     es_prestable: Optional[bool] = None
     codigo_decimal: Optional[str] = None
@@ -127,6 +129,14 @@ class EstadoLibroResponse(BaseModel):
         "from_attributes": True
     }
 
+class MetodoAdquisicionResponse(BaseModel):  # ← Nuevo schema
+    id: int
+    tipo: str
+
+    model_config = {
+        "from_attributes": True
+    }
+
 class LibroCreateConEjemplares(BaseModel):
     """Esquema para crear múltiples ejemplares del mismo libro"""
     # Datos comunes a todos los ejemplares
@@ -136,10 +146,10 @@ class LibroCreateConEjemplares(BaseModel):
     titulo: str = Field(..., min_length=1, max_length=255)
     autor: str = Field(..., min_length=1, max_length=255)
     editorial_id: int = Field(..., gt=0)
-    edicion: Optional[str] = Field(None, max_length=50)
+    edicion: Optional[int] = Field(None, ge=1)  # ← Cambiado a int
     numero_paginas: Optional[int] = Field(None, ge=1)
     area_conocimiento_id: int = Field(..., gt=0)
-    metodo_adquisicion: str = Field(..., min_length=1, max_length=20)
+    metodo_adquisicion_id: int = Field(..., gt=0)  # ← Cambiado
     proveedor_nombre: Optional[str] = Field(None, max_length=255)
     precio: Optional[Decimal] = Field(None, ge=0)
     es_prestable: bool = True

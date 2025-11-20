@@ -82,6 +82,24 @@ class MarcaEquipoComputo(Base):
     # Relaciones
     equipos_computo = relationship("EquipoComputo", back_populates="marca_equipo")
 
+class MetodoAdquisicion(Base):
+    __tablename__ = "metodos_adquisicion"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tipo = Column(String(15), unique=True, nullable=False)
+    
+    # Relación con Libros
+    libros = relationship("Libro", back_populates="metodo_adquisicion")
+
+class NivelEstudio(Base):
+    __tablename__ = "niveles_estudio"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    nivel = Column(String(100), unique=True, nullable=False)
+    
+    # Relación con Tesis
+    tesis = relationship("Tesis", back_populates="nivel_estudio")
+
 class TipoEquipoComputo(Base):
     __tablename__ = "tipos_equipo_computo"
     id = Column(Integer, primary_key=True, index=True)
@@ -89,6 +107,16 @@ class TipoEquipoComputo(Base):
     
     # Relaciones
     equipos_computo = relationship("EquipoComputo", back_populates="tipo_equipo")
+
+    # En models/base.py - agregar esta clase
+class TipoMobiliario(Base):
+    __tablename__ = "tipos_mobiliario"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tipo = Column(String(25), unique=True, nullable=False)
+    
+    # Relaciones
+    mobiliarios = relationship("Mobiliario", back_populates="tipo_mobiliario")
 
 class TipoUsuario(Base):
     __tablename__ = "tipos_usuario"

@@ -2,7 +2,7 @@ Frontend
 npm run dev
 
 Backend
-venv313\Scripts\activate
+venv\Scripts\activate
 uvicorn src.main:app --reload
 
 instalar dependencias

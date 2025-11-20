@@ -11,7 +11,7 @@ class Mobiliario(Base):
     __tablename__ = "mobiliario"
     
     id = Column(Integer, primary_key=True, index=True)
-    tipo_mobiliario = Column(String(30), nullable=False)
+    tipo_mobiliario_id = Column(Integer, ForeignKey("tipos_mobiliario.id"), nullable=False)  # ✅ CAMBIADO
     descripcion = Column(String(255))
     fecha_ingreso = Column(TIMESTAMP, server_default=func.now())
     usuario_creador_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
@@ -20,6 +20,7 @@ class Mobiliario(Base):
     fecha_ultimo_cambio_estado = Column(TIMESTAMP, server_default=func.now())
     
     # Relaciones
+    tipo_mobiliario = relationship("TipoMobiliario", back_populates="mobiliarios")  # ✅ NUEVA
     usuario_creador = relationship("Usuario", back_populates="mobiliarios_creados")
     area = relationship("Area", back_populates="mobiliarios")
     estado = relationship("EstadoMobiliario", back_populates="mobiliarios")

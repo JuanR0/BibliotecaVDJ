@@ -16,7 +16,7 @@ class LibroVirtual(Base):
     titulo = Column(String(255), nullable=False)
     autor = Column(String(255), nullable=False)
     editorial_id = Column(Integer, ForeignKey("editoriales.id"), nullable=False)
-    edicion = Column(String(50))
+    edicion = Column(Integer)
     numero_paginas = Column(Integer)
     area_conocimiento_id = Column(Integer, ForeignKey("areas_conocimiento.id"), nullable=False)
     # Relevante a lo digital

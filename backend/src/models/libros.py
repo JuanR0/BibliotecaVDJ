@@ -1,4 +1,4 @@
-from config.database import Base  # ← Con punto
+from config.database import Base
 from sqlalchemy import Column, Integer, String, Boolean, TIMESTAMP, ForeignKey, Text, DECIMAL, BigInteger
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -6,7 +6,6 @@ from sqlalchemy.orm import relationship
 # =============================================
 # MODELOS DE TABLAS PRINCIPALES
 # =============================================
-
 
 class Libro(Base):
     __tablename__ = "libros"
@@ -21,12 +20,12 @@ class Libro(Base):
     titulo = Column(String(255), nullable=False)
     autor = Column(String(255), nullable=False)
     editorial_id = Column(Integer, ForeignKey("editoriales.id"), nullable=False)
-    edicion = Column(String(50))
+    edicion = Column(Integer)  # ← Cambiado a Integer
     numero_paginas = Column(Integer)
     area_conocimiento_id = Column(Integer, ForeignKey("areas_conocimiento.id"), nullable=False)
     # Información de adquisición
     fecha_adquisicion = Column(TIMESTAMP, server_default=func.now())
-    metodo_adquisicion = Column(String(20), nullable=False)
+    metodo_adquisicion_id = Column(Integer, ForeignKey("metodos_adquisicion.id"), nullable=False)  # ← Cambiado a FK
     proveedor_nombre = Column(String(255))
     precio = Column(DECIMAL(10, 2))
     es_prestable = Column(Boolean, default=True)
@@ -40,3 +39,4 @@ class Libro(Base):
     area_conocimiento = relationship("AreaConocimiento", back_populates="libros")
     usuario_registro = relationship("Usuario", back_populates="libros_registrados")
     estado = relationship("EstadoLibro", back_populates="libros")
+    metodo_adquisicion = relationship("MetodoAdquisicion", back_populates="libros")  # ← Nueva relación

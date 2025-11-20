@@ -279,11 +279,50 @@ async def eliminar_libro_virtual(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Libro virtual no encontrado"
         )
-    
-    await db.delete(libro_virtual)
+    if libro_virtual.estado_virtual_id == 2:  # No disponible
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El libro virtual no esta disponible"
+        )
+
+    libro_virtual.estado_virtual_id = 2
+    libro_virtual.fecha_cambio_estado = datetime.utcnow()
     await db.commit()
     
     return {"message": "Libro virtual eliminado exitosamente"}
+
+@router.patch("/{libro_virtual_id}/reactivar", response_model=LibroVirtualResponse)
+async def reactivar_libro_virtual(
+    libro_virtual_id: int,
+    db: AsyncSession = Depends(get_db),
+    usuario_actual: Usuario = Depends(requerir_puede_gestionar_recursos)
+):
+    """
+    Reactivar libro virtual retirado - cambia estado a "Disponible" (1)
+    """
+    result = await db.execute(select(LibroVirtual).filter(LibroVirtual.id == libro_virtual_id))
+    libroVitual = result.scalar_one_or_none()
+    
+    if not libroVitual:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Libro virtual no encontrado"
+        )
+    
+    if libroVitual.estado_virtual_id != 2:  # No está retirado
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El libro virtual no está retirado"
+        )
+     
+    # Cambiar estado a "Disponible" (1)
+    libroVitual.estado_virtual_id = 1
+    libroVitual.fecha_cambio_estado = datetime.utcnow()
+    
+    await db.commit()
+    await db.refresh(libroVitual)
+
+    return libroVitual
 
 # =============================================
 # ENDPOINTS AUXILIARES

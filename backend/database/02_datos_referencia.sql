@@ -60,10 +60,28 @@ INSERT INTO marcas_equipo_computo (marca) VALUES
 ('LENOVO'),
 ('DELL');
 
+-- Metodos de adquisicion
+INSERT INTO metodos_adquisicion (tipo) VALUES 
+('Compra'),
+('Donacion');
+
+-- Tipos de niveles de estudio
+INSERT INTO niveles_estudio (nivel) VALUES 
+('Licenciatura'),
+('Maestria'),
+('Doctorado');
+
 -- Tipos de equipo computo
 INSERT INTO tipos_equipo_computo (tipo) VALUES 
 ('Portatil'),
 ('De escritorio');
+
+-- Tipos de equipo computo
+INSERT INTO tipos_mobiliario (tipo) VALUES 
+('Silla'),
+('Mesa'),
+('Escritorio'),
+('Sillon');
 
 -- Tipos de usuario
 INSERT INTO tipos_usuario (tipo) VALUES 
