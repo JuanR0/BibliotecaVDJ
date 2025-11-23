@@ -1,5 +1,6 @@
 import sys
 import os
+from datetime import datetime
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI
@@ -45,7 +46,7 @@ async def startup_event():
     logger.info("🚀 Iniciando aplicación Biblioteca VDJ...")
     if await verify_connection():
         await create_tables()
-        logger.info("✅ Aplicación iniciada correctamente")
+        logger.info("✅ Aplicación iniciada correctamente") 
     else:
         logger.warning("⚠️  Aplicación iniciada SIN conexión a base de datos")
 
@@ -56,6 +57,38 @@ async def root():
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "service": "biblioteca-vdj-api"}
+
+@app.get("/api/health/db")
+async def health_check_db():
+    """
+    Health check específico para la base de datos
+    """
+    try:
+        # Usar la misma función que usas en startup
+        db_connected = await verify_connection()
+        
+        if db_connected:
+            return {
+                "status": "healthy",
+                "database": "connected",
+                "message": "Conexión a la base de datos establecida correctamente",
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "status": "unhealthy", 
+                "database": "disconnected",
+                "message": "No se pudo conectar a la base de datos",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+    except Exception as e:
+        return {
+            "status": "error",
+            "database": "error",
+            "message": f"Error verificando la base de datos: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,50 +1,61 @@
-<!-- views/LoginView.vue -->
+<!-- views/Login.vue -->
 <template>
   <div class="login-container">
     <div class="login-card">
-      <h1>{{ isRegister ? 'Registro' : 'Iniciar Sesión' }}</h1>
+      <h1>{{ isRegister ? 'Registrarse' : 'Iniciar Sesión' }}</h1>
       
       <form @submit.prevent="handleSubmit" class="login-form">
         <div class="form-group">
-          <label>Email</label>
+          <label for="codigo_universitario">Código Universitario</label>
           <input 
-            v-model="form.email"
-            type="email" 
+            id="codigo_universitario"
+            v-model="form.codigo_universitario"
+            type="text" 
             required
-            placeholder="tu@email.com"
+            placeholder="Ej: U20234567"
+            :disabled="isLoading"
           >
         </div>
 
         <div class="form-group">
-          <label>Contraseña</label>
+          <label for="clave_acceso">Clave de Acceso</label>
           <input 
-            v-model="form.password"
+            id="clave_acceso"
+            v-model="form.clave_acceso"
             type="password" 
             required
             placeholder="••••••••"
+            :disabled="isLoading"
           >
         </div>
 
         <div v-if="isRegister" class="form-group">
-          <label>Nombre Completo</label>
+          <label for="nombre_completo">Nombre Completo</label>
           <input 
-            v-model="form.name"
+            id="nombre_completo"
+            v-model="form.nombre_completo"
             type="text" 
             required
-            placeholder="Tu nombre completo"
+            placeholder="Ej: Juan Pérez García"
+            :disabled="isLoading"
           >
         </div>
 
         <button 
           type="submit" 
           class="btn btn-primary btn-full"
-          :disabled="authStore.isLoading"
+          :disabled="isLoading"
         >
-          {{ authStore.isLoading ? 'Procesando...' : (isRegister ? 'Registrarse' : 'Iniciar Sesión') }}
+          <span v-if="isLoading">⏳ Procesando...</span>
+          <span v-else>{{ isRegister ? 'Crear Cuenta' : 'Ingresar' }}</span>
         </button>
 
         <div v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
+          ❌ {{ errorMessage }}
+        </div>
+
+        <div v-if="successMessage" class="success-message">
+          ✅ {{ successMessage }}
         </div>
       </form>
 
@@ -52,7 +63,7 @@
         <p>
           {{ isRegister ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?' }}
           <a href="#" @click.prevent="toggleMode">
-            {{ isRegister ? 'Inicia Sesión' : 'Regístrate' }}
+            {{ isRegister ? 'Inicia Sesión' : 'Regístrate aquí' }}
           </a>
         </p>
       </div>
@@ -61,47 +72,127 @@
         <button @click="$router.push('/')" class="btn btn-link">
           ← Volver al Inicio
         </button>
-        <button @click="$router.push('/healthcheck')" class="btn btn-link">
-          🔍 Ver Estado del Sistema
-        </button>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+<script>
+import { api } from '@/services/api'
 
-const router = useRouter()
-const authStore = useAuthStore()
+export default {
+  name: 'Login',
+  data() {
+    return {
+      isRegister: false,
+      isLoading: false,
+      errorMessage: '',
+      successMessage: '',
+      form: {
+        codigo_universitario: '',
+        clave_acceso: '',
+        nombre_completo: ''
+      }
+    }
+  },
+  methods: {
+    toggleMode() {
+      this.isRegister = !this.isRegister
+      this.errorMessage = ''
+      this.successMessage = ''
+      // Limpiar form al cambiar modo
+      this.form.clave_acceso = ''
+      if (!this.isRegister) {
+        this.form.nombre_completo = ''
+      }
+    },
 
-const isRegister = ref(false)
-const errorMessage = ref('')
+    async handleSubmit() {
+      this.isLoading = true
+      this.errorMessage = ''
+      this.successMessage = ''
 
-const form = reactive({
-  email: '',
-  password: '',
-  name: ''
-})
+      try {
+        let response
+        
+        if (this.isRegister) {
+          // Registro - POST /api/auth/register
+          response = await api.post('/auth/register', {
+            codigo_universitario: this.form.codigo_universitario,
+            clave_acceso: this.form.clave_acceso,
+            nombre_completo: this.form.nombre_completo
+          })
+          
+          this.successMessage = '¡Cuenta creada exitosamente! Ya puedes iniciar sesión.'
+          this.toggleMode() // Cambiar a login después del registro
+          
+        } else {
+          // Login - POST /api/auth/login
+          response = await api.post('/auth/login', {
+            codigo_universitario: this.form.codigo_universitario,
+            clave_acceso: this.form.clave_acceso
+          })
+          
+          // Guardar datos de usuario (sin token por ahora)
+          const userData = response.data
+          this.handleLoginSuccess(userData)
+        }
+        
+      } catch (error) {
+        this.handleError(error)
+      } finally {
+        this.isLoading = false
+      }
+    },
 
-const toggleMode = () => {
-  isRegister.value = !isRegister.value
-  errorMessage.value = ''
-}
+    handleLoginSuccess(userData) {
+      console.log('Usuario logueado:', userData)
+      
+      // Guardar usuario en localStorage temporalmente
+      localStorage.setItem('user', JSON.stringify(userData))
+      
+      this.successMessage = `¡Bienvenido ${userData.nombre_completo}!`
+      
+      // Redirigir después de login exitoso
+      setTimeout(() => {
+        this.$router.push('/')
+      }, 1500)
+    },
 
-const handleSubmit = async () => {
-  errorMessage.value = ''
-
-  const result = isRegister.value 
-    ? await authStore.register(form)
-    : await authStore.login(form)
-
-  if (result.success) {
-    router.push('/')
-  } else {
-    errorMessage.value = result.error
+    handleError(error) {
+      console.error('Error en auth:', error)
+      
+      if (error.response) {
+        // El backend respondió con error HTTP
+        const { status, data } = error.response
+        
+        switch (status) {
+          case 400:
+            this.errorMessage = data.detail || 'Datos inválidos. Verifica tu código universitario y clave.'
+            break
+          case 401:
+            this.errorMessage = 'Código universitario o clave incorrectos'
+            break
+          case 409:
+            this.errorMessage = 'Este código universitario ya está registrado'
+            break
+          case 422:
+            this.errorMessage = 'Error de validación. Verifica los datos ingresados.'
+            break
+          case 500:
+            this.errorMessage = 'Error interno del servidor. Intenta más tarde.'
+            break
+          default:
+            this.errorMessage = data.detail || `Error ${status}: ${data.message || 'Error desconocido'}`
+        }
+      } else if (error.request) {
+        // No se recibió respuesta
+        this.errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión.'
+      } else {
+        // Error en la configuración
+        this.errorMessage = 'Error de conexión: ' + error.message
+      }
+    }
   }
 }
 </script>
@@ -160,6 +251,11 @@ input:focus {
   border-color: #667eea;
 }
 
+input:disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+
 .btn-full {
   width: 100%;
   margin-top: 1rem;
@@ -174,6 +270,15 @@ input:focus {
   text-align: center;
 }
 
+.success-message {
+  background: #efe;
+  color: #363;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin-top: 1rem;
+  text-align: center;
+}
+
 .switch-mode {
   text-align: center;
   margin-bottom: 1.5rem;
@@ -182,6 +287,7 @@ input:focus {
 .switch-mode a {
   color: #667eea;
   text-decoration: none;
+  font-weight: 500;
 }
 
 .additional-actions {
@@ -195,5 +301,30 @@ input:focus {
   color: #667eea;
   border: none;
   text-decoration: underline;
+  cursor: pointer;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 </style>
