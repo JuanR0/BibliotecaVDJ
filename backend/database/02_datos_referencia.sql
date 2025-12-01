@@ -28,6 +28,13 @@ INSERT INTO estados_mobiliario (estado) VALUES
 ('Almacenado'),
 ('Dado de baja');
 
+-- Insertar estados básicos de préstamo
+INSERT INTO estados_prestamo (estado) VALUES 
+('Vigente'),
+('Expirado'),
+('Terminado'),
+('Otros');
+
 -- Estados para recursos virtuales
 INSERT INTO estados_virtual (estado) VALUES 
 ('Disponible'),

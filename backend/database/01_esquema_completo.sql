@@ -26,6 +26,12 @@ CREATE TABLE estados_mobiliario (
     estado VARCHAR(20) NOT NULL UNIQUE
 );
 
+-- Tabla de estados para préstamos
+CREATE TABLE estados_prestamo (
+    id SERIAL PRIMARY KEY,
+    estado VARCHAR(20) NOT NULL UNIQUE
+);
+
 -- Estados para recursos virtuales
 CREATE TABLE estados_virtual (
     id SERIAL PRIMARY KEY,
@@ -220,13 +226,85 @@ CREATE TABLE tesis (
     fecha_ultimo_cambio_estado_virtual TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- =============================================
--- ÍNDICES PARA MEJOR PERFORMANCE
--- =============================================
+CREATE TABLE prestamos_libro (
+    id SERIAL PRIMARY KEY,
+    -- Relaciones principales (sin cambios)
+    libro_id INTEGER NOT NULL REFERENCES libros(id),
+    usuario_presta_id INTEGER NOT NULL REFERENCES usuarios(id),
+    usuario_prestado_id INTEGER NOT NULL REFERENCES usuarios(id),
+    estado_prestamo_id INTEGER NOT NULL REFERENCES estados_prestamo(id),
+    
+    -- Fechas del ciclo de préstamo (sin cambios)
+    fecha_prestamo TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_devolucion_esperada TIMESTAMP NOT NULL,
+    fecha_devolucion_real TIMESTAMP,
+    dias_excedidos INTEGER DEFAULT 0,
+    
+    -- Auditoría (sin cambios)
+    usuario_ultimo_cambio_id INTEGER REFERENCES usuarios(id),
+    fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    observaciones TEXT
+);
 
--- Índices para búsquedas frecuentes
--- CREATE INDEX idx_libros_titulo ON libros(titulo);
--- CREATE INDEX idx_libros_autor ON libros(autor);
--- CREATE INDEX idx_usuarios_codigo ON usuarios(codigo_universitario);
--- CREATE INDEX idx_tesis_autor ON tesis(nombre_autor);
--- CREATE INDEX idx_tesis_carrera ON tesis(carrera);
+CREATE TABLE prestamos_libro (
+    id SERIAL PRIMARY KEY,
+    -- Relaciones principales (sin cambios)
+    libro_id INTEGER NOT NULL REFERENCES libros(id),
+    usuario_presta_id INTEGER NOT NULL REFERENCES usuarios(id),
+    usuario_prestado_id INTEGER NOT NULL REFERENCES usuarios(id),
+    estado_prestamo_id INTEGER NOT NULL REFERENCES estados_prestamo(id),
+    
+    -- Fechas del ciclo de préstamo (sin cambios)
+    fecha_prestamo TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_devolucion_esperada TIMESTAMP NOT NULL,
+    fecha_devolucion_real TIMESTAMP,
+    dias_excedidos INTEGER DEFAULT 0,
+    
+    -- Auditoría (sin cambios)
+    usuario_ultimo_cambio_id INTEGER REFERENCES usuarios(id),
+    fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    observaciones TEXT
+);
+
+CREATE TABLE prestamos_area (
+    id SERIAL PRIMARY KEY,
+    -- Relaciones principales 
+    area_id INTEGER NOT NULL REFERENCES areas(id),
+    usuario_presta_id INTEGER NOT NULL REFERENCES usuarios(id),
+    usuario_prestado_id INTEGER NOT NULL REFERENCES usuarios(id),
+    estado_prestamo_id INTEGER NOT NULL REFERENCES estados_prestamo(id),
+    
+    -- Fechas del ciclo de préstamo 
+    fecha_prestamo TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_devolucion_esperada TIMESTAMP NOT NULL,
+    fecha_devolucion_real TIMESTAMP,
+    tiempo_excedido INTERVAL DEFAULT '0 seconds',
+    
+    -- Auditoría 
+    usuario_ultimo_cambio_id INTEGER REFERENCES usuarios(id),
+    fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+
+    observaciones TEXT
+);
+
+CREATE TABLE prestamos_equipo_computo (
+    id SERIAL PRIMARY KEY,
+    -- Relaciones principales 
+    equipos_computo_id INTEGER NOT NULL REFERENCES equipos_computo(id),
+    usuario_presta_id INTEGER NOT NULL REFERENCES usuarios(id),
+    usuario_prestado_id INTEGER NOT NULL REFERENCES usuarios(id),
+    estado_prestamo_id INTEGER NOT NULL REFERENCES estados_prestamo(id),
+    
+    -- Fechas del ciclo de préstamo
+    fecha_prestamo TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_devolucion TIMESTAMP,
+    
+    -- Auditoría 
+    usuario_ultimo_cambio_id INTEGER REFERENCES usuarios(id),
+    fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    observaciones TEXT
+);

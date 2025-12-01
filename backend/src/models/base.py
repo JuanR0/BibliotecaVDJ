@@ -39,6 +39,20 @@ class EstadoMobiliario(Base):
     # Relaciones
     mobiliarios = relationship("Mobiliario", back_populates="estado")
 
+class EstadoPrestamo(Base):
+    __tablename__ = "estados_prestamo"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    estado = Column(String(20), unique=True, nullable=False)
+    
+    # Relación con préstamos libro
+    prestamos = relationship("PrestamoLibro", back_populates="estado_prestamo")
+
+    # Nueva relación con préstamos de áreas
+    prestamos_areas = relationship("PrestamoArea", back_populates="estado_prestamo")
+
+    prestamos_equipo_computo = relationship("PrestamoEquipoComputo", back_populates="estado_prestamo")
+
 class EstadoVirtual(Base):
     __tablename__ = "estados_virtual"
     id = Column(Integer, primary_key=True, index=True)
