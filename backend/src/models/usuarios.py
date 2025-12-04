@@ -35,3 +35,77 @@ class Usuario(Base):
     libros_virtuales_subidos = relationship("LibroVirtual", back_populates="usuario_subio")
     tesis_ingresadas = relationship("Tesis", back_populates="usuario_ingreso", foreign_keys="[Tesis.usuario_ingreso_id]")
     tesis_subidas_virtual = relationship("Tesis", back_populates="usuario_subio_virtual", foreign_keys="[Tesis.usuario_subio_virtual_id]")
+
+    # NUEVAS RELACIONES CON PRÉSTAMOS
+    prestamos_realizados = relationship(
+        "PrestamoLibro", 
+        foreign_keys="PrestamoLibro.usuario_presta_id",
+        back_populates="usuario_presta"
+    )
+    prestamos_recibidos = relationship(
+        "PrestamoLibro", 
+        foreign_keys="PrestamoLibro.usuario_prestado_id",
+        back_populates="usuario_prestado"
+    )
+    cambios_estado_prestamos = relationship(
+        "PrestamoLibro", 
+        foreign_keys="PrestamoLibro.usuario_ultimo_cambio_id",
+        back_populates="usuario_ultimo_cambio"
+    )
+
+    # NUEVAS RELACIONES CON PRÉSTAMOS DE ÁREAS
+    prestamos_areas_realizados = relationship(
+        "PrestamoArea", 
+        foreign_keys="PrestamoArea.usuario_presta_id",
+        back_populates="usuario_presta"
+    )
+    prestamos_areas_recibidos = relationship(
+        "PrestamoArea", 
+        foreign_keys="PrestamoArea.usuario_prestado_id",
+        back_populates="usuario_prestado"
+    )
+    cambios_estado_prestamos_areas = relationship(
+        "PrestamoArea", 
+        foreign_keys="PrestamoArea.usuario_ultimo_cambio_id",
+        back_populates="usuario_ultimo_cambio"
+    )
+
+    # NUEVAS RELACIONES CON PRÉSTAMOS DE EQUIPO COMPUTO
+    prestamos_equipo_realizados = relationship(
+        "PrestamoEquipoComputo", 
+        foreign_keys="PrestamoEquipoComputo.usuario_presta_id",
+        back_populates="usuario_presta"
+    )
+    prestamos_equipo_recibidos = relationship(
+        "PrestamoEquipoComputo", 
+        foreign_keys="PrestamoEquipoComputo.usuario_prestado_id",
+        back_populates="usuario_prestado"
+    )
+    cambios_estado_prestamos_equipo = relationship(
+        "PrestamoEquipoComputo", 
+        foreign_keys="PrestamoEquipoComputo.usuario_ultimo_cambio_id",
+        back_populates="usuario_ultimo_cambio"
+    )
+
+    # NUEVAS RELACIONES CON MULTAS
+    multas_realizadas = relationship(
+        "Multa", 
+        foreign_keys="Multa.usuario_multa_id",
+        back_populates="usuario_multa"
+    )
+
+    multas_recibidas = relationship(
+        "Multa", 
+        foreign_keys="Multa.usuario_multado_id",
+        back_populates="usuario_multado"
+    )
+
+    cambios_estado_multas = relationship(
+        "Multa", 
+        foreign_keys="Multa.usuario_ultimo_cambio_id",
+        back_populates="usuario_ultimo_cambio"
+)
+    
+    
+    
+    

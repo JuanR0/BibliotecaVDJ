@@ -28,6 +28,18 @@ INSERT INTO estados_mobiliario (estado) VALUES
 ('Almacenado'),
 ('Dado de baja');
 
+-- Estados para multa
+INSERT INTO estados_multa (estado) VALUES 
+('Pendiente'),
+('Liquidada');
+
+-- Insertar estados básicos de préstamo
+INSERT INTO estados_prestamo (estado) VALUES 
+('Vigente'),
+('Expirado'),
+('Terminado'),
+('Otros');
+
 -- Estados para recursos virtuales
 INSERT INTO estados_virtual (estado) VALUES 
 ('Disponible'),
@@ -76,12 +88,26 @@ INSERT INTO tipos_equipo_computo (tipo) VALUES
 ('Portatil'),
 ('De escritorio');
 
--- Tipos de equipo computo
+-- Tipos de mobiliario
 INSERT INTO tipos_mobiliario (tipo) VALUES 
 ('Silla'),
 ('Mesa'),
 ('Escritorio'),
 ('Sillon');
+
+-- Tipos de pago
+INSERT INTO tipos_pago (tipo) VALUES 
+('Monetario'),
+('En especie'),
+('Ambos');
+
+-- Tipos de recurso para multa
+INSERT INTO tipos_recurso_multa (tipo) VALUES 
+('Libro'),
+('Equipo_computo'),
+('Mobiliario'),
+('Infraestructura'),
+('Otro');
 
 -- Tipos de usuario
 INSERT INTO tipos_usuario (tipo) VALUES 

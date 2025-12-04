@@ -40,3 +40,6 @@ class Libro(Base):
     usuario_registro = relationship("Usuario", back_populates="libros_registrados")
     estado = relationship("EstadoLibro", back_populates="libros")
     metodo_adquisicion = relationship("MetodoAdquisicion", back_populates="libros")  # ← Nueva relación
+    
+    # NUEVA RELACIÓN CON PRÉSTAMOS
+    prestamos = relationship("PrestamoLibro", back_populates="libro")
