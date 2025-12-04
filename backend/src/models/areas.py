@@ -20,3 +20,6 @@ class Area(Base):
     estado = relationship("EstadoArea", back_populates="areas")
     equipos_computo = relationship("EquipoComputo", back_populates="area")
     mobiliarios = relationship("Mobiliario", back_populates="area")
+
+    # Nueva relación con préstamos de áreas
+    prestamos_areas = relationship("PrestamoArea", back_populates="area")
