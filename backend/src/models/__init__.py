@@ -9,3 +9,4 @@ from .tesis import *
 from .prestamos_libro import *
 from .prestamos_area import *
 from .prestamos_equipo_computo import *
+from .multas import *

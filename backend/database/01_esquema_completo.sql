@@ -26,6 +26,12 @@ CREATE TABLE estados_mobiliario (
     estado VARCHAR(20) NOT NULL UNIQUE
 );
 
+-- Estados para multa
+CREATE TABLE estados_multa (
+    id SERIAL PRIMARY KEY,
+    estado VARCHAR(20) NOT NULL UNIQUE
+);
+
 -- Tabla de estados para préstamos
 CREATE TABLE estados_prestamo (
     id SERIAL PRIMARY KEY,
@@ -84,6 +90,18 @@ CREATE TABLE tipos_equipo_computo (
 
 -- Tipos mobiliario
 CREATE TABLE tipos_mobiliario (
+    id SERIAL PRIMARY KEY,
+    tipo VARCHAR(25) NOT NULL UNIQUE
+);
+
+-- Tipos de pago
+CREATE TABLE tipos_pago (
+    id SERIAL PRIMARY KEY,
+    tipo VARCHAR(25) NOT NULL UNIQUE
+);
+
+-- Tipos de recurso para multa
+CREATE TABLE tipos_recurso_multa (
     id SERIAL PRIMARY KEY,
     tipo VARCHAR(25) NOT NULL UNIQUE
 );
@@ -305,6 +323,28 @@ CREATE TABLE prestamos_equipo_computo (
     -- Auditoría 
     usuario_ultimo_cambio_id INTEGER REFERENCES usuarios(id),
     fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    observaciones TEXT
+);
+
+CREATE TABLE multas (
+    id SERIAL PRIMARY KEY,
+    -- Relaciones principales 
+    usuario_multa_id INTEGER NOT NULL REFERENCES usuarios(id),
+    usuario_multado_id INTEGER NOT NULL REFERENCES usuarios(id),
+    
+    -- Seguimiento multa
+    estado_multa_id INTEGER NOT NULL REFERENCES estados_multa(id),
+    fecha_multa TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    usuario_ultimo_cambio_id INTEGER REFERENCES usuarios(id),
+    fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- Detalles multa
+    tipo_pago_id INTEGER NOT NULL REFERENCES tipos_pago(id),
+    tipo_recurso_multa_id INTEGER NOT NULL REFERENCES tipos_recurso_multa(id),
+
+    costo_monetario DECIMAL(10, 2) DEFAULT 0.00, 
+    detalles_costo_en_especie TEXT,
 
     observaciones TEXT
 );

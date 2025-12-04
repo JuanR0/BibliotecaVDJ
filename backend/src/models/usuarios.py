@@ -87,7 +87,24 @@ class Usuario(Base):
         back_populates="usuario_ultimo_cambio"
     )
 
-    # NUEVAS RELACIONES CON PRÉSTAMOS DE EQUIPO COMPUTO
+    # NUEVAS RELACIONES CON MULTAS
+    multas_realizadas = relationship(
+        "Multa", 
+        foreign_keys="Multa.usuario_multa_id",
+        back_populates="usuario_multa"
+    )
+
+    multas_recibidas = relationship(
+        "Multa", 
+        foreign_keys="Multa.usuario_multado_id",
+        back_populates="usuario_multado"
+    )
+
+    cambios_estado_multas = relationship(
+        "Multa", 
+        foreign_keys="Multa.usuario_ultimo_cambio_id",
+        back_populates="usuario_ultimo_cambio"
+)
     
     
     
