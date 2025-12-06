@@ -10,6 +10,7 @@
           <router-link to="/healthcheck" class="nav-link">Estado</router-link>
         </div>
       </div>
+      
     </nav>
 
     <!-- Contenido Principal -->

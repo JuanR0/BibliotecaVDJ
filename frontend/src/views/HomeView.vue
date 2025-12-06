@@ -10,7 +10,7 @@
           <button @click="$router.push('/login')" class="btn btn-primary">
             Iniciar Sesión
           </button>
-          <button @click="showRegister = true" class="btn btn-secondary">
+          <button @click="router.push('/register')" class="btn btn-secondary">
             Registrarse
           </button>
         </div>
@@ -24,6 +24,9 @@
             </button>
             <button class="btn btn-outline" @click="$router.push('/my-loans')">
               📖 Mis Préstamos
+            </button>
+            <button class="btn btn-danger" @click="handleLogout">
+              🚪 Cerrar Sesión
             </button>
           </div>
         </div>
@@ -55,9 +58,16 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth'
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const showRegister = ref(false)
+
+const handleLogout = () => {
+  authStore.logout()
+  router.push('/')
+}
 </script>
 
 <style scoped>

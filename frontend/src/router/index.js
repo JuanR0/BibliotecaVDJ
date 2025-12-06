@@ -16,6 +16,12 @@ const routes = [
     path: '/healthcheck',
     name: 'HealthCheck', 
     component: () => import('../views/HealthCheckView.vue')
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('../views/RegisterView.vue'),
+    meta: { public: true }
   }
 ]
 
