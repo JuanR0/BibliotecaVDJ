@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 
 # Construir DATABASE_URL async
 DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_NAME = os.getenv("DB_NAME", "bibliotecavdj")
+DB_NAME = os.getenv("DB_NAME", "BibliotecaVDJ")
 DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "Jalisco2025.")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "josue326")
 DB_PORT = os.getenv("DB_PORT", "5432")
 
 # ✅ CAMBIO: postgresql+asyncpg en lugar de postgresql
