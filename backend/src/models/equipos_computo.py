@@ -29,3 +29,10 @@ class EquipoComputo(Base):
     usuario_registro = relationship("Usuario", back_populates="equipos_registrados")
     area = relationship("Area", back_populates="equipos_computo")
     estado = relationship("EstadoEquipo", back_populates="equipos_computo")
+
+    prestamos_equipo_computo = relationship(
+        "PrestamoEquipoComputo", 
+        back_populates="equipo_computo"
+    )
+
+    

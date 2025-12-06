@@ -39,6 +39,29 @@ class EstadoMobiliario(Base):
     # Relaciones
     mobiliarios = relationship("Mobiliario", back_populates="estado")
 
+class EstadoMulta(Base):
+    __tablename__ = "estados_multa"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    estado = Column(String(20), unique=True, nullable=False)
+    
+    # Relación con multas
+    multas = relationship("Multa", back_populates="estado_multa")
+
+class EstadoPrestamo(Base):
+    __tablename__ = "estados_prestamo"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    estado = Column(String(20), unique=True, nullable=False)
+    
+    # Relación con préstamos libro
+    prestamos = relationship("PrestamoLibro", back_populates="estado_prestamo")
+
+    # Nueva relación con préstamos de áreas
+    prestamos_areas = relationship("PrestamoArea", back_populates="estado_prestamo")
+
+    prestamos_equipo_computo = relationship("PrestamoEquipoComputo", back_populates="estado_prestamo")
+
 class EstadoVirtual(Base):
     __tablename__ = "estados_virtual"
     id = Column(Integer, primary_key=True, index=True)
@@ -117,6 +140,24 @@ class TipoMobiliario(Base):
     
     # Relaciones
     mobiliarios = relationship("Mobiliario", back_populates="tipo_mobiliario")
+
+class TipoPago(Base):
+    __tablename__ = "tipos_pago"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tipo = Column(String(25), unique=True, nullable=False)
+    
+    # Relación con multas
+    multas = relationship("Multa", back_populates="tipo_pago")
+
+class TipoRecursoMulta(Base):
+    __tablename__ = "tipos_recurso_multa"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tipo = Column(String(25), unique=True, nullable=False)
+    
+    # Relación con multas
+    multas = relationship("Multa", back_populates="tipo_recurso_multa")
 
 class TipoUsuario(Base):
     __tablename__ = "tipos_usuario"
