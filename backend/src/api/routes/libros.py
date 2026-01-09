@@ -138,7 +138,9 @@ async def listar_libros(
     es_prestable: Optional[bool] = Query(None, description="Filtrar por prestable"),
     incluir_retirados: bool = Query(False, description="Incluir libros retirados"),
     db: AsyncSession = Depends(get_db),
-    usuario_actual: Usuario = Depends(requerir_puede_consultar)
+    usuario_actual: Usuario = Depends(requerir_puede_consultar),
+
+    current_user: Usuario = Depends(obtener_usuario_actual),
 ):
     """
     Listar libros con filtros (todos los usuarios autenticados)
@@ -167,8 +169,20 @@ async def listar_libros(
         query = query.filter(Libro.estado_id == estado_id)
     if es_prestable is not None:
         query = query.filter(Libro.es_prestable == es_prestable)
-    if not incluir_retirados:
-        query = query.filter(Libro.estado_id != 4)  # Excluir estado "Retirado"
+
+    ##NO PERMITIR QUE USUARIO TIPO 1 PUEDA VER LIBROS RETIRADOS EN LISTADO
+    if current_user.tipo_usuario_id == 1:
+        query = query.where(Libro.estado_id != 4)
+    
+    ##EVITAR QUE PUEDA REALIZAR FILTRADO
+    if estado_id is not None:
+        # Validar que usuario tipo 1 no pueda filtrar por retirados
+        if estado_id == 4 and current_user.tipo_usuario_id == 1:
+            raise HTTPException(
+                status_code=403,
+                detail="No tiene permisos para ver libros retirados"
+            )
+        query = query.where(Libro.estado_id == estado_id)
 
     # Contar total
     total_query = select(func.count()).select_from(query.subquery())

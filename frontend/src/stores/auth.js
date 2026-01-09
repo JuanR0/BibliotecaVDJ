@@ -6,25 +6,78 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: JSON.parse(localStorage.getItem('user')) || null,
     token: localStorage.getItem('token') || null,
+    permisos: JSON.parse(localStorage.getItem('permisos')) || {},
     isLoading: false
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.token, // Cambiado a verificar token
+    isAuthenticated: (state) => !!state.token, // Verificacion de token
     userName: (state) => state.user?.nombre_completo || state.user?.user_name || 'Usuario',
     userRole: (state) => {
       // Mapear user_type string a número para compatibilidad
       const roleMap = {
         'comun': 1,
-        'admin_basico': 2,
-        'admin_avanzado': 3,
+        'admin': 2,
+        'advanced_admin': 3,
         'super_admin': 4
       }
       return roleMap[state.user?.user_type] || state.user?.tipo_usuario_id || 1
     },
+
+    //EDIT BOOKS PERMISSION
+    canEditBooks: (state) => {
+      // Solo verifica el tipo de usuario
+      const userType = state.user?.user_type
+      const tipoId = state.user?.tipo_usuario_id
+      
+      // Si es admin, advanced_admin o super_admin (por string)
+      if (userType && ['admin', 'advanced_admin', 'super_admin'].includes(userType)) {
+        return true
+      }
+      
+      // Si es 2, 3 o 4 (por número)
+      if (tipoId && [2, 3, 4].includes(tipoId)) {
+        return true
+      }
+      
+      return false
+    },
+    
     userCode: (state) => state.user?.codigo_universitario || '',
     isAdmin: (state) => this.userRole >= 2,
-    isSuperAdmin: (state) => this.userRole === 4
+    isSuperAdmin: (state) => this.userRole === 4,
+    
+    //Getters para otros permisos mas especificos
+    canViewBooks: (state) => state.permisos?.view_books === true,
+    canBorrowBooks: (state) => state.permisos?.borrow_books === true,
+    canManageUsers: (state) => state.permisos?.manage_users === true,
+    canManageBooks: (state) => state.permisos?.manage_books === true,
+    canManageSystem: (state) => state.permisos?.manage_system === true,
+    canViewReports: (state) => state.permisos?.view_reports === true,
+
+    // Getters para tipos de usuario
+    isCommonUser: (state) => state.permisos?.es_usuario_comun === true,
+    isBasicAdmin: (state) => state.permisos?.es_admin_basico === true,
+    isAdvancedAdmin: (state) => state.permisos?.es_admin_avanzado === true,
+    isSuperAdmin: (state) => state.permisos?.es_super_admin === true,
+    isAnyAdmin: (state) => state.permisos?.es_cualquier_admin === true,
+
+    // Para compatibilidad
+    isAdmin: (state) => state.permisos?.es_cualquier_admin === true,
+    
+    can: (state) => {
+      return (permission) => {
+        const permissionMap = {
+          'view_books': 'puede_consultar',
+          'borrow_books': 'puede_prestar',
+          'manage_books': 'puede_gestionar_recursos',
+          'manage_users': 'puede_gestionar_usuarios'
+        }
+        const spanishPermission = permissionMap[permission] || permission
+        return state.permisos?.[spanishPermission] === true
+      }
+    }
+
   },
 
   actions: {
@@ -49,14 +102,14 @@ export const useAuthStore = defineStore('auth', {
     async login(credentials) {
       this.isLoading = true
       try {
-
+        
       
         console.log('🔐 Enviando credenciales a /auth/login:', credentials)
         
         const response = await api.post('/auth/login', credentials)
         console.log('✅ Respuesta del login:', response.data)
         
-        // Tu backend retorna Token schema con access_token y user info
+        //Response data
         const { access_token, token_type, user_type, user_name, user_id } = response.data
         
         // Guardar token
@@ -68,7 +121,6 @@ export const useAuthStore = defineStore('auth', {
           id: user_id,
           nombre_completo: user_name,
           user_type: user_type,
-          // Para compatibilidad con código existente
           tipo_usuario_id: this.mapUserTypeToId(user_type),
           codigo_universitario: credentials.codigo_universitario
         }
@@ -76,6 +128,8 @@ export const useAuthStore = defineStore('auth', {
         // Guardar usuario
         this.user = userData
         localStorage.setItem('user', JSON.stringify(userData))
+        
+        
         
         // Configurar el token en axios para futuras requests
         api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
@@ -100,9 +154,9 @@ export const useAuthStore = defineStore('auth', {
     async register(userData) {
       this.isLoading = true
       try {
-        console.log('📝 Enviando registro:', userData)
+        console.log('Enviando registro:', userData)
         const response = await api.post('/auth/register', userData)
-        console.log('✅ Registro exitoso:', response.data)
+        console.log('Registro exitoso:', response.data)
         
         return { 
           success: true, 
@@ -110,7 +164,7 @@ export const useAuthStore = defineStore('auth', {
         }
         
       } catch (error) {
-        console.error('❌ Error en registro:', error)
+        console.error('Error en registro:', error)
         return {
           success: false,
           error: this.getErrorMessage(error)
@@ -138,23 +192,33 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async getUserPermissions() {
+    async fetchPermisos() {
       try {
+        console.log('Obteniendo permisos del usuario...')
         const response = await api.get('/auth/me/permisos')
+        console.log('Permisos obtenidos:', response.data)
+        
+        // Guardar permisos
+        this.permisos = response.data
+        localStorage.setItem('permisos', JSON.stringify(response.data))
+        
         return response.data
       } catch (error) {
         console.error('Error obteniendo permisos:', error)
+        this.permisos = {}
+        localStorage.removeItem('permisos')
         return {}
       }
     },
 
     logout() {
+      //Seteando informacion a vacio
       this.user = null
       this.token = null
       localStorage.removeItem('user')
       localStorage.removeItem('token')
       delete api.defaults.headers.common['Authorization']
-      console.log('🚪 Usuario cerró sesión')
+      console.log('Usuario cerró sesión')
     },
 
     // Método auxiliar para mapear user_type string a ID numérico
