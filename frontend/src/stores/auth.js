@@ -1,282 +1,338 @@
-// stores/auth.js
+// stores/auth.js - VERSIÓN OPTIMIZADA Y SINCRONIZADA CON BACKEND
 import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
 import { api } from '@/services/api'
 
-export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    user: JSON.parse(localStorage.getItem('user')) || null,
-    token: localStorage.getItem('token') || null,
-    permisos: JSON.parse(localStorage.getItem('permisos')) || {},
-    isLoading: false
-  }),
+export const useAuthStore = defineStore('auth', () => {
+  // ========== STATE ==========
+  const user = ref(JSON.parse(localStorage.getItem('user')) || null)
+  const token = ref(localStorage.getItem('token') || null)
+  const permisos = ref(JSON.parse(localStorage.getItem('permisos')) || {})
+  const isLoading = ref(false)
 
-  getters: {
-    isAuthenticated: (state) => !!state.token, // Verificacion de token
-    userName: (state) => state.user?.nombre_completo || state.user?.user_name || 'Usuario',
-    userRole: (state) => {
-      // Mapear user_type string a número para compatibilidad
-      const roleMap = {
-        'comun': 1,
-        'admin': 2,
-        'advanced_admin': 3,
-        'super_admin': 4
-      }
-      return roleMap[state.user?.user_type] || state.user?.tipo_usuario_id || 1
-    },
+  // ========== GETTERS (COMPUTED) ==========
+  const isAuthenticated = computed(() => !!token.value)
+  
+  const userName = computed(() => 
+    user.value?.nombre_completo || user.value?.user_name || 'Usuario'
+  )
+  
+  const userCode = computed(() => 
+    user.value?.codigo_universitario || ''
+  )
 
-    //EDIT BOOKS PERMISSION
-    canEditBooks: (state) => {
-      // Solo verifica el tipo de usuario
-      const userType = state.user?.user_type
-      const tipoId = state.user?.tipo_usuario_id
-      
-      // Si es admin, advanced_admin o super_admin (por string)
-      if (userType && ['admin', 'advanced_admin', 'super_admin'].includes(userType)) {
-        return true
-      }
-      
-      // Si es 2, 3 o 4 (por número)
-      if (tipoId && [2, 3, 4].includes(tipoId)) {
-        return true
-      }
-      
-      return false
-    },
+  // TIPO DE USUARIO
+  const tipoUsuarioId = computed(() => {
+    //Tipo_usuario_id del backend
+    if (user.value?.tipo_usuario_id) return user.value.tipo_usuario_id
     
-    userCode: (state) => state.user?.codigo_universitario || '',
-    isAdmin: (state) => this.userRole >= 2,
-    isSuperAdmin: (state) => this.userRole === 4,
+    //Permisos del backend
+    if (permisos.value?.tipo_usuario_id) return permisos.value.tipo_usuario_id
     
-    //Getters para otros permisos mas especificos
-    canViewBooks: (state) => state.permisos?.view_books === true,
-    canBorrowBooks: (state) => state.permisos?.borrow_books === true,
-    canManageUsers: (state) => state.permisos?.manage_users === true,
-    canManageBooks: (state) => state.permisos?.manage_books === true,
-    canManageSystem: (state) => state.permisos?.manage_system === true,
-    canViewReports: (state) => state.permisos?.view_reports === true,
-
-    // Getters para tipos de usuario
-    isCommonUser: (state) => state.permisos?.es_usuario_comun === true,
-    isBasicAdmin: (state) => state.permisos?.es_admin_basico === true,
-    isAdvancedAdmin: (state) => state.permisos?.es_admin_avanzado === true,
-    isSuperAdmin: (state) => state.permisos?.es_super_admin === true,
-    isAnyAdmin: (state) => state.permisos?.es_cualquier_admin === true,
-
-    // Para compatibilidad
-    isAdmin: (state) => state.permisos?.es_cualquier_admin === true,
-    
-    can: (state) => {
-      return (permission) => {
-        const permissionMap = {
-          'view_books': 'puede_consultar',
-          'borrow_books': 'puede_prestar',
-          'manage_books': 'puede_gestionar_recursos',
-          'manage_users': 'puede_gestionar_usuarios'
-        }
-        const spanishPermission = permissionMap[permission] || permission
-        return state.permisos?.[spanishPermission] === true
-      }
+    //Mapeo user_type string
+    const roleMap = {
+      'comun': 1,
+      'admin_basico': 2,
+      'admin_avanzado': 3,
+      'super_admin': 4,
+      //Definiciones para compatibilidad
+      'admin': 2,
+      'advanced_admin': 3
     }
+    
+    const userType = user.value?.user_type
+    return roleMap[userType] || 1
+  })
 
-  },
+  // PERMISOS DIRECTOS DESDE BACKEND (computed para reactividad automática)
+  const puedeConsultar = computed(() => permisos.value?.puede_consultar === true)
+  const puedePrestar = computed(() => permisos.value?.puede_prestar === true)
+  const puedeGestionarRecursos = computed(() => permisos.value?.puede_gestionar_recursos === true)
+  const puedeGestionarUsuarios = computed(() => permisos.value?.puede_gestionar_usuarios === true)
 
-  actions: {
-      logout() {
-            console.log('🚪 Cerrando sesión...')
-            
-            // Limpiar estado local
-            this.user = null
-            this.token = null
-            this.isLoading = false
-            
-            // Limpiar localStorage
-            localStorage.removeItem('user')
-            localStorage.removeItem('token')
-            
-            // Remover token de los headers de axios
-            delete api.defaults.headers.common['Authorization']
-            
-            console.log('✅ Sesión cerrada correctamente')
-          },
+  // PERMISOS ESPECIFICOS PARA COMPONENTES
+  const puedeVerLibrosRetirados = computed(() => tipoUsuarioId.value >= 2)
+  const puedeEditarLibros = computed(() => tipoUsuarioId.value >= 2)  // Tipos 2,3,4
+  const puedeEliminarLibros = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeReactivarLibros = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeCrearLibros = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
 
-    async login(credentials) {
-      this.isLoading = true
-      try {
-        
+  // TIPOS DE USUARIO (Definicion de permisos para ocultar/mostrar informacion de admins)
+  const esUsuarioComun = computed(() => tipoUsuarioId.value === 1)
+  const esAdminBasico = computed(() => tipoUsuarioId.value === 2)
+  const esAdminAvanzado = computed(() => tipoUsuarioId.value === 3)
+  const esSuperAdmin = computed(() => tipoUsuarioId.value === 4)
+  const esCualquierAdmin = computed(() => tipoUsuarioId.value >= 2)
+
+  // ========== ACTIONS ==========
+  const login = async (credentials) => {
+    isLoading.value = true
+    try {
+      console.log('Iniciando sesion:', credentials)
+      const response = await api.post('/auth/login', credentials)
+      console.log('Login exitoso:', response.data)
       
-        console.log('🔐 Enviando credenciales a /auth/login:', credentials)
-        
-        const response = await api.post('/auth/login', credentials)
-        console.log('✅ Respuesta del login:', response.data)
-        
-        //Response data
-        const { access_token, token_type, user_type, user_name, user_id } = response.data
-        
-        // Guardar token
-        this.token = access_token
-        localStorage.setItem('token', access_token)
-        
-        // Crear objeto usuario con la información del token
-        const userData = {
-          id: user_id,
-          nombre_completo: user_name,
-          user_type: user_type,
-          tipo_usuario_id: this.mapUserTypeToId(user_type),
-          codigo_universitario: credentials.codigo_universitario
-        }
-        
-        // Guardar usuario
-        this.user = userData
-        localStorage.setItem('user', JSON.stringify(userData))
-        
-        
-        
-        // Configurar el token en axios para futuras requests
-        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
-        
-        return { 
-          success: true,
-          user: userData,
-          token: access_token
-        }
-        
-      } catch (error) {
-        console.error('❌ Error en login:', error)
-        return { 
-          success: false, 
-          error: this.getErrorMessage(error)
-        }
-      } finally {
-        this.isLoading = false
+      const { access_token, user_type, user_name, user_id } = response.data
+      
+      // TOKEN (GUARDADO)
+      token.value = access_token
+      localStorage.setItem('token', access_token)
+      
+      // OBJETO USUARIO (BASICO)
+      const userData = {
+        id: user_id,
+        nombre_completo: user_name,
+        user_type: user_type,
+        codigo_universitario: credentials.codigo_universitario
       }
-    },
-
-    async register(userData) {
-      this.isLoading = true
-      try {
-        console.log('Enviando registro:', userData)
-        const response = await api.post('/auth/register', userData)
-        console.log('Registro exitoso:', response.data)
-        
-        return { 
-          success: true, 
-          data: response.data 
-        }
-        
-      } catch (error) {
-        console.error('Error en registro:', error)
-        return {
-          success: false,
-          error: this.getErrorMessage(error)
-        }
-      } finally {
-        this.isLoading = false
+      
+      user.value = userData
+      localStorage.setItem('user', JSON.stringify(userData))
+      
+      // Configurar axios (peticiones de HTTP con token de autenticacion)
+      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+      
+      // Obtener permisos completos del backend
+      await fetchPermisosCompletos()
+      
+      return { success: true, user: userData, token: access_token }
+      
+    } catch (error) {
+      console.error('❌ Error en login:', error)
+      return { 
+        success: false, 
+        error: getErrorMessage(error)
       }
-    },
+    } finally {
+      isLoading.value = false
+    }
+  }
 
-    async getCurrentUser() {
-      try {
-        // Obtener información completa del usuario autenticado
-        const response = await api.get('/auth/me')
-        const userData = response.data
-        
-        // Actualizar información del usuario
-        this.user = { ...this.user, ...userData }
-        localStorage.setItem('user', JSON.stringify(this.user))
-        
-        return userData
-      } catch (error) {
-        console.error('Error obteniendo usuario actual:', error)
-        this.logout()
-        throw error
-      }
-    },
+  const register = async (userData) => {
+    isLoading.value = true
+    try {
+      console.log('Registrando...', userData)
+      const response = await api.post('/auth/register', userData)
+      console.log('Registro exitoso!', response.data)
+      
+      return { success: true, data: response.data }
+      
+    } catch (error) {
+      console.error('❌ Error en registro:', error)
+      return { success: false, error: getErrorMessage(error) }
+    } finally {
+      isLoading.value = false
+    }
+  }
 
-    async fetchPermisos() {
-      try {
-        console.log('Obteniendo permisos del usuario...')
-        const response = await api.get('/auth/me/permisos')
-        console.log('Permisos obtenidos:', response.data)
-        
-        // Guardar permisos
-        this.permisos = response.data
-        localStorage.setItem('permisos', JSON.stringify(response.data))
-        
-        return response.data
-      } catch (error) {
-        console.error('Error obteniendo permisos:', error)
-        this.permisos = {}
-        localStorage.removeItem('permisos')
-        return {}
-      }
-    },
-
-    logout() {
-      //Seteando informacion a vacio
-      this.user = null
-      this.token = null
-      localStorage.removeItem('user')
-      localStorage.removeItem('token')
-      delete api.defaults.headers.common['Authorization']
-      console.log('Usuario cerró sesión')
-    },
-
-    // Método auxiliar para mapear user_type string a ID numérico
-    mapUserTypeToId(userType) {
-      const roleMap = {
-        'comun': 1,
-        'admin_basico': 2,
-        'admin_avanzado': 3,
-        'super_admin': 4
-      }
-      return roleMap[userType] || 1
-    },
-
-    // Método auxiliar para manejar errores
-    getErrorMessage(error) {
-      if (error.response) {
-        const { status, data } = error.response
-        
-        switch (status) {
-          case 400:
-            return data.detail || 'Datos inválidos'
-          case 401:
-            return data.detail || 'Credenciales incorrectas'
-          case 404:
-            return data.detail || 'Usuario no encontrado'
-          case 409:
-            return data.detail || 'El usuario ya existe'
-          case 422:
-            if (data.detail && Array.isArray(data.detail)) {
-              const errors = data.detail.map(err => {
-                return err.msg || (err.loc ? err.loc.join('.') : JSON.stringify(err))
-              }).join(', ')
-              return `Errores de validación: ${errors}`
-            }
-            return data.detail || 'Error de validación'
-          case 500:
-            return 'Error interno del servidor'
-          default:
-            return data.detail || `Error ${status}: ${data.message || 'Error desconocido'}`
-        }
-      } else if (error.request) {
-        return 'No se pudo conectar con el servidor'
+  // Obteniendo usuario actual con sus permisos
+  const fetchCurrentUser = async () => {
+    try {
+      console.log('Obteniendo usuario actual...')
+      
+      //Esperando respuesta de auth y guardando
+      const response = await api.get('/auth/me')
+      const userData = response.data
+  
+      if (userData.permisos) {
+        user.value = userData
+        permisos.value = userData.permisos
       } else {
-        return error.message || 'Error de conexión'
-      }
-    },
-
-    // Método para verificar permisos
-    can(permission) {
-      const permissions = {
-        1: ['view_books', 'borrow_books', 'view_profile'],
-        2: ['manage_users', 'view_reports'],
-        3: ['manage_books', 'manage_categories'],
-        4: ['manage_admins', 'system_config']
+        user.value = userData
+        // Obtener permisos por separado (solo permisos)
+        await fetchPermisosCompletos()
       }
       
-      const userPermissions = permissions[this.userRole] || []
-      return userPermissions.includes(permission)
+      localStorage.setItem('user', JSON.stringify(user.value))
+      return userData
+      
+    } catch (error) {
+      console.error('❌ Error obteniendo usuario:', error)
+      logout()
+      throw error
     }
+  }
+
+  // Obtener permisos desde security
+  const fetchPermisosCompletos = async () => {
+    try {
+      console.log('Obteniendo permisos del backend...')
+      
+      const response = await api.get('/auth/me/permisos')
+      const permisosData = response.data
+      
+      console.log('Permisos recibidos!', permisosData)
+      
+      // Guardar permisos
+      permisos.value = permisosData
+      localStorage.setItem('permisos', JSON.stringify(permisosData))
+      
+      // Actualizar usuario con tipo_usuario_id si viene en permisos
+      if (permisosData.tipo_usuario_id && user.value) {
+        user.value.tipo_usuario_id = permisosData.tipo_usuario_id
+        localStorage.setItem('user', JSON.stringify(user.value))
+      }
+      
+      return permisosData
+      
+    } catch (error) {
+      console.error('⚠️ No se pudieron obtener permisos:', error)
+      
+      // Si no hay endpoint de permisos, crear permisos básicos desde user_type (caso de uso excepcional)
+      const defaultPermisos = crearPermisosDesdeUserType()
+      permisos.value = defaultPermisos
+      localStorage.setItem('permisos', JSON.stringify(defaultPermisos))
+      
+      return defaultPermisos
+    }
+  }
+
+  // Crear permisos básicos si el endpoint no responde (o existe)
+  const crearPermisosDesdeUserType = () => {
+    const tipoId = tipoUsuarioId.value
+    
+    return {
+      puede_consultar: true,                  //TODOS
+      puede_prestar: tipoId >= 2,
+      puede_gestionar_recursos: tipoId >= 3,
+      puede_gestionar_usuarios: tipoId === 4,
+      
+      // Informacion para frontend
+      tipo_usuario_id: tipoId,
+      es_usuario_comun: tipoId === 1,
+      es_admin_basico: tipoId === 2,
+      es_admin_avanzado: tipoId === 3,
+      es_super_admin: tipoId === 4,
+      es_cualquier_admin: tipoId >= 2
+    }
+  }
+
+  //LOGOUT (CERRAR SESION)
+  const logout = () => {
+    console.log('Cerrando sesión...')
+    
+    // Limpiar state
+    user.value = null
+    token.value = null
+    permisos.value = {}
+    isLoading.value = false
+    
+    // Limpiar localStorage
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+    localStorage.removeItem('permisos')
+    
+    // Remover token
+    delete api.defaults.headers.common['Authorization']
+    
+    console.log('Sesión cerrada correctamente!')
+  }
+
+  const inicializarDesdeStorage = async () => {
+    const storedToken = localStorage.getItem('token')
+    if (storedToken) {
+      token.value = storedToken
+      api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
+      
+      // Cargar usuario y permisos
+      if (localStorage.getItem('user')) {
+        try {
+          await fetchCurrentUser()
+        } catch (error) {
+          console.log('Token inválido, limpiando...')
+          logout()
+        }
+      }
+    }
+  }
+
+  //Verificar permisos (general)
+  const tienePermiso = (permiso) => {
+    // Permisos directos del backend
+    const permisosDirectos = {
+      'consultar': puedeConsultar.value,
+      'prestar': puedePrestar.value,
+      'gestionar_recursos': puedeGestionarRecursos.value,
+      'gestionar_usuarios': puedeGestionarUsuarios.value,
+      'ver_libros_retirados': puedeVerLibrosRetirados.value,
+      'editar_libros': puedeEditarLibros.value,
+      'eliminar_libros': puedeEliminarLibros.value,
+      'reactivar_libros': puedeReactivarLibros.value,
+      'crear_libros': puedeCrearLibros.value
+    }
+    
+    // Permisos del objeto permisos
+    const permisosBackend = permisos.value[permiso]
+    
+    return permisosDirectos[permiso] || permisosBackend || false
+  }
+
+  // Guia de errores
+  const getErrorMessage = (error) => {
+    if (error.response) {
+      const { status, data } = error.response
+      
+      switch (status) {
+        case 400: return data.detail || 'Datos inválidos'
+        case 401: return data.detail || 'Credenciales incorrectas'
+        case 404: return data.detail || 'Recurso no encontrado'
+        case 409: return data.detail || 'El recurso ya existe'
+        case 422: 
+          if (data.detail && Array.isArray(data.detail)) {
+            return data.detail.map(err => err.msg || err.loc?.join('.')).join(', ')
+          }
+          return data.detail || 'Error de validación'
+        case 500: return 'Error interno del servidor'
+        default: return data.detail || `Error ${status}`
+      }
+    } else if (error.request) {
+      return 'No se pudo conectar con el servidor'
+    } else {
+      return error.message || 'Error de conexión'
+    }
+  }
+
+  // ========== EXPORT ==========
+  return {
+    // State
+    user,
+    token,
+    permisos,
+    isLoading,
+    
+    // Computed - Autenticación
+    isAuthenticated,
+    userName,
+    userCode,
+    tipoUsuarioId,
+    
+    // Computed - Permisos directos (para uso fácil en templates)
+    puedeConsultar,
+    puedePrestar,
+    puedeGestionarRecursos,
+    puedeGestionarUsuarios,
+    
+    // Computed - Permisos específicos
+    puedeVerLibrosRetirados,
+    puedeEditarLibros,
+    puedeEliminarLibros,
+    puedeReactivarLibros,
+    puedeCrearLibros,
+    
+    // Computed - Tipos de usuario
+    esUsuarioComun,
+    esAdminBasico,
+    esAdminAvanzado,
+    esSuperAdmin,
+    esCualquierAdmin,
+    
+    // Actions
+    login,
+    register,
+    logout,
+    fetchCurrentUser,
+    fetchPermisosCompletos,
+    inicializarDesdeStorage,
+    tienePermiso
   }
 })

@@ -1,6 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+//IMPORTACION DE VISTAS (TESTING)
+import UserManagement from '@/views/SuperAdmin/UserManagement.vue'
+import UserCreate from '@/views/SuperAdmin/UserCreate.vue'
+
 const routes = [
   {
     path: '/',
@@ -48,21 +52,59 @@ const routes = [
 
   {
   path: '/admin/libros/crear',
-  name: 'BookEdit',
+  name: 'BookCreate',
   component: () => import('../views/admin/CrearLibro.vue'),
   meta: {
     title: 'Crear Nuevo Libro',
     requiresAuth: true,
-    roles: [3, 4], // Solo advanced_admin y super_admin
+    roles: [3, 4],
     layout: 'admin'
+    },
+  },
+  {
+    path: '/SuperAdmin/usuarios',
+    name: 'UserManagement',
+    component: UserManagement,
+    meta: { 
+      requiresAuth: true,
+      requiresSuperAdmin: true 
+    }
+  },
+  {
+    path: '/SuperAdmin/usuarios/crear',
+    name: 'UserCreate',
+    component: UserCreate,
+    meta: { 
+      requiresAuth: true,
+      requiresSuperAdmin: true 
+    }
   }
-}
   
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+//GUARD PARA NAVEGACION GLOBAL
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
+  
+  // Verificar autenticación
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    next('/login')
+    return
+  }
+  
+  // Verificar super admin para rutas protegidas
+  if (to.meta.requiresSuperAdmin && authStore.tipoUsuarioId !== 4) {
+    alert('No tienes permisos para acceder a esta sección')
+    next('/')
+    return
+  }
+  
+  next()
 })
 
 export default router

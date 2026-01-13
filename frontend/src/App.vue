@@ -1,6 +1,9 @@
 <!-- App.vue - Con botones estilizados -->
 <template>
   <div id="app">
+
+    <ToastWrapper />
+    
     <!-- Contenido principal -->
     <main :class="{ 'with-navbar': showNavbar }">
       <router-view />
@@ -17,6 +20,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import ToastWrapper from '@/components/ToastWrapper.vue'
+
 
 const route = useRoute()
 const authStore = useAuthStore()

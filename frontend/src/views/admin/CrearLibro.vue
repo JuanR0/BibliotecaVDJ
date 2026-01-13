@@ -434,13 +434,7 @@
       <!-- Botones de acción -->
       <div class="form-actions">
         <div class="action-left">
-          <button 
-            type="button" 
-            @click="goBack" 
-            class="btn btn-secondary btn-lg"
-          >
-            Cancelar
-          </button>
+          <button type="button" @click="goBack" class="btn btn-secondary btn-lg">Cancelar</button>
         </div>
         
         <div class="action-right">
@@ -729,7 +723,7 @@ const resetForm = () => {
 }
 
 const goBack = () => {
-  router.push('/catalogo')
+  router.push('/catalog')
 }
 
 // Cargar datos iniciales

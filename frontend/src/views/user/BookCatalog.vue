@@ -8,8 +8,7 @@
       </div>
 
       <div class="header-right">
-      <!-- Botón Agregar Libro (solo para tipos 3 y 4) -->
-        <button v-if="userCanCreateBooks" @click="goToCreateBook" class="btn btn-success btn-create-book" title="Agregar nuevo libro al catálogo">
+        <button v-if="canCreateBooks" @click="goToCreateBook" class="btn btn-success btn-create-book" title="Agregar nuevo libro al catálogo">
           <span class="btn-icon">➕</span>
           <span class="btn-text">Nuevo Libro</span>
         </button>
@@ -34,7 +33,7 @@
         <div class="stat-item">
           <span class="stat-icon">🔄</span>
           <div>
-            <span class="stat-value">{{ stats.prestableBooks || 0 }}</span>
+            <span class="stat-value">{{ stats.es_prestable || 0 }}</span>
             <span class="stat-label">Prestables</span>
           </div>
         </div>
@@ -185,7 +184,7 @@
           <div class="book-cover">
             <div class="cover-placeholder">
               <span class="book-icon">📖</span>
-              <div class="book-badge" v-if="book.es_prestable">🔄 Prestable</div>
+              <div class="book-badge" v-if="book.es_prestable && book.edicion != 1">🔄 Prestable</div>
             </div>
           </div>
           
@@ -225,14 +224,14 @@
             
             <button v-if="book.metodo_adquisicion_nombre" class="btn btn-secondary btn-small" title="Método de adquisición">🏷️ {{ book.metodo_adquisicion_nombre }} </button>
 
-            <button v-if="userCanEditBook" @click="goToEditPage(book.id)" class="btn btn-warning btn-small" :title="`Editar libro: ${book.titulo}`">✏️ Editar</button>
+            <button v-if="canEditBooks" @click="goToEditPage(book.id)" class="btn btn-warning btn-small" :title="`Editar libro: ${book.titulo}`">✏️ Editar</button>
 
-            <button v-if="userCanDelete" @click="confirmDelete(book)" class="btn btn-danger btn-small" :title="`Eliminar: ${book.titulo}`" :disabled="isDeleting">
+            <button v-if="canDelete" @click="confirmDelete(book)" class="btn btn-danger btn-small" :title="`Eliminar: ${book.titulo}`" :disabled="isDeleting">
               <span v-if="isDeleting && deletingBookId === book.id" class="spinner-mini"></span>
               <span v-else>🗑️ Eliminar</span>
             </button>
 
-            <button v-if="userCanRecoverBooks && book.estado_id == 4" @click="recoverBook(book)" class="btn btn-warning btn-recover-books" title="Ver y recuperar libros retirados">
+            <button v-if="canRecoverBooks && book.estado_id == 4" @click="recoverBook(book)" class="btn btn-warning btn-recover-books" title="Ver y recuperar libros retirados">
               <span class="btn-icon">♻️</span>
               <span class="btn-text">Recuperar Libros</span>
             </button>
@@ -397,14 +396,16 @@
 
 
 <!-- SCRIPT -->
-
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { bookService } from '@/services/books'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissions } from '@/composables/usePermissions'
+
 
 const router = useRouter()
+const { permissions, hasPermission } = usePermissions()
 
 // State
 const searchQuery = ref('')
@@ -417,13 +418,13 @@ const currentPage = ref(1)
 const itemsPerPage = ref(12)
 const isProcessingLoan = ref(false)
 const authStore = useAuthStore()
+
 // Eliminacion de libro
 const isDeleting = ref(false)
 const deletingBookId = ref(null)
 const showDeleteModal = ref(false)
 const bookToDelete = ref(null)
 const showSuccessToast = ref(false)
-
 
 // Data
 const books = ref([])
@@ -443,88 +444,18 @@ const filters = ref({
   editorial_id: ''
 })
 
-//PERMISOS PARA CREAR LIBRO
-const userCanCreateBooks = computed(() => {
-  const user = authStore.user
-  if (!user) return false
-  
-  //Solo usuarios tipo 3 en adelante puedene crear (puede_gestionar_recursos)
-  const tipoId = Number(user.tipo_usuario_id)
-  return tipoId >= 3
-})
 
-//ENVIAR A CREAR LIBRO
-const goToCreateBook = () => {
-  router.push('/admin/libros/crear')
-}
-
-//EDICION DE LIBRO
-const userCanEditBook = computed(() => {
-  const user = authStore.user
-  if (!user) return false
-  
-  console.log('🔍 Verificando permisos...')
-  console.log('user_type:', user.user_type)
-  console.log('tipo_usuario_id:', user.tipo_usuario_id)
-  
-  // Verificar por user_type (string)
-  if (user.user_type) {
-    const userType = String(user.user_type).toLowerCase().trim()
-    if (userType.includes('admin')) {
-      console.log('✅ Puede editar (user_type contiene "admin")')
-      return true
-    }
-  }
-  
-  // Verificar por tipo_usuario_id (número)
-  if (user.tipo_usuario_id !== undefined && user.tipo_usuario_id !== null) {
-    const tipoId = Number(user.tipo_usuario_id)
-    if (tipoId >= 2) { // 2 = admin, 3 = advanced_admin, 4 = super_admin
-      console.log('✅ Puede editar (tipo_usuario_id >= 2)')
-      return true
-    }
-  }
-  
-  console.log('❌ No puede editar')
-  return false
-})
-
-//PERMISOS PARA BORRAR
-const userCanDelete = computed(() => {
-  const user = authStore.user
-  if (!user) return false
-  
-  //Reciclacion de logica
-  return userCanEditBook.value
-})
-
-const closeModal = () => {
-  if (!isDeleting.value) {
-    showDeleteModal.value = false
-    bookToDelete.value = null
-  }
-}
-
-//PERMISOS PARA RECUPERAR
+//========================================== PERMISOS ======================================================
+const canCreateBooks = computed(() => hasPermission('canCreateBooks'))
+const canEditBooks = computed(() => hasPermission('canEditBooks'))
+const canDelete = computed(() => hasPermission('canDeleteBooks'))
+const canRecoverBooks = computed(() => hasPermission('canRecoverBooks'))
+const canSeeRetiredBooks = computed(() => hasPermission('canSeeRetiredBooks'))
+const userCanRequestLoans = computed(() => hasPermission('canRequestLoans'))
 
 
 
-
-
-//PERMISOS PARA VER LIBROS RETIRADOS
-const canSeeRetiredBooks = computed(() => {
-  const user = authStore.user
-  if (!user) return false
-  
-  // Solo user_type 3 y 4 pueden ver retirados
-  const allowedUserTypes = ['advanced_admin', 'super_admin']
-  const allowedTipoIds = [3, 4]
-  
-  return (
-    allowedUserTypes.includes(user.user_type) ||
-    allowedTipoIds.includes(Number(user.tipo_usuario_id))
-  )
-})
+//========================================== FUNCIONES ======================================================
 
 //ELIMINACION DE LIBRO (SOFT DELETE)
 const deleteBook = async () => {
@@ -568,34 +499,27 @@ const deleteBook = async () => {
   }
 }
 
-//PERMISOS PARA RECUPERAR LIBROS
-const userCanRecoverBooks = computed(() => {
-  const user = authStore.user
-  if (!user) return false
-  
-  const tipoId = Number(user.tipo_usuario_id)
-  return tipoId >= 3
-})
-
-//RECUPERACION DE LIBROS
+//RECUPERACION DE LIBRO
 const recoverBook = async (book) => {
-  if (!confirm(`¿Recuperar el libro "${book.titulo}"?\n\nEl libro pasará a estado "Disponible" y podrá ser prestado.`)) {
+  if (!canRecoverBooks.value) {
+    alert('No tienes permisos para recuperar libros')
+    return
+  }
+  
+  if (!confirm(`¿Recuperar el libro "${book.titulo}"?\n\nEl libro pasará a estado "Disponible".`)) {
     return
   }
   
   try {
-    // Llamar al endpoint de reactivación
     await bookService.reactivateBook(book.id)
     
-    // Actualizar estado localmente
     const index = books.value.findIndex(b => b.id === book.id)
     if (index !== -1) {
       books.value[index].estado_id = 1
       books.value[index].estado_nombre = 'Disponible'
     }
     
-    alert(`✅ Libro "${book.titulo}" recuperado exitosamente.`)
-    
+    alert(`✅ Libro "${book.titulo}" recuperado.`)
   } catch (error) {
     console.error('Error recuperando libro:', error)
     alert('❌ Error al recuperar el libro')
@@ -603,13 +527,58 @@ const recoverBook = async (book) => {
 }
 
 
-//CONFIRMACION DE ELIIMINACION PARA USO DE MODAL
-const confirmDelete = (book) => {
-  console.log('Confirmando eliminación para:', book)
-  bookToDelete.value = book
-  showDeleteModal.value = true
+
+
+//========================================== NAVEGACION ======================================================
+
+//ENVIAR A CREAR LIBRO
+const goToCreateBook = () => {
+  //CONFIRMACION EXTRA
+   if (!canCreateBooks.value) {
+    alert('No tienes permisos para crear libros')
+    return
+  }
+  router.push('/admin/libros/crear')
+ }
+
+ //ENVIAR A EDICION DE LIBRO
+ const goToEditPage = (bookId) => {
+  console.log(`Redirigiendo a página de edición del libro ID: ${bookId}`)
+  router.push(`/admin/libros/editar/${bookId}`)
 }
 
+//ENVIAR A DETALLES DE LIBRO
+const viewBookDetails = (bookId) => {
+  router.push(`/libros/${bookId}`)
+}
+
+
+
+
+//========================================== MODAL ======================================================
+//CONFIRMACION DE ELIIMINACION PARA USO DE MODAL
+const confirmDelete = (book) => {
+  if (!canDelete.value) {
+    alert('No tienes permisos para eliminar libros')
+    return
+  }
+  
+  bookToDelete.value = book
+  showDeleteModal.value = true
+
+}
+
+const closeModal = () => {
+  if (!isDeleting.value) {
+    showDeleteModal.value = false
+    bookToDelete.value = null
+  }
+}
+
+
+
+//========================================== FUNCIONES EN LISTADO ===========================================
+//FILATRADO DE LIBROS
 const filteredBooks = computed(() => {
   let result = [...books.value]
   
@@ -635,6 +604,7 @@ const filteredBooks = computed(() => {
       return fecha.getFullYear() === year
     })
   }
+
   //BUSQUEDA POR TEXTO
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim()
@@ -670,6 +640,7 @@ const filteredBooks = computed(() => {
   return result
 })
 
+//PAGINACION
 const totalPages = computed(() => {
   return Math.ceil(filteredBooks.value.length / itemsPerPage.value) || 1
 })
@@ -725,7 +696,6 @@ const loadBooks = async () => {
   error.value = null
   
   try {
-    //Obtener libros
     const response = await bookService.getBooks()
     
     // Data structure:{ libros: [], total: 0, pagina: 0, por_pagina: 0 }
@@ -737,10 +707,8 @@ const loadBooks = async () => {
       books.value = []
     }
     
-    // Calcular estadísticas
     calculateStats()
     
-    // Extraer editoriales únicas de los libros
     extractEditoriales()
     
   } catch (err) {
@@ -810,8 +778,6 @@ const toggleAdvancedFilters = () => {
 
 const applyFilters = () => {
   currentPage.value = 1
-  // Si quieres hacer filtrado en el backend, podrías llamar a loadBooks con params
-  // loadBooks(filters.value)
 }
 
 const resetFilters = () => {
@@ -849,7 +815,6 @@ const getStatusText = (book) => {
 const formatPrecio = (precio) => {
   if (!precio) return '0.00'
   try {
-    // Tu precio viene como string largo, convertimos a número
     const num = parseFloat(precio)
     return isNaN(num) ? '0.00' : num.toLocaleString('es-ES', {
       minimumFractionDigits: 2,
@@ -873,28 +838,6 @@ const formatFecha = (fecha) => {
   }
 }
 
-const viewBookDetails = (bookId) => {
-  router.push(`/libros/${bookId}`)
-}
-
-const requestLoan = async (bookId) => {
-  isProcessingLoan.value = true
-  try {
-    // Aquí deberías implementar la lógica de préstamo
-    // Por ahora solo muestra un mensaje
-    const book = books.value.find(b => b.id === bookId)
-    if (book) {
-      alert(`Solicitando préstamo de: "${book.titulo}"\nAutor: ${book.autor}`)
-      // Aquí llamarías a tu servicio de préstamos cuando lo implementes
-      // await loanService.requestLoan(bookId)
-    }
-  } catch (err) {
-    console.error('Error solicitando préstamo:', err)
-    alert('Error al solicitar préstamo')
-  } finally {
-    isProcessingLoan.value = false
-  }
-}
 
 // Paginación
 const prevPage = () => {
@@ -935,16 +878,82 @@ watch(filters, () => {
   currentPage.value = 1
 }, { deep: true })
 
-const goToEditPage = (bookId) => {
-  console.log(`Redirigiendo a página de edición del libro ID: ${bookId}`)
-  router.push(`/admin/libros/editar/${bookId}`)
-}
+
 
 // Ciclo de vida
 onMounted(() => {
   loadBooks()
+  //DEBUG PARA SABER PERMISOS ACTUALES
+  console.log('Permisos del usuario:', {
+    crear: canCreateBooks.value,
+    editar: canEditBooks.value,
+    eliminar: canDelete.value,
+    recuperar: canRecoverBooks.value,
+    verRetirados: canSeeRetiredBooks.value,
+    prestar: userCanRequestLoans.value
+  })
 })
+
+
+
+
+
+
+
+//=========================== PROXIMAMENTE =================================
+// PRESTAMOS V1
+// const requestLoan = async (bookId) => {
+//   isProcessingLoan.value = true
+//   try {
+//     // Aquí deberías implementar la lógica de préstamo
+//     // Por ahora solo muestra un mensaje
+//     const book = books.value.find(b => b.id === bookId)
+//     if (book) {
+//       alert(`Solicitando préstamo de: "${book.titulo}"\nAutor: ${book.autor}`)
+//       // Aquí llamarías a tu servicio de préstamos cuando lo implementes
+//       // await loanService.requestLoan(bookId)
+//     }
+//   } catch (err) {
+//     console.error('Error solicitando préstamo:', err)
+//     alert('Error al solicitar préstamo')
+//   } finally {
+//     isProcessingLoan.value = false
+//   }
+// }
+
+// PRESTAMOS
+// const requestLoan = async (bookId) => {
+//   if (!userCanRequestLoans.value) {
+//     alert('No tienes permisos para solicitar préstamos')
+//     return
+//   }
+  
+//   isProcessingLoan.value = true
+//   try {
+//     const book = books.value.find(b => b.id === bookId)
+//     if (book) {
+//       alert(`Solicitando préstamo de: "${book.titulo}"`)
+//     }
+//   } catch (err) {
+//     console.error('Error solicitando préstamo:', err)
+//     alert('Error al solicitar préstamo')
+//   } finally {
+//     isProcessingLoan.value = false
+//   }
+// }
+// ELIMINACION EN LIBROS PRESTADOS
+// const canDeleteThisBook = (book) => {
+//   return userCanDelete.value && 
+//          book.estado_id !== 2 // No se pueden eliminar libros prestados
+// }
+
+
+
 </script>
+
+
+
+
 
 <style scoped>
 /* Estilos generales */

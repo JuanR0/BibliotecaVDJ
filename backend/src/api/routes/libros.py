@@ -168,7 +168,7 @@ async def listar_libros(
     if estado_id:
         query = query.filter(Libro.estado_id == estado_id)
     if es_prestable is not None:
-        query = query.filter(Libro.es_prestable == es_prestable)
+        query = query.filter(Libro.es_prestable == es_prestable and Libro.edicion !=1)
 
     ##NO PERMITIR QUE USUARIO TIPO 1 PUEDA VER LIBROS RETIRADOS EN LISTADO
     if current_user.tipo_usuario_id == 1:
