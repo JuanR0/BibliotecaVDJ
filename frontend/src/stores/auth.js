@@ -64,6 +64,15 @@ export const useAuthStore = defineStore('auth', () => {
   const esSuperAdmin = computed(() => tipoUsuarioId.value === 4)
   const esCualquierAdmin = computed(() => tipoUsuarioId.value >= 2)
 
+  //PERMISOS PARA MOBILIARIO
+  const puedeVerMobiliario = computed(() => tipoUsuarioId.value >= 3)  // Tipos 2,3,4
+  const puedeEditarMobiliario = computed(() => tipoUsuarioId.value >= 3)  // Tipos 2,3,4
+  const puedeEliminarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeReactivarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeCrearMobiliario = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
+  const puedeDesactivarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+
+
   // ========== ACTIONS ==========
   const login = async (credentials) => {
     isLoading.value = true
@@ -267,7 +276,7 @@ export const useAuthStore = defineStore('auth', () => {
     return permisosDirectos[permiso] || permisosBackend || false
   }
 
-  // Guia de errores
+  // Guia para errores
   const getErrorMessage = (error) => {
     if (error.response) {
       const { status, data } = error.response
@@ -325,6 +334,14 @@ export const useAuthStore = defineStore('auth', () => {
     esAdminAvanzado,
     esSuperAdmin,
     esCualquierAdmin,
+
+    //Computed - Mobiliario
+    puedeVerMobiliario,
+    puedeEditarMobiliario,
+    puedeEliminarMobiliario,
+    puedeReactivarMobiliario,
+    puedeCrearMobiliario,
+    puedeDesactivarMobiliario,
     
     // Actions
     login,

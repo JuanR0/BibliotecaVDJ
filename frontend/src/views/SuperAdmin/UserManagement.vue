@@ -14,14 +14,11 @@
       </div>
       
       <div class="header-actions">
-        <button @click="goToCreateUser" class="btn btn-primary btn-create-user" title="Crear nuevo usuario">
-          <span class="btn-icon">➕</span>
-          <span class="btn-text">Nuevo Usuario</span>
-        </button>
         
-        <button @click="toggleShowInactive" class="btn btn-outline" :class="{ 'active': showInactiveUsers }">
+        <button @click="toggleShowInactive" class="btn-action btn-action-warning" :class="{ 'active': showInactiveUsers }">
           {{ showInactiveUsers ? 'Ocultar Inactivos' : 'Mostrar Inactivos' }}
         </button>
+        
       </div>
     </div>
 
@@ -646,11 +643,6 @@ const toggleShowInactive = () => {
   currentPage.value = 1
 }
 
-// Navegación
-const goToCreateUser = () => {
-  router.push('/SuperAdmin/usuarios/crear')
-}
-
 // Modales
 const openEditModal = (user) => {
   if (!canEditUser(user)) {
@@ -1267,6 +1259,18 @@ onMounted(() => {
 .toggle-inactive:hover:not(.active) {
   border-color: #dc3545;
   color: #dc3545;
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid black;
+  border-radius: 25px;
+  }
+
+.btn-outline:hover {
+  background: var(--primary);
+  color: white;
 }
 
 /* Confirm modal */

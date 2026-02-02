@@ -5,7 +5,7 @@
       <div class="header-content">
         <div class="user-welcome">
           <h1 class="welcome-title">👋 Hola, {{ userName }}</h1>
-          <p class="welcome-subtitle">Panel de Administrador Básico</p>
+          <p class="welcome-subtitle">Panel de usuario para usuario tipo: {{ userType }}</p>
         </div>
         <div class="user-info-card">
           <div class="user-avatar">
@@ -223,7 +223,6 @@
 
 <script>
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
 
 export default {
   name: 'UserMenu',
@@ -255,12 +254,17 @@ export default {
   computed: {
     userName() {
       const authStore = useAuthStore()
-      return authStore.userName || 'Administrador'
+      return authStore.userName
     },
     
     userCode() {
       const authStore = useAuthStore()
       return authStore.user?.codigo_universitario || 'N/A'
+    },
+
+    userType(){
+      const authstore = useAuthStore()
+      return authstore.tipoUsuarioId
     },
     
     lastAccess() {

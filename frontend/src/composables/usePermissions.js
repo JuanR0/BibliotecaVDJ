@@ -12,6 +12,15 @@ export const usePermissions = () => {
     canDeleteBooks: authStore.puedeEliminarLibros,
     canRecoverBooks: authStore.puedeReactivarLibros,
     
+
+    // CRUD Mobiliario
+    canCreateFurniture: authStore.puedeGestionarRecursos,
+    canEditFurniture: authStore.puedeGestionarRecursos,
+    canDeleteFurniture: authStore.puedeGestionarRecursos,
+    canRecoverFurniture: authStore.puedeGestionarRecursos,
+    canDesactivateFurniture: authStore.puedeGestionarRecursos,
+    canViewMobiliario: authStore.puedeGestionarRecursos,
+    
     // Visualización
     canSeeRetiredBooks: authStore.puedeVerLibrosRetirados,
     

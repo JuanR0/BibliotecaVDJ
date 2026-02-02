@@ -78,10 +78,6 @@ async def listar_mobiliario(
         selectinload(Mobiliario.usuario_creador)
     )
     
-    # Excluir mobiliario eliminado por defecto
-    if not incluir_eliminados:
-        query = query.filter(Mobiliario.estado_id != ESTADO_DADO_DE_BAJA )
-    
     # Aplicar filtros
     if tipo_mobiliario_id:  # ✅ CAMBIADO: era 'tipo_mobiliario'
         query = query.filter(Mobiliario.tipo_mobiliario_id == tipo_mobiliario_id)
