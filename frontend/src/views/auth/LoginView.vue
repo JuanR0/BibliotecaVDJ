@@ -132,7 +132,7 @@ export default {
         <div class="brand-content">
           <div class="logo">
             <span class="logo-icon">📚</span>
-            <h1 class="logo-text">Biblioteca<br>Virtual</h1>
+            <h1 class="logo-text">Biblioteca<br>VDJ</h1>
           </div>
           <div class="brand-message">
             <h2>Accede a miles de libros digitales</h2>

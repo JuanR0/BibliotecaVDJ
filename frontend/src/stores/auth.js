@@ -72,6 +72,13 @@ export const useAuthStore = defineStore('auth', () => {
   const puedeCrearMobiliario = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
   const puedeDesactivarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
 
+  //PERMISOSS PARA AREAS
+  const puedeVerAreas = computed(() => tipoUsuarioId.value >= 3)  // Tipos 3,4
+  const puedeEditarAreas = computed(() => tipoUsuarioId.value >= 3)  // Tipos 3,4
+  const puedeEliminarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeReactivarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeCrearAreas = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
+  const puedeDesactivarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
 
   // ========== ACTIONS ==========
   const login = async (credentials) => {
@@ -263,11 +270,28 @@ export const useAuthStore = defineStore('auth', () => {
       'prestar': puedePrestar.value,
       'gestionar_recursos': puedeGestionarRecursos.value,
       'gestionar_usuarios': puedeGestionarUsuarios.value,
+
       'ver_libros_retirados': puedeVerLibrosRetirados.value,
       'editar_libros': puedeEditarLibros.value,
       'eliminar_libros': puedeEliminarLibros.value,
       'reactivar_libros': puedeReactivarLibros.value,
-      'crear_libros': puedeCrearLibros.value
+      'crear_libros': puedeCrearLibros.value,
+
+      // Mobiliario
+      'canViewFurniture': puedeVerMobiliario.value,
+      'canEditFurniture': puedeEditarMobiliario.value,
+      'canDeleteFurniture': puedeEliminarMobiliario.value,
+      'canReactivatFurniture': puedeReactivarMobiliario.value,
+      'canCreateFurniture': puedeCrearMobiliario.value,
+      'canDesactivateFurniture': puedeDesactivarMobiliario.value,
+
+      // Áreas (AGREGAR ESTOS)
+      'canViewAreas': puedeVerAreas.value,
+      'canEditAreas': puedeEditarAreas.value,
+      'canDeleteAreas': puedeEliminarAreas.value,
+      'canReactivateAreas': puedeReactivarAreas.value,
+      'canCreateAreas': puedeCrearAreas.value,
+      'canDesactivateAreas': puedeDesactivarAreas.value
     }
     
     // Permisos del objeto permisos
@@ -343,6 +367,14 @@ export const useAuthStore = defineStore('auth', () => {
     puedeCrearMobiliario,
     puedeDesactivarMobiliario,
     
+    //Computed - Areas
+    puedeVerAreas,
+    puedeEditarAreas,
+    puedeEliminarAreas,
+    puedeReactivarAreas,
+    puedeCrearAreas,
+    puedeDesactivarAreas,
+
     // Actions
     login,
     register,

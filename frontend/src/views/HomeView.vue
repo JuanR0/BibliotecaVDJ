@@ -3,7 +3,7 @@
   <div class="home">
     <header class="hero-section">
       <div class="container">
-        <h1 class="title">📚 Biblioteca Digital</h1>
+        <h1 class="title">📚 BibliotecaVDJ</h1>
         <p class="subtitle">Gestiona tu biblioteca de manera eficiente</p>
         
         <!-- Usuario NO autenticado -->
@@ -28,7 +28,7 @@
 
           <!-- Permisos del Usuario -->
           <div class="permisos-section">
-            <h3>🎯 Tus Permisos</h3>
+            <h3>Tus Permisos</h3>
             <div class="permisos-grid">
               <div class="permiso-card" v-if="authStore.puedeConsultar">
                 <span class="permiso-icon">📖</span>
@@ -82,43 +82,19 @@
 
           <!-- Acciones Rápidas -->
           <div class="quick-actions-section">
-            <h3>🚀 Acciones Rápidas</h3>
+            <h3>Acciones Rápidas</h3>
             <div class="quick-actions">
-              <button 
-                v-if="authStore.canViewBooks"
-                class="btn btn-outline" 
-                @click="$router.push('/catalog')"
-              >
-                🔍 Explorar Catálogo
-              </button>
+              <button v-if="authStore.canViewBooks" class="btn btn-outline" @click="$router.push('/catalog')">Explorar Catálogo</button>
               
-              <button 
-                v-if="authStore.canBorrowBooks"
-                class="btn btn-outline" 
-                @click="$router.push('/my-loans')"
-              >
-                📖 Mis Préstamos
-              </button>
+              <button v-if="authStore.canBorrowBooks" class="btn btn-outline" @click="$router.push('/my-loans')"> Mis Préstamos</button>
               
-              <button 
-                v-if="authStore.canManageUsers"
-                class="btn btn-outline" 
-                @click="$router.push('/admin/users')"
-              >
-                👥 Gestionar Usuarios
-              </button>
+              <button v-if="authStore.canManageUsers" class="btn btn-outline" @click="$router.push('/admin/users')">Gestionar Usuarios</button>
               
-              <button 
-                v-if="authStore.canManageBooks"
-                class="btn btn-outline" 
-                @click="$router.push('/admin/books')"
-              >
-                📚 Gestionar Libros
-              </button>
+              <button v-if="authStore.canManageBooks" class="btn btn-outline"  @click="$router.push('/admin/books')">Gestionar Libros</button>
               
               <button 
                 v-if="authStore.canViewReports"
-                class="btn btn-outline" 
+                class="btn btn-outline"
                 @click="$router.push('/admin/reports')"
               >
                 📊 Ver Reportes

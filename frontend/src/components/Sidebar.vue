@@ -3,7 +3,7 @@
     <!-- Logo y toggle -->
     <div class="sidebar-header">
       <div class="logo" @click="toggleCollapse">
-        <span v-if="!collapsed" class="logo-text">📚 BiblioSys</span>
+        <span v-if="!collapsed" class="logo-text">📚 BiblioVDJ</span>
         <span v-else class="logo-icon">📚</span>
       </div>
       <button class="toggle-btn" @click="toggleCollapse">
@@ -60,10 +60,25 @@
           </router-link>
         </li>
 
+        <li v-if="auth.puedeVerAreas">
+          <router-link to="/admin/areas" class="nav-link" :class="{ 'active': isAreasActive }">
+            <span class="nav-icon">🏢</span>
+            <span v-if="!collapsed" class="nav-text">Gestión de Áreas</span>
+          </router-link>
+        </li>
+
         <li v-if="auth.esCualquierAdmin">
           <router-link to="/admin/prestamos" class="nav-link" active-class="active">
             <span class="nav-icon">🔄</span>
             <span v-if="!collapsed" class="nav-text">Préstamos</span>
+            <span v-if="!collapsed" class="badge upcoming">Próximo</span>
+          </router-link>
+        </li>
+
+        <li v-if="auth.esCualquierAdmin">
+          <router-link to="/admin/multas" class="nav-link" active-class="active">
+            <span class="nav-icon">⚠️</span>
+            <span v-if="!collapsed" class="nav-text">Multas</span>
             <span v-if="!collapsed" class="badge upcoming">Próximo</span>
           </router-link>
         </li>
@@ -154,12 +169,13 @@
 
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const collapsed = ref(false)
 
 // Persistir estado en localStorage
@@ -189,6 +205,10 @@ const getUserInitials = (name) => {
     .toUpperCase()
     .substring(0, 2)
 }
+
+const isAreasActive = computed(() => {
+  return route.path.startsWith('/admin/areas')
+})
 
 const getUserRoleName = (tipoId) => {
   const roles = {

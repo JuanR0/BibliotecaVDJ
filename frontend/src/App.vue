@@ -5,6 +5,7 @@
     
     <Layout v-if="showLayout">
       <router-view />
+      <ChatWidget />
     </Layout>
     <router-view v-else />
 
@@ -14,8 +15,12 @@
 <script setup>
 import { computed} from 'vue'
 import { useRoute } from 'vue-router'
+
+
+
 import ToastWrapper from '@/components/ToastWrapper.vue'
 import Layout from '@/components/Layout.vue'
+import ChatWidget from '@/components/ChatWidget.vue'
 
 
 const route = useRoute()

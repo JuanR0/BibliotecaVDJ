@@ -21,6 +21,10 @@ import MobiliarioManagementView from '@/views/admin//FurnitureManagement.vue'
 import MobiliarioCreateView from '@/views/admin/FurnitureCreate.vue'
 import MobiliarioEditView from '@/views/admin/EditFurniture.vue'
 
+import AreasManagement from '@/views/admin/AreasManagement.vue'
+
+import Error404 from '@/views/NotFoundView.vue'
+
 const routes = [
   // ========== RUTAS PUBLIAS ==========
   {
@@ -155,12 +159,22 @@ const routes = [
     },
     props: true
   },
+
+  {
+    path: '/admin/areas',
+    name: 'AreasManagement',
+    component: AreasManagement,
+    meta: {
+      requiresAuth: true,
+      requiredPermission: 'canViewAreas'
+    }
+  },
   
   // ========== RUTA 404 ==========
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('../views/NotFoundView.vue'),
+    component: Error404,
     meta: { title: 'Página no encontrada' }
   }
 ]

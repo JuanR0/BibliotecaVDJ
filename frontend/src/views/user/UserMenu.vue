@@ -212,10 +212,7 @@
         <button @click="logout" class="logout-btn">
           🚪 Cerrar Sesión
         </button>
-        <button @click="$router.push('/catalog')" class="floating-catalog-btn">
-          <span class="floating-icon">📚</span>
-          <span class="floating-text">Catálogo</span>
-        </button>
+        
       </div>
     </footer>
   </div>
