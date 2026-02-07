@@ -5,7 +5,7 @@
       <div class="header-content">
         <div class="user-welcome">
           <h1 class="welcome-title">👋 Hola, {{ userName }}</h1>
-          <p class="welcome-subtitle">Panel de Administrador Básico</p>
+          <p class="welcome-subtitle">Panel de usuario para usuario tipo: {{ userType }}</p>
         </div>
         <div class="user-info-card">
           <div class="user-avatar">
@@ -212,10 +212,7 @@
         <button @click="logout" class="logout-btn">
           🚪 Cerrar Sesión
         </button>
-        <button @click="$router.push('/catalog')" class="floating-catalog-btn">
-          <span class="floating-icon">📚</span>
-          <span class="floating-text">Catálogo</span>
-        </button>
+        
       </div>
     </footer>
   </div>
@@ -223,7 +220,6 @@
 
 <script>
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
 
 export default {
   name: 'UserMenu',
@@ -255,12 +251,17 @@ export default {
   computed: {
     userName() {
       const authStore = useAuthStore()
-      return authStore.userName || 'Administrador'
+      return authStore.userName
     },
     
     userCode() {
       const authStore = useAuthStore()
       return authStore.user?.codigo_universitario || 'N/A'
+    },
+
+    userType(){
+      const authstore = useAuthStore()
+      return authstore.tipoUsuarioId
     },
     
     lastAccess() {

@@ -137,10 +137,6 @@ async def listar_areas(
         selectinload(Area.usuario_registro)
     )
     
-    # Excluir áreas eliminadas por defecto
-    if not incluir_eliminadas:
-        query = query.filter(Area.estado_id != ESTADO_ELIMINADO)
-    
     # Aplicar filtros adicionales
     if nombre:
         query = query.filter(Area.nombre.ilike(f"%{nombre}%"))

@@ -64,6 +64,22 @@ export const useAuthStore = defineStore('auth', () => {
   const esSuperAdmin = computed(() => tipoUsuarioId.value === 4)
   const esCualquierAdmin = computed(() => tipoUsuarioId.value >= 2)
 
+  //PERMISOS PARA MOBILIARIO
+  const puedeVerMobiliario = computed(() => tipoUsuarioId.value >= 3)  // Tipos 2,3,4
+  const puedeEditarMobiliario = computed(() => tipoUsuarioId.value >= 3)  // Tipos 2,3,4
+  const puedeEliminarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeReactivarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeCrearMobiliario = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
+  const puedeDesactivarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+
+  //PERMISOSS PARA AREAS
+  const puedeVerAreas = computed(() => tipoUsuarioId.value >= 3)  // Tipos 3,4
+  const puedeEditarAreas = computed(() => tipoUsuarioId.value >= 3)  // Tipos 3,4
+  const puedeEliminarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeReactivarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeCrearAreas = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
+  const puedeDesactivarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+
   // ========== ACTIONS ==========
   const login = async (credentials) => {
     isLoading.value = true
@@ -254,11 +270,28 @@ export const useAuthStore = defineStore('auth', () => {
       'prestar': puedePrestar.value,
       'gestionar_recursos': puedeGestionarRecursos.value,
       'gestionar_usuarios': puedeGestionarUsuarios.value,
+
       'ver_libros_retirados': puedeVerLibrosRetirados.value,
       'editar_libros': puedeEditarLibros.value,
       'eliminar_libros': puedeEliminarLibros.value,
       'reactivar_libros': puedeReactivarLibros.value,
-      'crear_libros': puedeCrearLibros.value
+      'crear_libros': puedeCrearLibros.value,
+
+      // Mobiliario
+      'canViewFurniture': puedeVerMobiliario.value,
+      'canEditFurniture': puedeEditarMobiliario.value,
+      'canDeleteFurniture': puedeEliminarMobiliario.value,
+      'canReactivatFurniture': puedeReactivarMobiliario.value,
+      'canCreateFurniture': puedeCrearMobiliario.value,
+      'canDesactivateFurniture': puedeDesactivarMobiliario.value,
+
+      // Áreas (AGREGAR ESTOS)
+      'canViewAreas': puedeVerAreas.value,
+      'canEditAreas': puedeEditarAreas.value,
+      'canDeleteAreas': puedeEliminarAreas.value,
+      'canReactivateAreas': puedeReactivarAreas.value,
+      'canCreateAreas': puedeCrearAreas.value,
+      'canDesactivateAreas': puedeDesactivarAreas.value
     }
     
     // Permisos del objeto permisos
@@ -267,7 +300,7 @@ export const useAuthStore = defineStore('auth', () => {
     return permisosDirectos[permiso] || permisosBackend || false
   }
 
-  // Guia de errores
+  // Guia para errores
   const getErrorMessage = (error) => {
     if (error.response) {
       const { status, data } = error.response
@@ -325,7 +358,23 @@ export const useAuthStore = defineStore('auth', () => {
     esAdminAvanzado,
     esSuperAdmin,
     esCualquierAdmin,
+
+    //Computed - Mobiliario
+    puedeVerMobiliario,
+    puedeEditarMobiliario,
+    puedeEliminarMobiliario,
+    puedeReactivarMobiliario,
+    puedeCrearMobiliario,
+    puedeDesactivarMobiliario,
     
+    //Computed - Areas
+    puedeVerAreas,
+    puedeEditarAreas,
+    puedeEliminarAreas,
+    puedeReactivarAreas,
+    puedeCrearAreas,
+    puedeDesactivarAreas,
+
     // Actions
     login,
     register,

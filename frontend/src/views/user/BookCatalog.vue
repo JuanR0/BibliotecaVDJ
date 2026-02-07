@@ -3,15 +3,8 @@
     <!-- Header -->
     <div class="catalog-header">
       <div class="header-content">
-        <h1>📚 Catálogo de la Biblioteca</h1>
-        <p class="subtitle">Encuentra el libro perfecto para tu próxima lectura</p>
-      </div>
-
-      <div class="header-right">
-        <button v-if="canCreateBooks" @click="goToCreateBook" class="btn btn-success btn-create-book" title="Agregar nuevo libro al catálogo">
-          <span class="btn-icon">➕</span>
-          <span class="btn-text">Nuevo Libro</span>
-        </button>
+        <h1>Catálogo de la Biblioteca</h1>
+        <p class="subtitle">Libros pertenecientes a la biblioteca</p>
       </div>
       
       <!-- Estadísticas rápidas -->
@@ -60,24 +53,18 @@
           </button>
         </div>
 
-        <!-- Filtros Avanzados -->
+        <!-- FILTROS AVANZADOS -->
         <div v-if="showAdvancedFilters" class="advanced-filters">
           <div class="filters-grid">
             <div class="filter-group">
-              <label>📋 Estado:</label>
+              <label>Estado:</label>
               <select v-model="filters.estado_id" class="filter-select">
                 <option value="">Todos los estados</option>
-                <option value="1">✅ Disponible</option>
-                <option value="2">⏳ Prestado</option>
-                <option value="3">🔧 En reparación</option>
-                
-                <!-- Solo mostrar "Retirados" para admins -->
-                <option 
-                  v-if="canSeeRetiredBooks"
-                  value="4"
-                >
-                  ❌ Retirados
-                </option>
+                <option value="1">Disponible</option>
+                <option value="2">Prestado</option>
+                <option value="3">En reparación</option>
+
+                <option v-if="canSeeRetiredBooks" value="4">Retirados</option>
               </select>
 
               <div v-if="filters.estado_id === '1'" class="filter-hint">
@@ -86,7 +73,7 @@
             </div>
 
             <div class="filter-group">
-              <label>🏷️ Es prestable:</label>
+              <label>Es prestable:</label>
               <select v-model="filters.es_prestable" class="filter-select">
                 <option value="">Todos</option>
                 <option value="true">Solo prestables</option>
@@ -95,19 +82,12 @@
             </div>
 
             <div class="filter-group">
-              <label>📅 Año de adquisición:</label>
-              <input
-                v-model="filters.ano_adquisicion"
-                type="number"
-                placeholder="Ej: 2023"
-                class="filter-input"
-                min="1900"
-                :max="new Date().getFullYear()"
-              />
+              <label>Año de adquisición:</label>
+              <input v-model="filters.ano_adquisicion" type="number" placeholder="Ej: 2023" class="filter-input" min="1900" :max="new Date().getFullYear()"/>
             </div>
 
             <div class="filter-group">
-              <label>📚 Editorial:</label>
+              <label>Editorial:</label>
               <select v-model="filters.editorial_id" class="filter-select">
                 <option value="">Todas las editoriales</option>
                 <option v-for="editorial in editoriales" :key="editorial.id" :value="editorial.id">
@@ -115,39 +95,26 @@
                 </option>
               </select>
             </div>
+
           </div>
 
           <div class="filter-actions">
-            <button @click="applyFilters" class="btn btn-primary">
-              🔍 Aplicar Filtros
-            </button>
-            <button @click="resetFilters" class="btn btn-outline">
-              🔄 Limpiar Filtros
-            </button>
+            <button @click="applyFilters" class="btn btn-primary">Aplicar Filtros</button>
+            <button @click="resetFilters" class="btn btn-outline">Limpiar Filtros</button>
           </div>
+
         </div>
       </div>
     </div>
 
-    <!-- Vista de Resultados -->
+    <!-- RESULTADOS -->
     <div class="results-section">
-      <!-- Controles de vista -->
+      <!-- CONTROLES -->
       <div class="view-controls">
         <div class="view-options">
-          <button 
-            @click="viewMode = 'grid'" 
-            :class="{ 'active': viewMode === 'grid' }" 
-            class="view-btn"
-          >
-            ⏹️ Cuadrícula
-          </button>
-          <button 
-            @click="viewMode = 'list'" 
-            :class="{ 'active': viewMode === 'list' }" 
-            class="view-btn"
-          >
-            📋 Lista
-          </button>
+          <!--TIPOS DE VISTA-->
+          <button @click="viewMode = 'grid'" :class="{ 'active': viewMode === 'grid' }" class="view-btn">Cuadrícula</button>
+          <button @click="viewMode = 'list'" :class="{ 'active': viewMode === 'list' }" class="view-btn">Lista</button>
         </div>
         
         <div class="sort-options">
@@ -161,14 +128,14 @@
         </div>
       </div>
 
-      <!-- Estado de carga/error -->
+      <!-- ESTADO CARGA/ERROR-->
       <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
         <p>Cargando catálogo...</p>
       </div>
 
       <div v-if="error" class="error-state">
-        <p>❌ Error: {{ error }}</p>
+        <p>Error: {{ error }}</p>
         <button @click="loadBooks" class="btn btn-primary">Reintentar</button>
       </div>
 
@@ -180,7 +147,7 @@
             <div class="book-code">{{ book.codigo_decimal || 'N/A' }}</div>
           </div>
           
-          <!-- Es prestable -->
+          <!-- PRESTABLE -->
           <div class="book-cover">
             <div class="cover-placeholder">
               <span class="book-icon">📖</span>
@@ -193,48 +160,44 @@
             <p class="book-author">✍️ {{ book.autor }}</p>
             
             <div class="book-details">
-              <p><strong>📘 ISBN:</strong> {{ book.isbn || 'No disponible' }}</p>
-              <p><strong>🏷️ Etiqueta:</strong> {{ book.etiqueta }}</p>
-              <p><strong>#️⃣ Ejemplar:</strong> {{ book.numero_ejemplar }}</p>
-              <p><strong>📅 Edición:</strong> {{ book.edicion }}</p>
-              <p><strong>📄 Páginas:</strong> {{ book.numero_paginas }}</p>
+              <p><strong>ISBN:</strong> {{ book.isbn || 'No disponible' }}</p>
+              <p><strong>Etiqueta:</strong> {{ book.etiqueta }}</p>
+              <p><strong>Ejemplar:</strong> {{ book.numero_ejemplar }}</p>
+              <p><strong>Edición:</strong> {{ book.edicion }}</p>
+              <p><strong>Páginas:</strong> {{ book.numero_paginas }}</p>
               <p v-if="book.editorial_nombre">
-                <strong>🏢 Editorial:</strong> {{ book.editorial_nombre }}
+                <strong>Editorial:</strong> {{ book.editorial_nombre }}
               </p>
               <p v-if="book.area_conocimiento_nombre">
-                <strong>📚 Área:</strong> {{ book.area_conocimiento_nombre }}
+                <strong>Área:</strong> {{ book.area_conocimiento_nombre }}
               </p>
             </div>
             
             <div class="book-metadata">
-              <span class="metadata-item">📚 #{{ book.id }}</span>
-              <span class="metadata-item" v-if="book.precio">
-                💲 ${{ formatPrecio(book.precio) }}
-              </span>
-              <span class="metadata-item" v-if="book.fecha_adquisicion">
-                📅 {{ formatFecha(book.fecha_adquisicion) }}
-              </span>
+              <span class="metadata-item">ID:{{ book.id }}</span>
+              <!-- COSTO DE LIBRO NO NECESARIO PARA USUARIO -->
+              <!-- <span class="metadata-item" v-if="book.precio">${{ formatPrecio(book.precio) }}</span> -->
+              <!-- <span class="metadata-item" v-if="book.fecha_adquisicion">{{ formatFecha(book.fecha_adquisicion) }}</span> -->
             </div>
           </div>
           
+
+          <!-- ACCIONES DE LIBRO -->
           <div class="book-actions">
-            <button @click="viewBookDetails(book.id)" class="btn btn-outline btn-small">🔍 Detalles</button>
+            <button @click="viewBookDetails(book.id)" class="btn btn-outline btn-small btn-details-books">Detalles..</button>
+            <button v-if="book.es_prestable && book.edicion != 1" @click="requestLoan(book.id)" class="btn btn-loan-books btn-smal" :disabled="isProcessingLoan">Solicitar Préstamo </button>
+            <button v-if="canEditBooks" @click="goToEditPage(book.id)" class="btn btn-edit-books" :title="`Editar libro: ${book.titulo}`">Editar</button>
             
-            <button  v-if="book.es_prestable && book.edicion != 1" @click="requestLoan(book.id)" class="btn btn-primary btn-small" :disabled="isProcessingLoan"> 📥 Solicitar Préstamo </button>
-            
-            <button v-if="book.metodo_adquisicion_nombre" class="btn btn-secondary btn-small" title="Método de adquisición">🏷️ {{ book.metodo_adquisicion_nombre }} </button>
-
-            <button v-if="canEditBooks" @click="goToEditPage(book.id)" class="btn btn-warning btn-small" :title="`Editar libro: ${book.titulo}`">✏️ Editar</button>
-
-            <button v-if="canDelete" @click="confirmDelete(book)" class="btn btn-danger btn-small" :title="`Eliminar: ${book.titulo}`" :disabled="isDeleting">
+            <button v-if="canDelete" @click="confirmDelete(book)" class="btn btn-danger btn-delete-books" :title="`Eliminar: ${book.titulo}`" :disabled="isDeleting">
               <span v-if="isDeleting && deletingBookId === book.id" class="spinner-mini"></span>
-              <span v-else>🗑️ Eliminar</span>
+              <span v-else>Eliminar</span>
             </button>
-
             <button v-if="canRecoverBooks && book.estado_id == 4" @click="recoverBook(book)" class="btn btn-warning btn-recover-books" title="Ver y recuperar libros retirados">
               <span class="btn-icon">♻️</span>
               <span class="btn-text">Recuperar Libros</span>
             </button>
+
+            <!-- <button v-if="book.metodo_adquisicion_nombre" class="btn btn-secondary btn-small" title="Método de adquisición">🏷️ {{ book.metodo_adquisicion_nombre }} </button> -->
 
           </div>
         </div>
@@ -243,24 +206,22 @@
         <div v-if="showDeleteModal" class="modal-overlay">
             <div class="modal-content">
               <div class="modal-header">
-                <h3>⚠️ Confirmar Eliminación</h3>
+                <h3>Confirmar Eliminación</h3>
                 <button @click="closeModal" class="modal-close-btn">×</button>
               </div>
               
               <div class="modal-body">
                 <p>¿Estás seguro de que deseas eliminar el siguiente libro?</p>
-                
                 <div class="book-to-delete">
                   <div class="book-info">
                     <h4>{{ bookToDelete?.titulo }}</h4>
                     <p><strong>Autor:</strong> {{ bookToDelete?.autor }}</p>
-                    <p><strong>ISBN:</strong> {{ bookToDelete?.isbn || 'N/A' }}</p>
                     <p><strong>Código:</strong> {{ bookToDelete?.codigo_decimal }}</p>
+                    <p><strong>Edicion:</strong> {{ bookToDelete?.edicion }}</p>
                   </div>
-                  
                   <div class="warning-message">
                     <div class="warning-icon">⚠️</div>
-                    <p>Esta acción no se puede deshacer. El libro será eliminado permanentemente.</p>
+                    <p>El libro será retirado.</p>
                   </div>
                 </div>
               </div>
@@ -405,7 +366,7 @@ import { usePermissions } from '@/composables/usePermissions'
 
 
 const router = useRouter()
-const { permissions, hasPermission } = usePermissions()
+const { hasPermission } = usePermissions()
 
 // State
 const searchQuery = ref('')
@@ -531,15 +492,6 @@ const recoverBook = async (book) => {
 
 //========================================== NAVEGACION ======================================================
 
-//ENVIAR A CREAR LIBRO
-const goToCreateBook = () => {
-  //CONFIRMACION EXTRA
-   if (!canCreateBooks.value) {
-    alert('No tienes permisos para crear libros')
-    return
-  }
-  router.push('/admin/libros/crear')
- }
 
  //ENVIAR A EDICION DE LIBRO
  const goToEditPage = (bookId) => {
@@ -1989,6 +1941,66 @@ onMounted(() => {
     height: 50px;
     justify-content: center;
   }
+}
+
+.btn-loan-books {
+  background: linear-gradient(135deg, #ebd2ff 0%, #7300f7 100%);
+  color: #212529;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.btn-details-books {
+  background: linear-gradient(135deg, #505050 0%, #ffffff 100%);
+  color: #212529;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.btn-edit-books {
+  background: linear-gradient(135deg, #f4ff8f 0%, #c4b10b 100%);
+  color: #212529;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.btn-delete-books {
+  background: linear-gradient(135deg, #b12f2f 0%, #e06c00 100%);
+  color: #212529;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
 }
 
 /*ESTILOS PARA RECUPERAR*/

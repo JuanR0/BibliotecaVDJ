@@ -3,38 +3,34 @@
   <div class="home">
     <header class="hero-section">
       <div class="container">
-        <h1 class="title">📚 Biblioteca Digital</h1>
+        <h1 class="title">📚 BibliotecaVDJ</h1>
         <p class="subtitle">Gestiona tu biblioteca de manera eficiente</p>
         
         <!-- Usuario NO autenticado -->
         <div class="hero-actions" v-if="!authStore.isAuthenticated">
-          <button @click="$router.push('/login')" class="btn btn-primary">
-            Iniciar Sesión
-          </button>
-          <button @click="$router.push('/register')" class="btn btn-secondary">
-            Registrarse
-          </button>
+          <button @click="$router.push('/login')" class="btn btn-primary">Iniciar Sesión</button>
+          <button @click="$router.push('/register')" class="btn btn-secondary">Registrarse</button>
         </div>
 
         <!-- Usuario AUTENTICADO -->
         <div class="user-welcome" v-else>
           <!-- Información del Usuario -->
           <div class="user-header">
+
             <div class="user-avatar">👤</div>
+            
             <div class="user-info">
               <h2>¡Bienvenido, {{ authStore.userName }}!</h2>
-              <div class="user-badge" :class="roleClass">
-                {{ authStore.userRoleName }}
-              </div>
+              <div class="user-badge" :class="roleClass">Tipo de usuario: {{ authStore.tipoUsuarioId }}</div>
               <p class="user-code">Código: {{ authStore.userCode }}</p>
             </div>
           </div>
 
           <!-- Permisos del Usuario -->
           <div class="permisos-section">
-            <h3>🎯 Tus Permisos</h3>
+            <h3>Tus Permisos</h3>
             <div class="permisos-grid">
-              <div class="permiso-card" v-if="authStore.canViewBooks">
+              <div class="permiso-card" v-if="authStore.puedeConsultar">
                 <span class="permiso-icon">📖</span>
                 <div>
                   <h4>Ver Libros</h4>
@@ -42,7 +38,7 @@
                 </div>
               </div>
               
-              <div class="permiso-card" v-if="authStore.canBorrowBooks">
+              <div class="permiso-card" v-if="authStore.puedePrestar">
                 <span class="permiso-icon">⏰</span>
                 <div>
                   <h4>Prestar Libros</h4>
@@ -50,7 +46,7 @@
                 </div>
               </div>
               
-              <div class="permiso-card" v-if="authStore.canManageUsers">
+              <div class="permiso-card" v-if="authStore.puedeGestionarUsuarios">
                 <span class="permiso-icon">👥</span>
                 <div>
                   <h4>Gestionar Usuarios</h4>
@@ -58,7 +54,7 @@
                 </div>
               </div>
               
-              <div class="permiso-card" v-if="authStore.canManageBooks">
+              <div class="permiso-card" v-if="authStore.puedeGestionarRecursos">
                 <span class="permiso-icon">📚</span>
                 <div>
                   <h4>Gestionar Libros</h4>
@@ -66,23 +62,15 @@
                 </div>
               </div>
               
-              <div class="permiso-card" v-if="authStore.canViewReports">
-                <span class="permiso-icon">📊</span>
-                <div>
-                  <h4>Ver Reportes</h4>
-                  <p>Acceso a estadísticas y reportes</p>
-                </div>
-              </div>
-              
-              <div class="permiso-card" v-if="authStore.canManageSystem">
+              <div class="permiso-card" v-if="authStore.esSuperAdmin">
                 <span class="permiso-icon">⚙️</span>
                 <div>
-                  <h4>Gestionar Sistema</h4>
-                  <p>Configuración del sistema</p>
+                  <h4>PROXIMAMENTE....</h4>
+                  <p>Gestionar mas recursos</p>
                 </div>
               </div>
               
-              <div v-if="!hasPermisos" class="permiso-card empty">
+              <div v-if="!authStore.isAuthenticated || authStore.esUsuarioComun" class="permiso-card empty">
                 <span class="permiso-icon">🔒</span>
                 <div>
                   <h4>Permisos Limitados</h4>
@@ -94,43 +82,19 @@
 
           <!-- Acciones Rápidas -->
           <div class="quick-actions-section">
-            <h3>🚀 Acciones Rápidas</h3>
+            <h3>Acciones Rápidas</h3>
             <div class="quick-actions">
-              <button 
-                v-if="authStore.canViewBooks"
-                class="btn btn-outline" 
-                @click="$router.push('/catalog')"
-              >
-                🔍 Explorar Catálogo
-              </button>
+              <button v-if="authStore.canViewBooks" class="btn btn-outline" @click="$router.push('/catalog')">Explorar Catálogo</button>
               
-              <button 
-                v-if="authStore.canBorrowBooks"
-                class="btn btn-outline" 
-                @click="$router.push('/my-loans')"
-              >
-                📖 Mis Préstamos
-              </button>
+              <button v-if="authStore.canBorrowBooks" class="btn btn-outline" @click="$router.push('/my-loans')"> Mis Préstamos</button>
               
-              <button 
-                v-if="authStore.canManageUsers"
-                class="btn btn-outline" 
-                @click="$router.push('/admin/users')"
-              >
-                👥 Gestionar Usuarios
-              </button>
+              <button v-if="authStore.canManageUsers" class="btn btn-outline" @click="$router.push('/admin/users')">Gestionar Usuarios</button>
               
-              <button 
-                v-if="authStore.canManageBooks"
-                class="btn btn-outline" 
-                @click="$router.push('/admin/books')"
-              >
-                📚 Gestionar Libros
-              </button>
+              <button v-if="authStore.canManageBooks" class="btn btn-outline"  @click="$router.push('/admin/books')">Gestionar Libros</button>
               
               <button 
                 v-if="authStore.canViewReports"
-                class="btn btn-outline" 
+                class="btn btn-outline"
                 @click="$router.push('/admin/reports')"
               >
                 📊 Ver Reportes
@@ -166,56 +130,12 @@
 
 <script setup>
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
-import { ref, computed, onMounted } from 'vue'
 
 const authStore = useAuthStore()
-const router = useRouter()
-const isLoading = ref(false)
-
-const hasPermisos = computed(() => {
-  return authStore.canViewBooks || 
-         authStore.canBorrowBooks || 
-         authStore.canManageUsers ||
-         authStore.canManageBooks ||
-         authStore.canViewReports ||
-         authStore.canManageSystem
-})
-
-const roleClass = computed(() => {
-  const classes = {
-    1: 'role-user',
-    2: 'role-admin',
-    3: 'role-advanced',
-    4: 'role-super'
-  }
-  return classes[authStore.userRole] || 'role-user'
-})
-
-const handleLogout = async () => {
-  try {
-    authStore.logout()
-    router.push('/')
-  } catch (error) {
-    console.error('Error al cerrar sesión:', error)
-  }
-}
-
-// Cargar información del usuario al montar si está autenticado
-onMounted(async () => {
-  if (authStore.isAuthenticated) {
-    try {
-      isLoading.value = true
-      await authStore.getCurrentUser()
-    } catch (error) {
-      console.error('Error cargando información del usuario:', error)
-    } finally {
-      isLoading.value = false
-    }
-  }
-})
 </script>
 
+
+//ESTILIZACION
 <style scoped>
 .home {
   min-height: 100vh;

@@ -1,62 +1,36 @@
-<!-- App.vue - Con botones estilizados -->
 <template>
   <div id="app">
 
     <ToastWrapper />
     
-    <!-- Contenido principal -->
-    <main :class="{ 'with-navbar': showNavbar }">
+    <Layout v-if="showLayout">
       <router-view />
-    </main>
-    
-    <!-- Footer opcional -->
-    <footer class="app-footer" v-if="showNavbar">
-      <p>Sistema de Gestión de Biblioteca VDJ &copy; {{ currentYear }}</p>
-    </footer>
+      <ChatWidget />
+    </Layout>
+    <router-view v-else />
+
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed} from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+
+
+
 import ToastWrapper from '@/components/ToastWrapper.vue'
+import Layout from '@/components/Layout.vue'
+import ChatWidget from '@/components/ChatWidget.vue'
 
 
 const route = useRoute()
-const authStore = useAuthStore()
 
-// Computed properties
-const showNavbar = computed(() => {
-  const noNavbarRoutes = ['/login', '/register']
-  return !noNavbarRoutes.includes(route.path)
+const showLayout = computed(() => {
+  const noLayoutRoutes = ['/login', '/register']
+  return !noLayoutRoutes.includes(route.path)
 })
 
-const currentYear = new Date().getFullYear()
 
-const shortUserName = computed(() => {
-  const name = authStore.userName
-  if (name.length > 15) {
-    return name.substring(0, 12) + '...'
-  }
-  return name
-})
-
-const userRoleBadge = computed(() => {
-  const role = authStore.userRoleName
-  const shortRoles = {
-    'Usuario Común': 'Usuario',
-    'Administrador Básico': 'Admin',
-    'Administrador Avanzado': 'Admin+',
-    'Super Administrador': 'Super'
-  }
-  return shortRoles[role] || role
-})
-
-// Métodos
-const handleLogout = () => {
-  authStore.logout()
-}
 </script>
 
 <style scoped>
@@ -88,7 +62,7 @@ body {
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1040;
   border-bottom: 3px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -369,5 +343,49 @@ main.with-navbar {
     width: 100%;
     justify-content: center;
   }
+}
+
+/*ESTILO DE LAYOUT*/
+/* Estilos globales */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+
+/* Transiciones de página */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+/* Scrollbar global */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 </style>

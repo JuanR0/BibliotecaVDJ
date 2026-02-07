@@ -6,12 +6,12 @@ export const useToastStore = defineStore('toast', () => {
   const toastRef = ref(null)
   
   // Métodos para mostrar toasts
-  const showSuccess = (message, title = 'Éxito') => {
-    return toastRef.value?.addToast('success', title, message)
+  const showSuccess = (message, title = 'Éxito', duration = 3000) => {
+    return toastRef.value?.addToast('success', title, message, duration)
   }
   
-  const showError = (message, title = 'Error') => {
-    return toastRef.value?.addToast('error', title, message)
+  const showError = (message, title = 'Error', duration = 5000) => {
+    return toastRef.value?.addToast('error', title, message, duration)
   }
   
   const showWarning = (message, title = 'Advertencia') => {

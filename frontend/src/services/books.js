@@ -1,4 +1,3 @@
-// services/books.js
 import { api } from './api'
 
 export const bookService = {
