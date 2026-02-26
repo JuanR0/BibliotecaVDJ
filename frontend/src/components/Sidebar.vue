@@ -38,7 +38,7 @@
           <span v-else class="section-icon">⚙️</span>
         </li>
 
-        <li v-if="auth.isAuthenticated">
+        <li>
           <router-link to="/admin/libros" class="nav-link" active-class="active">
             <span class="nav-icon">📚</span>
             <span v-if="!collapsed" class="nav-text">Catálogo</span>

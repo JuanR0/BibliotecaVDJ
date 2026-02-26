@@ -26,7 +26,7 @@ import AreasManagement from '@/views/admin/AreasManagement.vue'
 import Error404 from '@/views/NotFoundView.vue'
 
 const routes = [
-  // ========== RUTAS PUBLIAS ==========
+  // ========== RUTAS PUBLICAS ==========
   {
     path: '/',
     name: 'Home',

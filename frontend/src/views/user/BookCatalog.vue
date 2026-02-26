@@ -139,7 +139,10 @@
         <button @click="loadBooks" class="btn btn-primary">Reintentar</button>
       </div>
 
-      <!-- VISTA CUADRICULA -->
+
+<!-- =======================================================================================-->
+<!-- =========================== VISTA DE CUADRICULA ============================================-->
+<!-- =======================================================================================-->
       <div v-if="viewMode === 'grid' && !isLoading && !error" class="books-grid">
         <div v-for="book in paginatedBooks" :key="book.id" class="book-card">
           <div class="book-card-header">
@@ -151,14 +154,14 @@
           <div class="book-cover">
             <div class="cover-placeholder">
               <span class="book-icon">📖</span>
-              <div class="book-badge" v-if="book.es_prestable && book.edicion != 1">🔄 Prestable</div>
+              <div class="book-badge" v-if="book.es_prestable && book.edicion != 1">Prestable</div>
             </div>
           </div>
           
           <div class="book-info">
             <h3 class="book-title">{{ book.titulo }}</h3>
             <p class="book-author">✍️ {{ book.autor }}</p>
-            
+
             <div class="book-details">
               <p><strong>ISBN:</strong> {{ book.isbn || 'No disponible' }}</p>
               <p><strong>Etiqueta:</strong> {{ book.etiqueta }}</p>
@@ -172,6 +175,7 @@
                 <strong>Área:</strong> {{ book.area_conocimiento_nombre }}
               </p>
             </div>
+
             
             <div class="book-metadata">
               <span class="metadata-item">ID:{{ book.id }}</span>
@@ -185,24 +189,31 @@
           <!-- ACCIONES DE LIBRO -->
           <div class="book-actions">
             <button @click="viewBookDetails(book.id)" class="btn btn-outline btn-small btn-details-books">Detalles..</button>
-            <button v-if="book.es_prestable && book.edicion != 1" @click="requestLoan(book.id)" class="btn btn-loan-books btn-smal" :disabled="isProcessingLoan">Solicitar Préstamo </button>
+          
+            <!-- SOLICITAR PRÉSTAMO -->
+            <button v-if="book.es_prestable && book.estado_id === 1 && userCanRequestLoans" @click="requestLoanModal(book)" class="btn btn-loan-books">Solicitar</button>
+
+            <!-- DEVOLVER PRÉSTAMO -->
+            <button v-if="userCanRequestLoans && book.estado_id === 2" @click="handleReturn(book)" class="btn btn-recover-books">Devolver</button>
+
+            <!-- EDITAR LIBRO -->
             <button v-if="canEditBooks" @click="goToEditPage(book.id)" class="btn btn-edit-books" :title="`Editar libro: ${book.titulo}`">Editar</button>
             
-            <button v-if="canDelete" @click="confirmDelete(book)" class="btn btn-danger btn-delete-books" :title="`Eliminar: ${book.titulo}`" :disabled="isDeleting">
+            <!-- ELIMINAR LIBRO -->
+            <button v-if="canDelete" @click="confirmDelete(book)" class="[btn btn-danger btn-delete-books, { disabled: book.estado_nombre === 'Prestado' }]" :title="book.estado_nombre === 'Prestado'? 'No se puede eliminar porque está prestado': 'Eliminar libro'" :disabled="isDeleting || book.estado_nombre === 'Prestado'">
               <span v-if="isDeleting && deletingBookId === book.id" class="spinner-mini"></span>
               <span v-else>Eliminar</span>
             </button>
-            <button v-if="canRecoverBooks && book.estado_id == 4" @click="recoverBook(book)" class="btn btn-warning btn-recover-books" title="Ver y recuperar libros retirados">
-              <span class="btn-icon">♻️</span>
-              <span class="btn-text">Recuperar Libros</span>
-            </button>
 
-            <!-- <button v-if="book.metodo_adquisicion_nombre" class="btn btn-secondary btn-small" title="Método de adquisición">🏷️ {{ book.metodo_adquisicion_nombre }} </button> -->
+            <!-- RECUPERAR LIBRO -->
+            <button v-if="canRecoverBooks && book.estado_id == 4" @click="recoverBook(book)" class="btn btn-warning btn-recover-books" title="Ver y recuperar libros retirados">
+              <span class="btn-text">Recuperar Libro</span>
+            </button>
 
           </div>
         </div>
 
-        <!--MODAL DELETE-->
+        <!--MODAL ELIMINACION-->
         <div v-if="showDeleteModal" class="modal-overlay">
             <div class="modal-content">
               <div class="modal-header">
@@ -239,6 +250,41 @@
           </div>
 
       </div>
+
+      <!-- MODAL PRESTAMO -->
+      <div v-if="showLoanModal" class="modal-overlay">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Crear Préstamo</h3>
+            <button @click="cerrarLoanModal" class="modal-close-btn">×</button>
+          </div>
+
+          <div class="modal-body">
+            <p><strong>Libro:</strong> {{ selectedBook?.titulo }}</p>
+            <p><strong>Autor:</strong> {{ selectedBook?.autor }}</p>
+
+            <div class="filter-group">
+              <label>Fecha de devolución:</label>
+              <input type="date" v-model="loanDate" class="filter-input" />
+            </div>
+
+            <div class="filter-group">
+              <label>Observaciones:</label>
+              <textarea v-model="loanObservaciones" class="filter-input"></textarea>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button @click="cerrarLoanModal" class="btn btn-secondary">
+              Cancelar
+            </button>
+            <button @click="requestLoan" class="btn btn-primary" :disabled="isProcessingLoan">
+              {{ isProcessingLoan ? 'Creando...' : 'Confirmar Préstamo' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       
       <div v-if="showSuccessToast" class="toast success">
         <div class="toast-icon">✅</div>
@@ -248,13 +294,13 @@
         </div>
         <button @click="showSuccessToast = false" class="toast-close">×</button>
       </div>      
-      
-      <!-- List mode view -->
+<!-- =======================================================================================-->
+<!-- =========================== VISTA DE LISTA ============================================-->
+<!-- =======================================================================================-->
       <div v-if="viewMode === 'list' && !isLoading && !error" class="books-list">
         <table class="books-table">
           
-          <!-- Table data -->
-          
+          <!-- DATOS -->
           <thead>
             <tr>
               <th>Código</th>
@@ -289,12 +335,8 @@
               <td>{{ book.autor }}</td>
               <td>{{ book.editorial_nombre || 'N/A' }}</td>
               <td>
-                <span :class="getStatusClass(book)" class="status-badge">
-                  {{ getStatusText(book) }}
-                </span>
-                <div class="small-text" v-if="book.es_prestable">
-                  🔄 Prestable
-                </div>
+                <span :class="getStatusClass(book)" class="status-badge">{{ getStatusText(book) }}</span>
+                <div class="small-text" v-if="book.es_prestable">🔄 Prestable</div>
               </td>
               <td>
                 <button @click="viewBookDetails(book.id)" class="btn-action" title="Ver detalles"> 🔍</button>
@@ -363,6 +405,7 @@ import { useRouter } from 'vue-router'
 import { bookService } from '@/services/books'
 import { useAuthStore } from '@/stores/auth'
 import { usePermissions } from '@/composables/usePermissions'
+import { prestamoLibroService } from '@/services/PrestamoLibro'
 
 
 const router = useRouter()
@@ -386,6 +429,8 @@ const deletingBookId = ref(null)
 const showDeleteModal = ref(false)
 const bookToDelete = ref(null)
 const showSuccessToast = ref(false)
+
+
 
 // Data
 const books = ref([])
@@ -413,6 +458,51 @@ const canDelete = computed(() => hasPermission('canDeleteBooks'))
 const canRecoverBooks = computed(() => hasPermission('canRecoverBooks'))
 const canSeeRetiredBooks = computed(() => hasPermission('canSeeRetiredBooks'))
 const userCanRequestLoans = computed(() => hasPermission('canRequestLoans'))
+
+
+//========================================== MODALES ======================================================
+// PRESTAMO MODAL
+const showLoanModal = ref(false)
+const selectedBook = ref(null)
+const loanDate = ref('')
+const loanObservaciones = ref('')
+
+const requestLoanModal = (book) => {
+  if (!userCanRequestLoans.value) {
+    alert('No tienes permisos para crear préstamos')
+    return
+  }
+
+  selectedBook.value = book
+  loanDate.value = ''
+  loanObservaciones.value = ''
+  showLoanModal.value = true
+}
+
+const cerrarLoanModal = () => {
+  showLoanModal.value = false
+  selectedBook.value = null
+}
+
+
+// ELIMINACION MODAL
+const confirmDelete = (book) => {
+  if (!canDelete.value) {
+    alert('No tienes permisos para eliminar libros')
+    return
+  }
+  
+  bookToDelete.value = book
+  showDeleteModal.value = true
+
+}
+
+const closeModal = () => {
+  if (!isDeleting.value) {
+    showDeleteModal.value = false
+    bookToDelete.value = null
+  }
+}
 
 
 
@@ -505,28 +595,81 @@ const viewBookDetails = (bookId) => {
 }
 
 
+//========================================== PRESTAMO ======================================================
+const requestLoan = async () => {
+  if (!selectedBook.value) return
 
-
-//========================================== MODAL ======================================================
-//CONFIRMACION DE ELIIMINACION PARA USO DE MODAL
-const confirmDelete = (book) => {
-  if (!canDelete.value) {
-    alert('No tienes permisos para eliminar libros')
+  if (!loanDate.value) {
+    alert('Debes seleccionar una fecha de devolución')
     return
   }
-  
-  bookToDelete.value = book
-  showDeleteModal.value = true
 
-}
+  isProcessingLoan.value = true
 
-const closeModal = () => {
-  if (!isDeleting.value) {
-    showDeleteModal.value = false
-    bookToDelete.value = null
+  try {
+    await prestamoLibroService.crearPrestamo({
+      libro_id: selectedBook.value.id,
+      usuario_prestado_id: authStore.user?.id,
+      fecha_devolucion_esperada: new Date(loanDate.value),
+      observaciones: loanObservaciones.value
+    })
+
+    // 🔥 Actualizar estado local sin recargar todo
+    const index = books.value.findIndex(b => b.id === selectedBook.value.id)
+    if (index !== -1) {
+      books.value[index].estado_id = 2
+      books.value[index].estado_nombre = 'Prestado'
+    }
+
+    cerrarLoanModal()
+    alert('✅ Préstamo creado correctamente')
+
+  } catch (err) {
+    console.error('Error creando préstamo:', err)
+    alert(err.response?.data?.detail || 'Error al crear préstamo')
+  } finally {
+    isProcessingLoan.value = false
   }
 }
 
+
+//========================================== DEVOLUCION ======================================================
+const handleReturn = async (book) => {
+  try {
+    isProcessingLoan.value = true
+
+    //Buscar préstamo vigente de este libro
+    const prestamos = await prestamoLibroService.getPrestamos({
+      libro_id: book.id,
+      solo_vigentes: true
+    })
+
+    if (!prestamos.length) {
+      alert('No se encontró préstamo vigente para este libro')
+      return
+    }
+
+    const prestamo = prestamos[0]
+
+    //Llamar endpoint devolver
+    await prestamoLibroService.devolverPrestamo(
+      prestamo.id,
+      'Devuelto desde catálogo'
+    )
+
+    //Actualizar estado local
+    book.estado_id = 1
+    book.estado_nombre = 'Disponible'
+
+    alert(`Libro "${book.titulo}" devuelto correctamente`)
+
+  } catch (error) {
+    console.error('Error devolviendo libro:', error)
+    alert(error.response?.data?.detail || 'Error al devolver libro')
+  } finally {
+    isProcessingLoan.value = false
+  }
+}
 
 
 //========================================== FUNCIONES EN LISTADO ===========================================
@@ -848,59 +991,6 @@ onMounted(() => {
 
 
 
-
-
-
-
-//=========================== PROXIMAMENTE =================================
-// PRESTAMOS V1
-// const requestLoan = async (bookId) => {
-//   isProcessingLoan.value = true
-//   try {
-//     // Aquí deberías implementar la lógica de préstamo
-//     // Por ahora solo muestra un mensaje
-//     const book = books.value.find(b => b.id === bookId)
-//     if (book) {
-//       alert(`Solicitando préstamo de: "${book.titulo}"\nAutor: ${book.autor}`)
-//       // Aquí llamarías a tu servicio de préstamos cuando lo implementes
-//       // await loanService.requestLoan(bookId)
-//     }
-//   } catch (err) {
-//     console.error('Error solicitando préstamo:', err)
-//     alert('Error al solicitar préstamo')
-//   } finally {
-//     isProcessingLoan.value = false
-//   }
-// }
-
-// PRESTAMOS
-// const requestLoan = async (bookId) => {
-//   if (!userCanRequestLoans.value) {
-//     alert('No tienes permisos para solicitar préstamos')
-//     return
-//   }
-  
-//   isProcessingLoan.value = true
-//   try {
-//     const book = books.value.find(b => b.id === bookId)
-//     if (book) {
-//       alert(`Solicitando préstamo de: "${book.titulo}"`)
-//     }
-//   } catch (err) {
-//     console.error('Error solicitando préstamo:', err)
-//     alert('Error al solicitar préstamo')
-//   } finally {
-//     isProcessingLoan.value = false
-//   }
-// }
-// ELIMINACION EN LIBROS PRESTADOS
-// const canDeleteThisBook = (book) => {
-//   return userCanDelete.value && 
-//          book.estado_id !== 2 // No se pueden eliminar libros prestados
-// }
-
-
-
 </script>
 
 
@@ -1133,10 +1223,6 @@ onMounted(() => {
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 .error-state {
   text-align: center;
   padding: 3rem;
@@ -1330,21 +1416,6 @@ onMounted(() => {
   border-radius: 0.5rem;
   font-size: 0.8rem;
   font-weight: bold;
-}
-
-.btn-action {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  margin: 0 0.25rem;
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  transition: background 0.2s;
-}
-
-.btn-action:hover {
-  background: #f8f9fa;
 }
 
 /* Paginación */
@@ -1590,14 +1661,6 @@ onMounted(() => {
     justify-content: center;
   }
 }
-.book-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
-}
 
 .btn-danger {
   background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
@@ -1615,6 +1678,12 @@ onMounted(() => {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
+}
+
+.btn-delete.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #ccc;
 }
 
 .spinner-mini {
@@ -2042,7 +2111,7 @@ onMounted(() => {
   padding: 0 0.25rem;
 }
 
-/* Responsive */
+/*RESPONSIVE */
 @media (max-width: 768px) {
   .btn-recover-books .btn-text {
     display: none;

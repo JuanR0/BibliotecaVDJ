@@ -1,4 +1,4 @@
-import { api } from './api'
+import api from '@/services/api'
 
 export const userService = {
   /**
@@ -24,7 +24,7 @@ export const userService = {
       })
       
       console.log('📤 GET /api/usuarios con params:', cleanParams)
-      const response = await api.get('/usuarios', { params: cleanParams })
+      const response = await api.get('/api/usuarios', { params: cleanParams })
       return response.data
     } catch (error) {
       console.error('❌ Error obteniendo usuarios:', error)
@@ -40,7 +40,7 @@ export const userService = {
   async getUserById(id) {
     try {
       console.log(`📤 GET /api/usuarios/${id}`)
-      const response = await api.get(`/usuarios/${id}`)
+      const response = await api.get(`/api/usuarios/${id}`)
       return response.data
     } catch (error) {
       console.error(`❌ Error obteniendo usuario ${id}:`, error)
@@ -56,7 +56,7 @@ export const userService = {
   async createUser(userData) {
     try {
       console.log('📤 POST /api/usuarios con data:', userData)
-      const response = await api.post('/usuarios', userData)
+      const response = await api.post('/api/usuarios', userData)
       return response.data
     } catch (error) {
       console.error('❌ Error creando usuario:', error)
@@ -73,7 +73,7 @@ export const userService = {
   async updateUser(id, userData) {
     try {
       console.log(`📤 PUT /api/usuarios/${id} con data:`, userData)
-      const response = await api.put(`/usuarios/${id}`, userData)
+      const response = await api.put(`/api/usuarios/${id}`, userData)
       return response.data
     } catch (error) {
       console.error(`❌ Error actualizando usuario ${id}:`, error)
@@ -89,7 +89,7 @@ export const userService = {
   async deleteUser(id) {
     try {
       console.log(`📤 DELETE /api/usuarios/${id}`)
-      const response = await api.delete(`/usuarios/${id}`)
+      const response = await api.delete(`/api/usuarios/${id}`)
       return response.data
     } catch (error) {
       console.error(`❌ Error eliminando usuario ${id}:`, error)
@@ -106,7 +106,7 @@ export const userService = {
   async changeUserStatus(id, activo = true) {
     try {
       console.log(`📤 PATCH /api/usuarios/${id}/estado con activo:`, activo)
-      const response = await api.patch(`/usuarios/${id}/estado`, { 
+      const response = await api.patch(`/api/usuarios/${id}/estado`, { 
         esta_activo: activo 
       })
       return response.data

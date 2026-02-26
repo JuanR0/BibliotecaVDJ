@@ -85,7 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     try {
       console.log('Iniciando sesion:', credentials)
-      const response = await api.post('/auth/login', credentials)
+      const response = await api.post('api/auth/login', credentials)
       console.log('Login exitoso:', response.data)
       
       const { access_token, user_type, user_name, user_id } = response.data
@@ -128,7 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     try {
       console.log('Registrando...', userData)
-      const response = await api.post('/auth/register', userData)
+      const response = await api.post('api/auth/register', userData)
       console.log('Registro exitoso!', response.data)
       
       return { success: true, data: response.data }
@@ -147,7 +147,7 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('Obteniendo usuario actual...')
       
       //Esperando respuesta de auth y guardando
-      const response = await api.get('/auth/me')
+      const response = await api.get('api/auth/me')
       const userData = response.data
   
       if (userData.permisos) {
@@ -174,7 +174,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       console.log('Obteniendo permisos del backend...')
       
-      const response = await api.get('/auth/me/permisos')
+      const response = await api.get('api/auth/me/permisos')
       const permisosData = response.data
       
       console.log('Permisos recibidos!', permisosData)

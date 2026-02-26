@@ -1,10 +1,10 @@
-import { api } from './api'
+import api from '@/services/api'
 
 export const areasService = {
   // Obtener listado de áreas con paginación y filtros
   async getAreas(params = {}) {
     try {
-      const response = await api.get('/areas/', { params })
+      const response = await api.get('/api/areas/', { params })
       return response.data
     } catch (error) {
       console.error('Error obteniendo áreas:', error)
@@ -15,7 +15,7 @@ export const areasService = {
   // Obtener área por ID
   async getAreaById(id) {
     try {
-      const response = await api.get(`/areas/${id}`)
+      const response = await api.get(`/api/areas/${id}`)
       return response.data
     } catch (error) {
       console.error(`Error obteniendo área ${id}:`, error)
@@ -26,7 +26,7 @@ export const areasService = {
   // Crear nueva área
   async createArea(areaData) {
     try {
-      const response = await api.post('/areas/', areaData)
+      const response = await api.post('/api/areas/', areaData)
       return response.data
     } catch (error) {
       console.error('Error creando área:', error)
@@ -37,7 +37,7 @@ export const areasService = {
   // Actualizar área existente
   async updateArea(id, areaData) {
     try {
-      const response = await api.put(`/areas/${id}`, areaData)
+      const response = await api.put(`/api/areas/${id}`, areaData)
       return response.data
     } catch (error) {
       console.error(`Error actualizando área ${id}:`, error)
@@ -48,7 +48,7 @@ export const areasService = {
   // Desactivar área (soft delete - estado 4)
   async desactivateArea(id) {
     try {
-      const response = await api.patch(`/areas/${id}/desactivar`)
+      const response = await api.patch(`/api/areas/${id}/desactivar`)
       return response.data
     } catch (error) {
       console.error(`Error desactivando área ${id}:`, error)
@@ -59,7 +59,7 @@ export const areasService = {
   // Reactivar área (cambia de estado 4 a 1)
   async reactivateArea(id) {
     try {
-      const response = await api.patch(`/areas/${id}/reactivar`)
+      const response = await api.patch(`/api/areas/${id}/reactivar`)
       return response.data
     } catch (error) {
       console.error(`Error reactivando área ${id}:`, error)
@@ -70,7 +70,7 @@ export const areasService = {
   // Obtener estados de área
   async getEstadosArea() {
     try {
-      const response = await api.get('/areas/auxiliares/estados-area')
+      const response = await api.get('/api/areas/auxiliares/estados-area')
       return response.data
     } catch (error) {
       console.error('Error obteniendo estados de área:', error)
@@ -81,7 +81,7 @@ export const areasService = {
   // Buscar áreas con filtros
   async searchAreas(filters = {}) {
     try {
-      const response = await api.get('/areas/', { params: filters })
+      const response = await api.get('/api/areas/', { params: filters })
       return response.data
     } catch (error) {
       console.error('Error buscando áreas:', error)

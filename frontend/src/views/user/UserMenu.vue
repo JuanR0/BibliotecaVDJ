@@ -29,6 +29,10 @@
       </div>
     </header>
 
+    <div v-if="notification" class="notification">
+      {{ notification }}
+    </div>
+
     <!-- Contenido Principal -->
     <main class="dashboard-main">
       <!-- Panel de Acciones Rápidas -->
@@ -106,14 +110,10 @@
       <!-- Recursos Prestados -->
       <section class="resources-section">
         <div class="section-header">
-          <h2 class="section-title">📦 Recursos Prestados</h2>
+          <h2 class="section-title">Recursos Prestados</h2>
           <div class="section-tabs">
-            <button 
-              @click="activeTab = 'books'" 
-              :class="['tab-btn', { active: activeTab === 'books' }]"
-            >
-              📚 Libros
-            </button>
+            <button @click="activeTab = 'books'" :class="['tab-btn', { active: activeTab === 'books' }]">📚 Libros</button>
+
             <button 
               @click="activeTab = 'areas'" 
               :class="['tab-btn', { active: activeTab === 'areas' }]"
@@ -158,20 +158,13 @@
                     {{ getStatusText(item.status) }}
                   </span>
                 </td>
+                <!-- BOTONES DE ACCION EN LIBRO -->
                 <td>
-                  <button 
-                    v-if="item.status === 'pending'"
-                    @click="approveResource(item)"
-                    class="action-btn approve-btn"
-                  >
-                    ✅ Autorizar
-                  </button>
-                  <button 
-                    v-if="item.status === 'active'"
-                    @click="returnResource(item)"
-                    class="action-btn return-btn"
-                  >
-                    ↩️ Registrar Devolución
+                  <button v-if="item.status === 'pending'" @click="approveResource(item)" class="action-btn approve-btn"> Autorizar </button>
+
+                  <button v-if="item.status === 'active'" @click="returnResource(item)" :disabled="returningLoanId === item.id" class="action-btn return-btn">
+                    <span v-if="returningLoanId === item.id">Procesando...</span>
+                    <span v-else>Registrar Devolución</span>
                   </button>
                 </td>
               </tr>
@@ -209,10 +202,6 @@
           <span class="info-item">🕐 Última actualización: {{ lastUpdate }}</span>
           <span class="info-item">👥 Usuarios en línea: {{ onlineUsers }}</span>
         </div>
-        <button @click="logout" class="logout-btn">
-          🚪 Cerrar Sesión
-        </button>
-        
       </div>
     </footer>
   </div>
@@ -220,31 +209,60 @@
 
 <script>
 import { useAuthStore } from '@/stores/auth'
+import { prestamoLibroService } from '@/services/PrestamoLibro'
 
 export default {
   name: 'UserMenu',
   
   data() {
     return {
+      prestamos: [],
+      loadingPrestamos: false,
+      returningLoanId: null,
+      notification: null,
       activeTab: 'books',
-      pendingRequests: 5,
-      approvedRequests: 12,
-      activeBooks: 8,
-      activeLaptops: 3,
+      pendingRequests: 0,
+      approvedRequests: 0,
+      activeBooks: 0,
+      activeLaptops: 0,
       onlineUsers: 24,
+
       recentActivities: [
         { id: 1, type: 'approval', description: 'Autorizaste préstamo de "Cien años de soledad"', time: 'Hace 10 min' },
         { id: 2, type: 'loan', description: 'Usuario solicitó préstamo de laptop', time: 'Hace 25 min' },
         { id: 3, type: 'return', description: 'Devolución registrada de área de estudio', time: 'Hace 1 hora' },
         { id: 4, type: 'system', description: 'Nuevo usuario registrado en el sistema', time: 'Hace 2 horas' }
       ],
-      resources: [
-        { id: 1, type: 'book', name: 'Cien años de soledad', loanDate: '2024-01-15', returnDate: '2024-01-22', status: 'active' },
-        { id: 2, type: 'area', name: 'Sala de estudio A', loanDate: '2024-01-16', returnDate: '2024-01-16', status: 'completed' },
-        { id: 3, type: 'laptop', name: 'Laptop HP EliteBook', loanDate: '2024-01-17', returnDate: '2024-01-24', status: 'pending' },
-        { id: 4, type: 'book', name: 'El principito', loanDate: '2024-01-14', returnDate: '2024-01-21', status: 'active' },
-        { id: 5, type: 'book', name: 'Don Quijote de la Mancha', loanDate: '2024-01-18', returnDate: '2024-01-25', status: 'pending' }
-      ]
+    }
+  },
+  async loadPrestamos() {
+    try {
+      this.loadingPrestamos = true
+
+      const authStore = useAuthStore()
+
+      const data = await prestamoLibroService.getPrestamosUsuario(
+        authStore.user.usuario_id,
+        false
+      )
+
+      console.log("📦 Préstamos backend:", data)
+
+      this.prestamos = data.map(p => ({
+        id: p.id,
+        type: 'book',
+        name: p.libro_titulo,
+        loanDate: p.fecha_prestamo,
+        returnDate: p.fecha_devolucion_esperada,
+        status: p.estado_prestamo_id === 1 ? 'active' : 'completed'
+      }))
+
+      this.prestamos = data
+
+    } catch (error) {
+      console.error("Error cargando préstamos:", error)
+    } finally {
+      this.loadingPrestamos = false
     }
   },
   
@@ -281,16 +299,72 @@ export default {
     },
     
     filteredResources() {
-      return this.resources.filter(item => {
-        if (this.activeTab === 'books') return item.type === 'book'
-        if (this.activeTab === 'areas') return item.type === 'area'
-        if (this.activeTab === 'laptops') return item.type === 'laptop'
-        return true
-      })
+      if (this.activeTab === 'books') {
+        return this.prestamos
+      }
+
+      // Por ahora solo libros
+      return []
     }
+  },
+
+  //CARGA DE PAGINA
+  mounted(){
+    this.loadPrestamos()
   },
   
   methods: {
+
+    async loadPrestamos() {
+      try {
+        this.loadingPrestamos = true
+
+        const data = await prestamoLibroService.getPrestamosUsuario()
+
+        console.log("📦 Préstamos backend:", data)
+
+        // FORMATO DE TABLA
+        this.prestamos = data.map(p => ({
+          id: p.id,
+          type: 'book',
+          name: p.libro_titulo,
+          loanDate: p.fecha_prestamo,
+          returnDate: p.fecha_devolucion_esperada,
+          status: p.estado_prestamo_id === 1 ? 'active' : 'completed'
+        }))
+
+        this.updateStats()
+
+      } catch (error) {
+        console.error("Error cargando préstamos:", error)
+      } finally {
+        this.loadingPrestamos = false
+      }
+    },
+
+    updateStats() {
+        // ACTIVOS
+        this.activeBooks = this.prestamos.filter(
+          p => p.status === 'active'
+        ).length
+
+        // TOTAL PRESTAMOS
+        this.approvedRequests = this.prestamos.length
+
+        // ESTADOS PENDIENTES
+        this.pendingRequests = this.prestamos.filter(
+          p => p.status === 'pending'
+        ).length
+      },
+    
+    showNotification(message) {
+      this.notification = message
+
+      setTimeout(() => {
+        this.notification = null
+      }, 3000)
+    },
+
     navigateTo(route) {
       this.$router.push(route)
     },
@@ -347,15 +421,23 @@ export default {
       // Aquí iría la lógica para aprobar el recurso
     },
     
-    returnResource(resource) {
-      console.log('Registrando devolución:', resource)
-      // Aquí iría la lógica para registrar devolución
-    },
-    
-    logout() {
-      const authStore = useAuthStore()
-      authStore.logout()
-      this.$router.push('/login')
+    //RETORNAR LIBRO
+    async returnResource(resource) {
+      try {
+        this.returningLoanId = resource.id
+
+        await prestamoLibroService.devolverPrestamo(resource.id)
+
+        await this.loadPrestamos()
+
+        this.showNotification("Devolución registrada correctamente!")
+
+      } catch (error) {
+        console.error("Error registrando devolución:", error)
+        this.showNotification("Error al registrar devolución!")
+      } finally {
+        this.returningLoanId = null
+      }
     }
   }
 }
@@ -879,6 +961,26 @@ export default {
   .system-info {
     flex-direction: column;
     gap: 10px;
+  }
+
+/*ESTILO DE NOTIFICACION*/
+  .notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #2ecc71;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 2000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 }
 </style>

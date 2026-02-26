@@ -1,10 +1,10 @@
-import { api } from './api'
+import api from '@/services/api'
 
 export const bookService = {
   // Obtener todos los libros
   async getBooks(params = {}) {
     try {
-      const response = await api.get('/libros', { params })
+      const response = await api.get('/api/libros', { params })
       return response.data
     } catch (error) {
       console.error('Error obteniendo libros:', error)
@@ -15,7 +15,7 @@ export const bookService = {
   // OBTENER LIBRO POR ID
   async getBookById(id) {
     try {
-      const response = await api.get(`/libros/${id}`)
+      const response = await api.get(`/api/libros/${id}`)
       return response.data
     } catch (error) {
       console.error(`Error obteniendo libro ${id}:`, error)
@@ -45,14 +45,14 @@ export const bookService = {
     
     console.log('📤 Llamando GET /api/libros con:', cleanParams);
     
-    const response = await api.get('/libros', { params: cleanParams });
+    const response = await api.get('/api/libros', { params: cleanParams });
     return response.data;
   },
 
   // CREAR LIBRO
   async createBook(bookData) {
     try {
-      const response = await api.post('/libros', bookData)
+      const response = await api.post('/api/libros', bookData)
       return response.data
     } catch (error) {
       console.error('Error creando libro:', error)
@@ -63,7 +63,7 @@ export const bookService = {
   // ACTUALIZAR LIBRO
   async updateBook(id, bookData) {
     try {
-      const response = await api.put(`/libros/${id}`, bookData)
+      const response = await api.put(`/api/libros/${id}`, bookData)
       return response.data
     } catch (error) {
       console.error(`Error actualizando libro ${id}:`, error)
@@ -74,7 +74,7 @@ export const bookService = {
   // ELIMINAR LIBRO
   async deleteBook(id) {
     try {
-      const response = await api.delete(`/libros/${id}`)
+      const response = await api.delete(`/api/libros/${id}`)
       return response.data
     } catch (error) {
       console.error(`Error eliminando libro ${id}:`, error)
@@ -96,7 +96,7 @@ export const bookService = {
   // Obtener préstamos de un libro
   async getBookLoans(bookId) {
     try {
-      const response = await api.get(`/libros/${bookId}/prestamos`)
+      const response = await api.get(`/api/libros/${bookId}/prestamos`)
       return response.data
     } catch (error) {
       console.error(`Error obteniendo préstamos del libro ${bookId}:`, error)

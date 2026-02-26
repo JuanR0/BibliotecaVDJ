@@ -27,6 +27,8 @@ from core.security import (
 )
 from models import Libro, Editorial, AreaConocimiento, EstadoLibro, Usuario, MetodoAdquisicion  # ← Nuevo import
 
+from models.prestamos_libro import PrestamoLibro
+
 router = APIRouter(prefix="/api/libros", tags=["libros"])
 
 # =============================================
@@ -524,6 +526,9 @@ async def reactivar_libro(
     
     return libro
 
+# =============================================
+# ENDPOINT ELIMINACION DE LIBRO
+# =============================================
 @router.delete("/{libro_id}")
 async def eliminar_libro(
     libro_id: int,
@@ -532,9 +537,12 @@ async def eliminar_libro(
 ):
     """
     Eliminar libro (soft delete) - cambia estado a "Retirado"
-    Este endpoint mantiene compatibilidad con DELETE tradicional
     """
-    result = await db.execute(select(Libro).filter(Libro.id == libro_id))
+
+    #BUSCAR LIBRO
+    result = await db.execute(
+        select(Libro).filter(Libro.id == libro_id)
+    )
     libro = result.scalar_one_or_none()
     
     if not libro:
@@ -543,16 +551,31 @@ async def eliminar_libro(
             detail="Libro no encontrado"
         )
     
-    if libro.estado_id == 4:  # Ya está retirado
+    if libro.estado_id == 4:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El libro ya está retirado"
         )
-    
-    # Soft delete: cambiar estado a "Retirado" (4)
+
+    #VERFICAR SI TIENE UN PRESTAMO VIGENTE
+    result_prestamo = await db.execute(
+        select(PrestamoLibro).where(
+            PrestamoLibro.libro_id == libro_id,
+            PrestamoLibro.estado_prestamo_id == 1
+        )
+    )
+    prestamo_activo = result_prestamo.scalar_one_or_none()
+
+    if prestamo_activo:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se puede retirar el libro porque tiene un préstamo vigente"
+        )
+
+    #SOFT DELETE, CAMBIAR A RETIRADO
     libro.estado_id = 4
     libro.fecha_cambio_estado = datetime.utcnow()
     
     await db.commit()
-    
+
     return {"message": "Libro retirado exitosamente (soft delete)"}

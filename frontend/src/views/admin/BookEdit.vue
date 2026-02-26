@@ -293,13 +293,13 @@ const submitForm = async () => {
     await bookService.updateBook(bookId, bookData)
     
     // Mostrar éxito y regresar
-    alert('✅ Libro actualizado correctamente')
-    router.push('/catalog')
+    alert('Libro actualizado correctamente!')
+    router.push('/admin/libros')
     
   } catch (err) {
     error.value = err.response?.data?.detail || 'Error actualizando el libro'
     console.error('Error:', err)
-    alert('❌ Error al actualizar el libro')
+    alert('Error al actualizar el libro')
   } finally {
     isSubmitting.value = false
   }
@@ -316,13 +316,14 @@ const resetForm = () => {
 }
 
 const goBack = () => {
-  router.push('/catalog')
+  router.push('/admin/libros')
 }
 
 // Ciclo de vida
 onMounted(() => {
   fetchBook()
 })
+
 </script>
 
 <style scoped>
