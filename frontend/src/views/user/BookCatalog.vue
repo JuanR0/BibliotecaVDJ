@@ -298,7 +298,7 @@
 <!-- =========================== VISTA DE LISTA ============================================-->
 <!-- =======================================================================================-->
       <div v-if="viewMode === 'list' && !isLoading && !error" class="books-list">
-        <table class="books-table">
+        <table class="table-ui">
           
           <!-- DATOS -->
           <thead>
@@ -339,8 +339,8 @@
                 <div class="small-text" v-if="book.es_prestable">🔄 Prestable</div>
               </td>
               <td>
-                <button @click="viewBookDetails(book.id)" class="btn-action" title="Ver detalles"> 🔍</button>
-                <button v-if="book.es_prestable && book.estado_id === 1" @click="requestLoan(book.id)" class="btn-action" title="Solicitar préstamo" :disabled="isProcessingLoan">📥</button>
+                <button @click="viewBookDetails(book.id)" class="table-btn" title="Ver detalles"> 🔍</button>
+                <button v-if="book.es_prestable && book.estado_id === 1" @click="requestLoan(book.id)" class="table-btn" title="Solicitar préstamo" :disabled="isProcessingLoan">📥</button>
               </td>
             </tr>
 
@@ -398,7 +398,7 @@
 </template>
 
 
-<!-- SCRIPT -->
+
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -407,9 +407,11 @@ import { useAuthStore } from '@/stores/auth'
 import { usePermissions } from '@/composables/usePermissions'
 import { prestamoLibroService } from '@/services/PrestamoLibro'
 
+import '@/assets/styles/ui.css'
 
-const router = useRouter()
 const { hasPermission } = usePermissions()
+const router = useRouter()
+const authStore = useAuthStore()
 
 // State
 const searchQuery = ref('')
@@ -421,7 +423,6 @@ const error = ref(null)
 const currentPage = ref(1)
 const itemsPerPage = ref(12)
 const isProcessingLoan = ref(false)
-const authStore = useAuthStore()
 
 // Eliminacion de libro
 const isDeleting = ref(false)
@@ -466,6 +467,9 @@ const showLoanModal = ref(false)
 const selectedBook = ref(null)
 const loanDate = ref('')
 const loanObservaciones = ref('')
+
+//DEVOLVER TIPO DE USUARIO
+console.log(`El usuario es ${authStore.userId}`)
 
 const requestLoanModal = (book) => {
   if (!userCanRequestLoans.value) {
@@ -977,16 +981,17 @@ watch(filters, () => {
 
 // Ciclo de vida
 onMounted(() => {
+  
   loadBooks()
   //DEBUG PARA SABER PERMISOS ACTUALES
-  console.log('Permisos del usuario:', {
-    crear: canCreateBooks.value,
-    editar: canEditBooks.value,
-    eliminar: canDelete.value,
-    recuperar: canRecoverBooks.value,
-    verRetirados: canSeeRetiredBooks.value,
-    prestar: userCanRequestLoans.value
-  })
+  // console.log('Permisos del usuario:', {
+  //   crear: canCreateBooks.value,
+  //   editar: canEditBooks.value,
+  //   eliminar: canDelete.value,
+  //   recuperar: canRecoverBooks.value,
+  //   verRetirados: canSeeRetiredBooks.value,
+  //   prestar: userCanRequestLoans.value
+  // })
 })
 
 
@@ -1380,29 +1385,6 @@ onMounted(() => {
   font-size: 0.85rem;
 }
 
-/* Vista de lista */
-.books-table {
-  width: 100%;
-  background: white;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-
-.books-table th {
-  background: #f8f9fa;
-  padding: 1rem;
-  text-align: left;
-  font-weight: 600;
-  color: #555;
-  border-bottom: 2px solid #e9ecef;
-}
-
-.books-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #e9ecef;
-}
-
 .book-code-small {
   font-size: 0.8rem;
   color: #666;
@@ -1574,7 +1556,7 @@ onMounted(() => {
 .books-table td {
   vertical-align: middle;
 }
-
+/* 
 .btn-action {
   background: none;
   border: none;
@@ -1606,7 +1588,7 @@ onMounted(() => {
   border-radius: 1rem;
   font-size: 0.7rem;
   font-weight: bold;
-}
+} */
 
 /*STILE FOR EDIT CARD */
 .tooltip-container {

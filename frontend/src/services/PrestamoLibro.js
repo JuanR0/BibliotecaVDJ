@@ -80,7 +80,18 @@ export const prestamoLibroService = {
         '/prestamos-libros/mis-prestamos',
         { params: { solo_vigentes: soloVigentes } }
       )
-      return response.data
+      
+    return response.data.map(p => ({
+      id: p.id,
+      type: 'book',
+      name: p.libro_titulo,
+      loanDate: p.fecha_prestamo,
+      returnDate: p.fecha_devolucion_esperada,
+      status: p.estado_prestamo_id === 1
+        ? 'active'
+        : 'completed'
+    }))
+    
     } catch (error) {
       console.error(`Error obteniendo préstamos del usuario ${usuarioId}:`, error)
       throw error

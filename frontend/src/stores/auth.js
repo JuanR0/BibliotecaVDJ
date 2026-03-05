@@ -3,6 +3,10 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '@/services/api'
 
+//INICIALIZACION
+const isInitialized = ref(false)
+
+
 export const useAuthStore = defineStore('auth', () => {
   // ========== STATE ==========
   const user = ref(JSON.parse(localStorage.getItem('user')) || null)
@@ -44,6 +48,13 @@ export const useAuthStore = defineStore('auth', () => {
     return roleMap[userType] || 1
   })
 
+//USER ID
+const userId = computed(() => {
+  if (user.value?.id) return user.value.id
+  if (user.value?.usuario_id) return user.value.usuario_id
+  return null
+  })
+
   // PERMISOS DIRECTOS DESDE BACKEND (computed para reactividad automática)
   const puedeConsultar = computed(() => permisos.value?.puede_consultar === true)
   const puedePrestar = computed(() => permisos.value?.puede_prestar === true)
@@ -51,34 +62,34 @@ export const useAuthStore = defineStore('auth', () => {
   const puedeGestionarUsuarios = computed(() => permisos.value?.puede_gestionar_usuarios === true)
 
   // PERMISOS ESPECIFICOS PARA COMPONENTES
-  const puedeVerLibrosRetirados = computed(() => tipoUsuarioId.value >= 2)
-  const puedeEditarLibros = computed(() => tipoUsuarioId.value >= 2)  // Tipos 2,3,4
-  const puedeEliminarLibros = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeReactivarLibros = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeCrearLibros = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
+  const puedeVerLibrosRetirados = computed(() => userId.value >= 2)
+  const puedeEditarLibros = computed(() => userId.value >= 2)  // Tipos 2,3,4
+  const puedeEliminarLibros = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeReactivarLibros = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeCrearLibros = computed(() => userId.value >= 3)    // Tipos 3,4
 
   // TIPOS DE USUARIO (Definicion de permisos para ocultar/mostrar informacion de admins)
-  const esUsuarioComun = computed(() => tipoUsuarioId.value === 1)
-  const esAdminBasico = computed(() => tipoUsuarioId.value === 2)
-  const esAdminAvanzado = computed(() => tipoUsuarioId.value === 3)
-  const esSuperAdmin = computed(() => tipoUsuarioId.value === 4)
-  const esCualquierAdmin = computed(() => tipoUsuarioId.value >= 2)
+  const esUsuarioComun = computed(() => userId.value === 1)
+  const esAdminBasico = computed(() => userId.value === 2)
+  const esAdminAvanzado = computed(() => userId.value === 3)
+  const esSuperAdmin = computed(() => userId.value === 4)
+  const esCualquierAdmin = computed(() => userId.value >= 2)
 
   //PERMISOS PARA MOBILIARIO
-  const puedeVerMobiliario = computed(() => tipoUsuarioId.value >= 3)  // Tipos 2,3,4
-  const puedeEditarMobiliario = computed(() => tipoUsuarioId.value >= 3)  // Tipos 2,3,4
-  const puedeEliminarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeReactivarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeCrearMobiliario = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
-  const puedeDesactivarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeVerMobiliario = computed(() => userId.value >= 3)  // Tipos 2,3,4
+  const puedeEditarMobiliario = computed(() => userId.value >= 3)  // Tipos 2,3,4
+  const puedeEliminarMobiliario = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeReactivarMobiliario = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeCrearMobiliario = computed(() => userId.value >= 3)    // Tipos 3,4
+  const puedeDesactivarMobiliario = computed(() => userId.value >= 3) // Tipos 3,4
 
   //PERMISOSS PARA AREAS
-  const puedeVerAreas = computed(() => tipoUsuarioId.value >= 3)  // Tipos 3,4
-  const puedeEditarAreas = computed(() => tipoUsuarioId.value >= 3)  // Tipos 3,4
-  const puedeEliminarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeReactivarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeCrearAreas = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
-  const puedeDesactivarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeVerAreas = computed(() => userId.value >= 3)  // Tipos 3,4
+  const puedeEditarAreas = computed(() => userId.value >= 3)  // Tipos 3,4
+  const puedeEliminarAreas = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeReactivarAreas = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeCrearAreas = computed(() => userId.value >= 3)    // Tipos 3,4
+  const puedeDesactivarAreas = computed(() => userId.value >= 3) // Tipos 3,4
 
   // ========== ACTIONS ==========
   const login = async (credentials) => {
@@ -244,6 +255,31 @@ export const useAuthStore = defineStore('auth', () => {
     console.log('Sesión cerrada correctamente!')
   }
 
+  //INICIALIZACION
+  const initializeAuth = async () => {
+    if (isInitialized.value) return
+
+    const storedToken = localStorage.getItem('token')
+
+    if (!storedToken) {
+      isInitialized.value = true
+      return
+    }
+
+    try {
+      token.value = storedToken
+      api.defaults.headers.common['Authorization'] =`Bearer ${storedToken}`
+
+      await fetchCurrentUser()
+
+    } catch (error) {
+      console.warn('Token inválido')
+      logout()
+    } finally {
+      isInitialized.value = true
+    }
+  }
+
   const inicializarDesdeStorage = async () => {
     const storedToken = localStorage.getItem('token')
     if (storedToken) {
@@ -382,6 +418,10 @@ export const useAuthStore = defineStore('auth', () => {
     fetchCurrentUser,
     fetchPermisosCompletos,
     inicializarDesdeStorage,
-    tienePermiso
+    tienePermiso,
+
+    userId,
+    isInitialized,
+    initializeAuth
   }
 })

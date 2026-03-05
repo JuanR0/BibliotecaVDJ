@@ -207,7 +207,17 @@
   </div>
 </template>
 
+
 <script>
+
+//IMPORTACION DE ICONOS
+import {
+  RESOURCE_ICONS,
+  STATUS_TEXT,
+  RESOURCE_TYPE,
+  ACTIVITY_ICONS
+} from '@/utils/resourseHelper'
+
 import { useAuthStore } from '@/stores/auth'
 import { prestamoLibroService } from '@/services/PrestamoLibro'
 
@@ -221,9 +231,6 @@ export default {
       returningLoanId: null,
       notification: null,
       activeTab: 'books',
-      pendingRequests: 0,
-      approvedRequests: 0,
-      activeBooks: 0,
       activeLaptops: 0,
       onlineUsers: 24,
 
@@ -235,51 +242,25 @@ export default {
       ],
     }
   },
-  async loadPrestamos() {
-    try {
-      this.loadingPrestamos = true
+  
+  //INICIALIZACION DE AUTHSTORE
+  setup(){
+    const authStore = useAuthStore()
 
-      const authStore = useAuthStore()
-
-      const data = await prestamoLibroService.getPrestamosUsuario(
-        authStore.user.usuario_id,
-        false
-      )
-
-      console.log("📦 Préstamos backend:", data)
-
-      this.prestamos = data.map(p => ({
-        id: p.id,
-        type: 'book',
-        name: p.libro_titulo,
-        loanDate: p.fecha_prestamo,
-        returnDate: p.fecha_devolucion_esperada,
-        status: p.estado_prestamo_id === 1 ? 'active' : 'completed'
-      }))
-
-      this.prestamos = data
-
-    } catch (error) {
-      console.error("Error cargando préstamos:", error)
-    } finally {
-      this.loadingPrestamos = false
-    }
+    return { authStore }
   },
   
   computed: {
     userName() {
-      const authStore = useAuthStore()
-      return authStore.userName
+      return this.authStore.userName
     },
     
     userCode() {
-      const authStore = useAuthStore()
-      return authStore.user?.codigo_universitario || 'N/A'
+      return this.authStore.userCode
     },
 
     userType(){
-      const authstore = useAuthStore()
-      return authstore.tipoUsuarioId
+      return this.authStore.tipoUsuarioId
     },
     
     lastAccess() {
@@ -305,6 +286,23 @@ export default {
 
       // Por ahora solo libros
       return []
+    },
+
+    //ACTUALIZACION DE ESTADISTICAS
+    activeBooks() {
+      return this.prestamos.filter(
+        p => p.status === 'active'
+      ).length
+    },
+
+    approvedRequests() {
+      return this.prestamos.length
+    },
+
+    pendingRequests() {
+      return this.prestamos.filter(
+        p => p.status === 'pending'
+      ).length
     }
   },
 
@@ -313,8 +311,9 @@ export default {
     this.loadPrestamos()
   },
   
+  //METODOS
   methods: {
-
+    //CARGA DE PRESTAMOS
     async loadPrestamos() {
       try {
         this.loadingPrestamos = true
@@ -324,16 +323,9 @@ export default {
         console.log("📦 Préstamos backend:", data)
 
         // FORMATO DE TABLA
-        this.prestamos = data.map(p => ({
-          id: p.id,
-          type: 'book',
-          name: p.libro_titulo,
-          loanDate: p.fecha_prestamo,
-          returnDate: p.fecha_devolucion_esperada,
-          status: p.estado_prestamo_id === 1 ? 'active' : 'completed'
-        }))
-
-        this.updateStats()
+        this.prestamos = await prestamoLibroService.getPrestamosUsuario()
+        //DEBUGGING DATOS EN TABLA
+        console.table(this.prestamos)
 
       } catch (error) {
         console.error("Error cargando préstamos:", error)
@@ -341,22 +333,24 @@ export default {
         this.loadingPrestamos = false
       }
     },
-
-    updateStats() {
-        // ACTIVOS
-        this.activeBooks = this.prestamos.filter(
-          p => p.status === 'active'
-        ).length
-
-        // TOTAL PRESTAMOS
-        this.approvedRequests = this.prestamos.length
-
-        // ESTADOS PENDIENTES
-        this.pendingRequests = this.prestamos.filter(
-          p => p.status === 'pending'
-        ).length
-      },
     
+    //ESTADO DE LOS PRESTAMOS (FECHA)
+    getLoanStatus(prestamo) {
+      const hoy = new Date()
+      const fechaDevolucion = new Date(prestamo.fecha_devolucion_esperada)
+
+      const diffDias =
+        (fechaDevolucion - hoy) / (1000 * 60 * 60 * 24)
+
+      if (diffDias < 0) return 'overdue'
+      if (diffDias <= 2) return 'warning'
+
+      return 'active'
+    },
+
+    
+    
+    //NOTIFICACIONES
     showNotification(message) {
       this.notification = message
 
@@ -370,55 +364,48 @@ export default {
     },
     
     refreshData() {
-      // Aquí iría la lógica para actualizar datos
+      // PENDIENTE
       console.log('Actualizando datos...')
     },
+
     
-    getResourceIcon(type) {
-      const icons = {
-        book: '📚',
-        area: '🏢',
-        laptop: '💻'
-      }
-      return icons[type] || '📦'
+    getStatusText(type){
+      return STATUS_TEXT[type] || '📦'
+    },
+    getResourceIcon(type) { 
+      return RESOURCE_ICONS[type] || '📦'
+    }, 
+    getResourceType(type) 
+    { 
+      return RESOURCE_TYPE[type] || 'Recurso' 
+    }, 
+    getActivityIcon(type)
+    {
+       return ACTIVITY_ICONS[type] || '📝' 
     },
     
-    getResourceType(type) {
-      const types = {
-        book: 'Libro',
-        area: 'Área',
-        laptop: 'Laptop'
-      }
-      return types[type] || 'Recurso'
-    },
-    
-    getActivityIcon(type) {
-      const icons = {
-        approval: '✅',
-        loan: '📋',
-        return: '↩️',
-        system: '⚙️'
-      }
-      return icons[type] || '📝'
-    },
-    
+    //FORMATEO DE FECHA
     formatDate(dateString) {
       const date = new Date(dateString)
       return date.toLocaleDateString('es-ES')
     },
     
+    //ESTATUS
     getStatusText(status) {
       const statuses = {
-        pending: 'Pendiente',
         active: 'Activo',
-        completed: 'Completado'
+        warning: 'Por vencer',
+        overdue: 'Vencido',
+        completed: 'Devuelto'
       }
+
       return statuses[status] || status
     },
     
+    //ARPOVACION DE PRESTAMO
     approveResource(resource) {
+      //PENDIENTE
       console.log('Aprobando recurso:', resource)
-      // Aquí iría la lógica para aprobar el recurso
     },
     
     //RETORNAR LIBRO
