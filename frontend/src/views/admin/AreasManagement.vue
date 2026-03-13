@@ -81,32 +81,18 @@
               <p><strong>Creado por:</strong> {{ area.usuario_registro_nombre }}</p>
             </div>
             
+            <!--ACCIONES / BOTONES-->
             <div class="card-actions">
-              <button 
-                @click="handleEdit(area)"
-                class="btn-action btn-edit"
-                title="Editar"
-              >
-                ✏️
-              </button>
+              <button @click="handleEdit(area)" class="btn-action btn-edit" title="Editar"> ✏️ </button>
               
-              <button 
-                v-if="area.estado_id !== 4"
-                @click="handleDesactivate(area)"
-                class="btn-action btn-warn"
-                title="Desactivar"
-              >
-                ⚠️
-              </button>
+              <button v-if="area.estado_id !== 4" @click="handleDesactivate(area)" class="btn-action btn-warn" title="Desactivar"> ⚠️ </button>
               
-              <button 
-                v-if="area.estado_id === 5"
-                @click="handleReactivate(area)"
-                class="btn-action btn-success"
-                title="Reactivar"
-              >
-                🔄
-              </button>
+              <button v-if="area.estado_id === 5" @click="handleReactivate(area)" class="btn-action btn-success" title="Reactivar"> 🔄 </button>
+
+              <button v-if="area.es_prestable && area.estado_id === 1" @click="openPrestamoModal(area)" class="btn-action btn-primary" title="Reservar área"> 🕒 </button>
+
+              <button v-if="area.estado_id === 2" @click="devolverArea(area)" class="btn-action btn-success" title="Devolver área"> ↩️ </button>
+
             </div>
           </div>
           
@@ -156,7 +142,7 @@
       </template>
     </div>
 
-    <!-- Modal simple de edición -->
+    <!-- MODAL DE EDICION -->
     <div v-if="showModal" class="modal-simple">
       <div class="modal-content">
         <h3>{{ isEditing ? 'Editar Área' : 'Nueva Área' }}</h3>
@@ -176,21 +162,9 @@
             <label>Tipo:</label>
             <div class="type-select">
               <label>
-                <input 
-                  type="radio" 
-                  v-model="formData.es_prestable" 
-                  :value="true"
-                />
-                🎓 Prestable
-              </label>
+                <input type="radio" v-model="formData.es_prestable" :value="true"/>🎓 Prestable</label>
               <label>
-                <input 
-                  type="radio" 
-                  v-model="formData.es_prestable" 
-                  :value="false"
-                />
-                🏢 Interna
-              </label>
+                <input type="radio" v-model="formData.es_prestable" :value="false"/>🏢 Interna</label>
             </div>
           </div>
           
@@ -236,35 +210,57 @@
       </div>
     </div>
 
-    <!-- Modal de confirmación -->
-    <div v-if="showConfirmModal" class="modal-simple">
-      <div class="modal-content">
-        <h3>{{ confirmTitle }}</h3>
-        <p>{{ confirmMessage }}</p>
-        
-        <div class="modal-actions">
-          <button @click="closeConfirmModal" class="btn-cancel">
-            Cancelar
-          </button>
-          <button @click="executeConfirmedAction" class="btn-confirm" :disabled="isSaving">
-            {{ isSaving ? 'Procesando...' : 'Confirmar' }}
-          </button>
-        </div>
-      </div>
+    <!-- MODAL DE CONFIRMACION -->
+    <BaseModal v-model="showConfirmModal" :title="confirmTitle">
+      <p>{{ confirmMessage }}</p>
+
+      <template #footer>
+        <button class="btn btn-light" @click="showConfirmModal=false">Cancelar</button>
+        <button class="btn btn-danger" @click="executeConfirmedAction">Confirmar</button>
+      </template>
+
+    </BaseModal>
+
+  </div>
+  <!-- MODAL DE PRESTAMO -->
+  <BaseModal v-model="showPrestamoModal" title="Reservar área">
+    <p><strong>Área:</strong> {{ selectedArea?.nombre }}</p>
+
+    <div class="form-group">
+      <label>Usuario</label>
+      <select v-model="prestamoForm.usuario_prestado_id">
+        <option v-for="usuario in usuarios" :key="usuario.id" :value="usuario.id">
+          {{ usuario.nombre_completo }}
+        </option>
+      </select>
     </div>
 
-    <!-- Toast simple -->
-    <div v-if="showToast" class="toast-simple" :class="toastType">
-      {{ toastMessage }}
+    <div class="form-group">
+      <label>Hora fin</label>
+      <input type="datetime-local" v-model="prestamoForm.fecha_devolucion_esperada">
     </div>
-  </div>
+
+    <template #footer>
+      <button class="btn btn-light" @click="showPrestamoModal=false">Cancelar</button>
+      <button class="btn btn-primary" @click="crearPrestamoArea">Reservar</button>
+    </template>
+
+  </BaseModal>
+
+
 </template>
 
 <script setup>
+// IMPORTS
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAreas } from '@/composables/useAreas'
+import { prestamoAreasService } from '@/services/prestamoAreas'
+import { useUsers } from '@/composables/useUsers'
+import BaseModal from '@/components/modals/BaseModal.vue'
 
+
+// INICIALIZADORES
 const search = ref('')
 const authStore = useAuthStore()
 const {
@@ -287,6 +283,96 @@ const showModal = ref(false)
 const showConfirmModal = ref(false)
 const showToast = ref(false)
 const isSaving = ref(false)
+const {usuarios, cargarUsuarios} = useUsers()
+
+// MODAL DE PRESTAMOS
+
+const showPrestamoModal = ref(false)
+  const selectedArea = ref(null)
+  const prestamoForm = ref({
+  area_id: null,
+  usuario_prestado_id: null,
+  fecha_devolucion_esperada: null,
+  observaciones: ""
+})
+
+
+const openPrestamoModal = (area) => {
+  selectedArea.value = area
+  prestamoForm.value = {
+  area_id: area.id,
+  usuario_prestado_id: null,
+  fecha_devolucion_esperada: null,
+  observaciones: ""
+  }
+  showPrestamoModal.value = true
+}
+
+const closePrestamoModal = () => {
+  showPrestamoModal.value = false
+  selectedArea.value = null
+
+}
+
+const crearPrestamoArea = async () => {
+  try{
+    await prestamoAreasService.crearPrestamo(prestamoForm.value)
+    showToastMessage("Área reservada correctamente")
+    closePrestamoModal()
+    await cargarAreas()
+  }catch(error){
+    console.error(error)
+    showToastMessage("Error creando reserva","error")
+  }
+}
+
+const devolverArea = async (area) => {
+
+  console.log("Intentando devolver área:", area)
+
+  if(!confirm(`¿Deseas devolver el área "${area.nombre}"?`)){
+    return
+  }
+
+  try{
+
+    const response = await prestamoAreasService.getPrestamosVigentes()
+
+    console.log("Préstamos vigentes:", response)
+
+    const prestamos = response.prestamos || response || []
+
+    const prestamoActivo = prestamos.find(
+      p => Number(p.area_id) === Number(area.id)
+    )
+
+    console.log("Préstamo encontrado:", prestamoActivo)
+
+    if(!prestamoActivo){
+
+      console.log("❌ No se encontró préstamo para esta área")
+      showToastMessage("No se encontró préstamo activo","error")
+      return
+
+    }
+
+    console.log("📡 Enviando devolución del préstamo:", prestamoActivo.id)
+
+    await prestamoAreasService.devolverPrestamo(prestamoActivo.id)
+
+    console.log("✅ Devolución enviada")
+
+    showToastMessage("Área devuelta correctamente")
+
+    await cargarAreas()
+
+  }catch(error){
+
+    console.error("Error devolviendo área:", error)
+
+  }
+
+}
 
 // Datos del formulario
 const formData = ref({
@@ -532,8 +618,12 @@ const showToastMessage = (message, type = 'success') => {
 }
 
 // ========== LIFECYCLE ==========
-onMounted(() => {
-  loadData()
+onMounted(async() => {
+  await Promise.all([
+    loadData(),
+    cargarUsuarios()
+
+  ])
 })
 </script>
 

@@ -197,7 +197,7 @@
             <button v-if="userCanRequestLoans && book.estado_id === 2" @click="handleReturn(book)" class="btn btn-recover-books">Devolver</button>
 
             <!-- EDITAR LIBRO -->
-            <button v-if="canEditBooks" @click="goToEditPage(book.id)" class="btn btn-edit-books" :title="`Editar libro: ${book.titulo}`">Editar</button>
+            <button v-if="canEditBooks" @click="goToEditPage(book.id)" class="btn btn-edit btn-sm" :title="`Editar libro: ${book.titulo}`">Editar</button>
             
             <!-- ELIMINAR LIBRO -->
             <button v-if="canDelete" @click="confirmDelete(book)" class="[btn btn-danger btn-delete-books, { disabled: book.estado_nombre === 'Prestado' }]" :title="book.estado_nombre === 'Prestado'? 'No se puede eliminar porque está prestado': 'Eliminar libro'" :disabled="isDeleting || book.estado_nombre === 'Prestado'">
@@ -407,7 +407,7 @@ import { useAuthStore } from '@/stores/auth'
 import { usePermissions } from '@/composables/usePermissions'
 import { prestamoLibroService } from '@/services/PrestamoLibro'
 
-import '@/assets/styles/ui.css'
+import '@/styles/buttons.css'
 
 const { hasPermission } = usePermissions()
 const router = useRouter()
@@ -453,7 +453,6 @@ const filters = ref({
 
 
 //========================================== PERMISOS ======================================================
-const canCreateBooks = computed(() => hasPermission('canCreateBooks'))
 const canEditBooks = computed(() => hasPermission('canEditBooks'))
 const canDelete = computed(() => hasPermission('canDeleteBooks'))
 const canRecoverBooks = computed(() => hasPermission('canRecoverBooks'))
@@ -910,33 +909,6 @@ const getStatusText = (book) => {
   }
   return statusMap[book.estado_id] || book.estado_nombre || 'Desconocido'
 }
-
-const formatPrecio = (precio) => {
-  if (!precio) return '0.00'
-  try {
-    const num = parseFloat(precio)
-    return isNaN(num) ? '0.00' : num.toLocaleString('es-ES', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })
-  } catch {
-    return '0.00'
-  }
-}
-
-const formatFecha = (fecha) => {
-  if (!fecha) return 'N/A'
-  try {
-    return new Date(fecha).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  } catch {
-    return 'Fecha inválida'
-  }
-}
-
 
 // Paginación
 const prevPage = () => {
