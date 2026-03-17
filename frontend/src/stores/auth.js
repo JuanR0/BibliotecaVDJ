@@ -3,6 +3,10 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '@/services/api'
 
+//INICIALIZACION
+const isInitialized = ref(false)
+
+
 export const useAuthStore = defineStore('auth', () => {
   // ========== STATE ==========
   const user = ref(JSON.parse(localStorage.getItem('user')) || null)
@@ -44,6 +48,13 @@ export const useAuthStore = defineStore('auth', () => {
     return roleMap[userType] || 1
   })
 
+//USER ID
+const userId = computed(() => {
+  if (user.value?.id) return user.value.id
+  if (user.value?.usuario_id) return user.value.usuario_id
+  return null
+  })
+
   // PERMISOS DIRECTOS DESDE BACKEND (computed para reactividad automática)
   const puedeConsultar = computed(() => permisos.value?.puede_consultar === true)
   const puedePrestar = computed(() => permisos.value?.puede_prestar === true)
@@ -51,41 +62,41 @@ export const useAuthStore = defineStore('auth', () => {
   const puedeGestionarUsuarios = computed(() => permisos.value?.puede_gestionar_usuarios === true)
 
   // PERMISOS ESPECIFICOS PARA COMPONENTES
-  const puedeVerLibrosRetirados = computed(() => tipoUsuarioId.value >= 2)
-  const puedeEditarLibros = computed(() => tipoUsuarioId.value >= 2)  // Tipos 2,3,4
-  const puedeEliminarLibros = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeReactivarLibros = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeCrearLibros = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
+  const puedeVerLibrosRetirados = computed(() => userId.value >= 2)
+  const puedeEditarLibros = computed(() => userId.value >= 2)  // Tipos 2,3,4
+  const puedeEliminarLibros = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeReactivarLibros = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeCrearLibros = computed(() => userId.value >= 3)    // Tipos 3,4
 
   // TIPOS DE USUARIO (Definicion de permisos para ocultar/mostrar informacion de admins)
-  const esUsuarioComun = computed(() => tipoUsuarioId.value === 1)
-  const esAdminBasico = computed(() => tipoUsuarioId.value === 2)
-  const esAdminAvanzado = computed(() => tipoUsuarioId.value === 3)
-  const esSuperAdmin = computed(() => tipoUsuarioId.value === 4)
-  const esCualquierAdmin = computed(() => tipoUsuarioId.value >= 2)
+  const esUsuarioComun = computed(() => userId.value === 1)
+  const esAdminBasico = computed(() => userId.value === 2)
+  const esAdminAvanzado = computed(() => userId.value === 3)
+  const esSuperAdmin = computed(() => userId.value === 4)
+  const esCualquierAdmin = computed(() => userId.value >= 2)
 
   //PERMISOS PARA MOBILIARIO
-  const puedeVerMobiliario = computed(() => tipoUsuarioId.value >= 3)  // Tipos 2,3,4
-  const puedeEditarMobiliario = computed(() => tipoUsuarioId.value >= 3)  // Tipos 2,3,4
-  const puedeEliminarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeReactivarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeCrearMobiliario = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
-  const puedeDesactivarMobiliario = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeVerMobiliario = computed(() => userId.value >= 3)  // Tipos 2,3,4
+  const puedeEditarMobiliario = computed(() => userId.value >= 3)  // Tipos 2,3,4
+  const puedeEliminarMobiliario = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeReactivarMobiliario = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeCrearMobiliario = computed(() => userId.value >= 3)    // Tipos 3,4
+  const puedeDesactivarMobiliario = computed(() => userId.value >= 3) // Tipos 3,4
 
   //PERMISOSS PARA AREAS
-  const puedeVerAreas = computed(() => tipoUsuarioId.value >= 3)  // Tipos 3,4
-  const puedeEditarAreas = computed(() => tipoUsuarioId.value >= 3)  // Tipos 3,4
-  const puedeEliminarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeReactivarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
-  const puedeCrearAreas = computed(() => tipoUsuarioId.value >= 3)    // Tipos 3,4
-  const puedeDesactivarAreas = computed(() => tipoUsuarioId.value >= 3) // Tipos 3,4
+  const puedeVerAreas = computed(() => userId.value >= 3)  // Tipos 3,4
+  const puedeEditarAreas = computed(() => userId.value >= 3)  // Tipos 3,4
+  const puedeEliminarAreas = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeReactivarAreas = computed(() => userId.value >= 3) // Tipos 3,4
+  const puedeCrearAreas = computed(() => userId.value >= 3)    // Tipos 3,4
+  const puedeDesactivarAreas = computed(() => userId.value >= 3) // Tipos 3,4
 
   // ========== ACTIONS ==========
   const login = async (credentials) => {
     isLoading.value = true
     try {
       console.log('Iniciando sesion:', credentials)
-      const response = await api.post('/auth/login', credentials)
+      const response = await api.post('api/auth/login', credentials)
       console.log('Login exitoso:', response.data)
       
       const { access_token, user_type, user_name, user_id } = response.data
@@ -128,7 +139,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     try {
       console.log('Registrando...', userData)
-      const response = await api.post('/auth/register', userData)
+      const response = await api.post('api/auth/register', userData)
       console.log('Registro exitoso!', response.data)
       
       return { success: true, data: response.data }
@@ -147,7 +158,7 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('Obteniendo usuario actual...')
       
       //Esperando respuesta de auth y guardando
-      const response = await api.get('/auth/me')
+      const response = await api.get('api/auth/me')
       const userData = response.data
   
       if (userData.permisos) {
@@ -174,7 +185,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       console.log('Obteniendo permisos del backend...')
       
-      const response = await api.get('/auth/me/permisos')
+      const response = await api.get('api/auth/me/permisos')
       const permisosData = response.data
       
       console.log('Permisos recibidos!', permisosData)
@@ -242,6 +253,31 @@ export const useAuthStore = defineStore('auth', () => {
     delete api.defaults.headers.common['Authorization']
     
     console.log('Sesión cerrada correctamente!')
+  }
+
+  //INICIALIZACION
+  const initializeAuth = async () => {
+    if (isInitialized.value) return
+
+    const storedToken = localStorage.getItem('token')
+
+    if (!storedToken) {
+      isInitialized.value = true
+      return
+    }
+
+    try {
+      token.value = storedToken
+      api.defaults.headers.common['Authorization'] =`Bearer ${storedToken}`
+
+      await fetchCurrentUser()
+
+    } catch (error) {
+      console.warn('Token inválido')
+      logout()
+    } finally {
+      isInitialized.value = true
+    }
   }
 
   const inicializarDesdeStorage = async () => {
@@ -382,6 +418,10 @@ export const useAuthStore = defineStore('auth', () => {
     fetchCurrentUser,
     fetchPermisosCompletos,
     inicializarDesdeStorage,
-    tienePermiso
+    tienePermiso,
+
+    userId,
+    isInitialized,
+    initializeAuth
   }
 })

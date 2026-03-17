@@ -29,6 +29,11 @@ router = APIRouter(prefix="/prestamos-libros", tags=["Préstamos de Libros"])
 # FUNCIONES AUXILIARES
 # =============================================
 
+def to_naive(dt: datetime) -> datetime:
+    if dt and dt.tzinfo is not None:
+        return dt.replace(tzinfo=None)
+    return dt
+
 def calcular_dias_excedidos(fecha_esperada: datetime, fecha_real: datetime) -> int:
     """
     Calcula los días excedidos entre fecha esperada y fecha real.
@@ -194,6 +199,53 @@ async def listar_prestamos_vigentes(
         db=db, 
         usuario_actual=usuario_actual
     )
+# =============================================
+# ENDPOINT PARA OBTENER PRESTAMOS ACTUALES DEL USUARIO
+# =============================================
+@router.get("/mis-prestamos", response_model=List[PrestamoLibroConRelaciones])
+async def mis_prestamos(
+    solo_vigentes: bool = True,
+    db: AsyncSession = Depends(get_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
+):
+    query = (
+        select(PrestamoLibro)
+        .options(
+            selectinload(PrestamoLibro.libro),
+            selectinload(PrestamoLibro.estado_prestamo),
+            selectinload(PrestamoLibro.usuario_presta),
+            selectinload(PrestamoLibro.usuario_prestado),
+        )
+        .where(PrestamoLibro.usuario_prestado_id == usuario_actual.id)
+    )
+
+    if solo_vigentes:
+        query = query.where(PrestamoLibro.estado_prestamo_id == 1)
+
+    result = await db.execute(query)
+    prestamos = result.scalars().all()
+
+    # 🔥 Construimos respuesta con título incluido
+    resultado = []
+    for prestamo in prestamos:
+        resultado.append({
+            "id": prestamo.id,
+            "libro_id": prestamo.libro_id,
+            "usuario_presta_id": prestamo.usuario_presta_id,
+            "usuario_prestado_id": prestamo.usuario_prestado_id,
+            "estado_prestamo_id": prestamo.estado_prestamo_id,
+            "fecha_prestamo": prestamo.fecha_prestamo,
+            "fecha_devolucion_esperada": prestamo.fecha_devolucion_esperada,
+            "fecha_devolucion_real": prestamo.fecha_devolucion_real,
+            "usuario_ultimo_cambio_id": prestamo.usuario_ultimo_cambio_id,
+            "fecha_ultimo_cambio_estado": prestamo.fecha_ultimo_cambio_estado,
+            "observaciones": prestamo.observaciones,
+            "dias_excedidos": prestamo.dias_excedidos,
+            "libro_titulo": prestamo.libro.titulo if prestamo.libro else None,
+            "estado_prestamo_nombre": prestamo.estado_prestamo.estado if prestamo.estado_prestamo else None
+        })
+
+    return resultado
 
 @router.get("/{prestamo_id}", response_model=PrestamoLibroConRelaciones)
 async def obtener_prestamo(
@@ -247,7 +299,7 @@ async def obtener_prestamo(
 # ENDPOINTS DE CREACIÓN (POST)
 # =============================================
 
-@router.post("/", response_model=PrestamoLibroResponse)  # ✅ Cambiado a PrestamoLibroResponse
+@router.post("/", response_model=PrestamoLibroResponse)
 async def crear_prestamo(
     prestamo_data: PrestamoLibroCreate,
     db: AsyncSession = Depends(get_db),
@@ -256,6 +308,9 @@ async def crear_prestamo(
     """
     Crear un nuevo préstamo de libro
     """
+    fecha_devolucion = to_naive(prestamo_data.fecha_devolucion_esperada)
+    fecha_actual = datetime.utcnow().replace(tzinfo=None) - timedelta(hours=6)
+    
     try:
         # 1. Verificar que el libro existe y está disponible
         libro = await verificar_libro_disponible(db, prestamo_data.libro_id)
@@ -273,11 +328,11 @@ async def crear_prestamo(
             libro_id=prestamo_data.libro_id,
             usuario_presta_id=usuario_actual.id,
             usuario_prestado_id=prestamo_data.usuario_prestado_id,
-            estado_prestamo_id=1,  # "Vigente"
-            fecha_prestamo=datetime.utcnow() - timedelta(hours=6),
-            fecha_devolucion_esperada=prestamo_data.fecha_devolucion_esperada,
+            estado_prestamo_id=1,
+            fecha_prestamo=fecha_actual,
+            fecha_devolucion_esperada=fecha_devolucion,
             usuario_ultimo_cambio_id=usuario_actual.id,
-            fecha_ultimo_cambio_estado=datetime.utcnow() - timedelta(hours=6),
+            fecha_ultimo_cambio_estado=fecha_actual,
             observaciones=prestamo_data.observaciones
         )
         

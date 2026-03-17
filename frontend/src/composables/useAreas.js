@@ -12,34 +12,30 @@ export function useAreas() {
   const cargarAreas = async (params = {}) => {
     isLoading.value = true
     error.value = null
-    
+
     try {
+
       const response = await areasService.getAreas(params)
-      
-      // Asegurar que tenemos un array válido
-      if (response && Array.isArray(response.areas)) {
-        areas.value = response.areas.map(area => ({
-          // Campos obligatorios con valores por defecto
-          id: area.id || 0,
-          nombre: area.nombre || 'Sin nombre',
-          capacidad: area.capacidad ?? null,
-          es_prestable: area.es_prestable ?? false,
-          estado_id: area.estado_id || 1,
-          usuario_registro_nombre: area.usuario_registro_nombre || 'Desconocido',
-          fecha_registro: area.fecha_registro || new Date().toISOString(),
-          fecha_ultimo_cambio_estado: area.fecha_ultimo_cambio_estado || area.fecha_registro || new Date().toISOString(),
-          // Campos calculados
-          estado_nombre: area.estado_nombre || getEstadoNombre(area.estado_id)
-        }))
-      } else {
-        areas.value = []
-      }
-      
+
+      // Verificar estructura esperada
+      const listaAreas = Array.isArray(response?.areas) ? response.areas : []
+
+      areas.value = listaAreas.map(area => ({
+        ...area,
+        estado_nombre: area.estado_nombre || getEstadoNombre(area.estado_id)
+      }))
+
       return areas.value
-      
+
     } catch (err) {
-      error.value = err.response?.data?.detail || 'Error cargando áreas'
+
+      error.value =
+        err.response?.data?.detail ||
+        err.message ||
+        'Error cargando áreas'
+
       throw err
+
     } finally {
       isLoading.value = false
     }
@@ -61,24 +57,16 @@ export function useAreas() {
     isLoading.value = true
     try {
       const nuevaArea = await areasService.createArea(areaData)
-      
-      // Enriquecer el objeto antes de agregarlo
+
       const areaEnriquecida = {
-        id: nuevaArea.id,
-        nombre: nuevaArea.nombre,
-        capacidad: nuevaArea.capacidad ?? null,
-        es_prestable: nuevaArea.es_prestable ?? false,
-        estado_id: nuevaArea.estado_id || 1,
-        usuario_registro_nombre: nuevaArea.usuario_registro_nombre || 'Tú',
-        fecha_registro: nuevaArea.fecha_registro || new Date().toISOString(),
-        fecha_ultimo_cambio_estado: nuevaArea.fecha_ultimo_cambio_estado || nuevaArea.fecha_registro || new Date().toISOString(),
-        estado_nombre: nuevaArea.estado_nombre || getEstadoNombre(nuevaArea.estado_id)
+        ...nuevaArea,
+        estado_nombre: getEstadoNombre(nuevaArea.estado_id)
       }
-      
-      // Agregar al inicio
+
       areas.value.unshift(areaEnriquecida)
+
       return areaEnriquecida
-      
+
     } catch (err) {
       error.value = err.response?.data?.detail || 'Error creando área'
       throw err
@@ -90,54 +78,24 @@ export function useAreas() {
   const actualizarArea = async (id, areaData) => {
     isLoading.value = true
     try {
-      console.log('🔄 Actualizando área:', { id, areaData })
-      
       const areaActualizada = await areasService.updateArea(id, areaData)
-      console.log('✅ Respuesta del servidor:', areaActualizada)
-      
-      // Buscar el índice en la lista local
-      const index = areas.value.findIndex(a => a.id === id)
-      
+
+      const index = areas.value.findIndex(
+        a => Number(a.id) === Number(id)
+      )
+
       if (index !== -1) {
-        // Hacer MERGE (no reemplazo completo)
         areas.value[index] = {
-          ...areas.value[index], // Mantener todos los campos existentes
-          ...areaActualizada,     // Sobrescribir con campos nuevos
-          // Campos críticos (asegurar que existen)
-          id: id,
-          nombre: areaActualizada.nombre || areas.value[index].nombre,
-          capacidad: areaActualizada.capacidad ?? areas.value[index].capacidad,
-          es_prestable: areaActualizada.es_prestable ?? areas.value[index].es_prestable,
-          estado_id: areaActualizada.estado_id || areas.value[index].estado_id,
-          // Actualizar estado_nombre
-          estado_nombre: areaActualizada.estado_nombre || 
-                        getEstadoNombre(areaActualizada.estado_id) || 
-                        areas.value[index].estado_nombre
+          ...areas.value[index],
+          ...areaActualizada,
+          estado_nombre: getEstadoNombre(areaActualizada.estado_id)
         }
-        
-        console.log('📝 Área actualizada en lista local:', areas.value[index])
-      } else {
-        console.warn('⚠️ Área no encontrada en lista local, agregando...')
-        // Si no existe en local, agregarla
-        const areaEnriquecida = {
-          id: areaActualizada.id,
-          nombre: areaActualizada.nombre,
-          capacidad: areaActualizada.capacidad ?? null,
-          es_prestable: areaActualizada.es_prestable ?? false,
-          estado_id: areaActualizada.estado_id || 1,
-          usuario_registro_nombre: areaActualizada.usuario_registro_nombre || 'Desconocido',
-          fecha_registro: areaActualizada.fecha_registro || new Date().toISOString(),
-          fecha_ultimo_cambio_estado: areaActualizada.fecha_ultimo_cambio_estado || new Date().toISOString(),
-          estado_nombre: areaActualizada.estado_nombre || getEstadoNombre(areaActualizada.estado_id)
-        }
-        areas.value.push(areaEnriquecida)
       }
-      
+
       return areaActualizada
-      
+
     } catch (err) {
-      console.error('❌ Error en actualizarArea:', err)
-      error.value = err.response?.data?.detail || err.message || 'Error actualizando área'
+      error.value = err.response?.data?.detail || 'Error actualizando área'
       throw err
     } finally {
       isLoading.value = false
@@ -146,27 +104,24 @@ export function useAreas() {
 
   const desactivarArea = async (id) => {
     try {
-      console.log('🔄 Desactivando área:', id)
-      
       const response = await areasService.desactivateArea(id)
-      console.log('✅ Respuesta desactivar:', response)
-      
-      // Actualizar en lista local
-      const index = areas.value.findIndex(a => a.id === id)
+
+      const index = areas.value.findIndex(
+        a => Number(a.id) === Number(id)
+      )
+
       if (index !== -1) {
-        // Solo actualizar campos relevantes
         areas.value[index] = {
-          ...areas.value[index], // Mantener todo
-          estado_id: 4,
-          estado_nombre: 'Retirada',
+          ...areas.value[index],
+          estado_id: 5,
+          estado_nombre: 'No disponible',
           fecha_ultimo_cambio_estado: new Date().toISOString()
         }
       }
-      
+
       return response
-      
+
     } catch (err) {
-      console.error('❌ Error desactivando área:', err)
       error.value = err.response?.data?.detail || 'Error desactivando área'
       throw err
     }
@@ -174,26 +129,24 @@ export function useAreas() {
 
   const reactivarArea = async (id) => {
     try {
-      console.log('🔄 Reactivando área:', id)
-      
       const response = await areasService.reactivateArea(id)
-      console.log('✅ Respuesta reactivar:', response)
-      
-      // Actualizar en lista local
-      const index = areas.value.findIndex(a => a.id === id)
+
+      const index = areas.value.findIndex(
+        a => Number(a.id) === Number(id)
+      )
+
       if (index !== -1) {
         areas.value[index] = {
-          ...areas.value[index], // Mantener todo
+          ...areas.value[index],
           estado_id: 1,
           estado_nombre: 'Disponible',
           fecha_ultimo_cambio_estado: new Date().toISOString()
         }
       }
-      
+
       return response
-      
+
     } catch (err) {
-      console.error('❌ Error reactivando área:', err)
       error.value = err.response?.data?.detail || 'Error reactivando área'
       throw err
     }
@@ -241,7 +194,7 @@ export function useAreas() {
     try {
       const areaFresca = await areasService.getAreaById(id)
       
-      const index = areas.value.findIndex(a => a.id === id)
+      const index = areas.value.findIndex(a => Number(a.id) === Number(id))
       if (index !== -1) {
         areas.value[index] = {
           ...areas.value[index],

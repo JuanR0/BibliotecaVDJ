@@ -1,11 +1,11 @@
-import { api } from './api'
+import api from '@/services/api'
 
 export const mobiliarioService = {
   // Obtener todos los mobiliarios
   async getMobiliarios(params = {}) {
     try {
       console.log('📤 Llamando GET /api/mobiliario con:', params)
-      const response = await api.get('/mobiliario', { params })
+      const response = await api.get('/api/mobiliario', { params })
       return response.data
     } catch (error) {
       console.error('Error obteniendo mobiliario:', error)
@@ -16,7 +16,7 @@ export const mobiliarioService = {
   // OBTENER MOBILIARIO POR ID
   async getMobiliarioById(id) {
     try {
-      const response = await api.get(`/mobiliario/${id}`)
+      const response = await api.get(`/api/mobiliario/${id}`)
       return response.data
     } catch (error) {
       console.error(`Error obteniendo mobiliario ${id}:`, error)
@@ -50,7 +50,7 @@ export const mobiliarioService = {
     }
     
     console.log('📤 Llamando GET /api/mobiliario con:', cleanParams);
-    const response = await api.get('/mobiliario', { params: cleanParams });
+    const response = await api.get('/api/mobiliario', { params: cleanParams });
     return response.data;
   },
 
@@ -58,7 +58,7 @@ export const mobiliarioService = {
   async createMobiliario(mobiliarioData) {
     try {
       console.log('📤 Creando mobiliario:', mobiliarioData)
-      const response = await api.post('/mobiliario', mobiliarioData)
+      const response = await api.post('/api/mobiliario', mobiliarioData)
       return response.data
     } catch (error) {
       console.error('Error creando mobiliario:', error)
@@ -70,7 +70,7 @@ export const mobiliarioService = {
   async updateMobiliario(id, mobiliarioData) {
     try {
       console.log(`📤 Actualizando mobiliario ${id}:`, mobiliarioData)
-      const response = await api.put(`/mobiliario/${id}`, mobiliarioData)
+      const response = await api.put(`/api/mobiliario/${id}`, mobiliarioData)
       return response.data
     } catch (error) {
       console.error(`Error actualizando mobiliario ${id}:`, error)
@@ -82,7 +82,7 @@ export const mobiliarioService = {
   async desactivateMobiliario(id) {
     try {
       console.log(`📤 Desactivando mobiliario ${id}`)
-      const response = await api.patch(`/mobiliario/${id}/desactivar`)
+      const response = await api.patch(`/api/mobiliario/${id}/desactivar`)
       return response.data
     } catch (error) {
       console.error(`Error desactivando mobiliario ${id}:`, error)
@@ -94,7 +94,7 @@ export const mobiliarioService = {
   async reactivateMobiliario(id) {
     try {
       console.log(`📤 Reactivando mobiliario ${id}`)
-      const response = await api.patch(`/mobiliario/${id}/reactivar`)
+      const response = await api.patch(`/api/mobiliario/${id}/reactivar`)
       return response.data
     } catch (error) {
       console.error(`Error reactivando mobiliario ${id}:`, error)
@@ -106,7 +106,7 @@ export const mobiliarioService = {
   async deleteMobiliario(id) {
     try {
       console.log(`📤 Eliminando permanentemente mobiliario ${id}`)
-      const response = await api.delete(`/mobiliario/${id}/eliminar-permanente`)
+      const response = await api.delete(`/api/mobiliario/${id}/eliminar-permanente`)
       return response.data
     } catch (error) {
       console.error(`Error eliminando mobiliario ${id}:`, error)
@@ -117,7 +117,7 @@ export const mobiliarioService = {
   // OBTENER CATÁLOGOS
   async getTiposMobiliario() {
     try {
-      const response = await api.get('/mobiliario/auxiliares/tipos-mobiliario')
+      const response = await api.get('/api/mobiliario/auxiliares/tipos-mobiliario')
       return response.data
     } catch (error) {
       console.error('Error obteniendo tipos de mobiliario:', error)
@@ -127,7 +127,7 @@ export const mobiliarioService = {
 
   async getEstadosMobiliario() {
     try {
-      const response = await api.get('/mobiliario/auxiliares/estados-mobiliario')
+      const response = await api.get('/api/mobiliario/auxiliares/estados-mobiliario')
       return response.data
     } catch (error) {
       console.error('Error obteniendo estados de mobiliario:', error)
@@ -138,7 +138,7 @@ export const mobiliarioService = {
   // OBTENER ÁREAS (si tienes endpoint)
   async getAreas() {
     try {
-      const response = await api.get('/areas')
+      const response = await api.get('/api/areas')
       return response.data
     } catch (error) {
       console.error('Error obteniendo áreas:', error)
