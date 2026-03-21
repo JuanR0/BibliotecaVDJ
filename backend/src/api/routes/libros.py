@@ -27,6 +27,8 @@ from core.security import (
 )
 from models import Libro, Editorial, AreaConocimiento, EstadoLibro, Usuario, MetodoAdquisicion  # ← Nuevo import
 
+from models.prestamos_libro import PrestamoLibro
+
 router = APIRouter(prefix="/api/libros", tags=["libros"])
 
 # =============================================
@@ -138,7 +140,9 @@ async def listar_libros(
     es_prestable: Optional[bool] = Query(None, description="Filtrar por prestable"),
     incluir_retirados: bool = Query(False, description="Incluir libros retirados"),
     db: AsyncSession = Depends(get_db),
-    usuario_actual: Usuario = Depends(requerir_puede_consultar)
+    usuario_actual: Usuario = Depends(requerir_puede_consultar),
+
+    current_user: Usuario = Depends(obtener_usuario_actual),
 ):
     """
     Listar libros con filtros (todos los usuarios autenticados)
@@ -166,9 +170,21 @@ async def listar_libros(
     if estado_id:
         query = query.filter(Libro.estado_id == estado_id)
     if es_prestable is not None:
-        query = query.filter(Libro.es_prestable == es_prestable)
-    if not incluir_retirados:
-        query = query.filter(Libro.estado_id != 4)  # Excluir estado "Retirado"
+        query = query.filter(Libro.es_prestable == es_prestable and Libro.edicion !=1)
+
+    ##NO PERMITIR QUE USUARIO TIPO 1 PUEDA VER LIBROS RETIRADOS EN LISTADO
+    if current_user.tipo_usuario_id == 1:
+        query = query.where(Libro.estado_id != 4)
+    
+    ##EVITAR QUE PUEDA REALIZAR FILTRADO
+    if estado_id is not None:
+        # Validar que usuario tipo 1 no pueda filtrar por retirados
+        if estado_id == 4 and current_user.tipo_usuario_id == 1:
+            raise HTTPException(
+                status_code=403,
+                detail="No tiene permisos para ver libros retirados"
+            )
+        query = query.where(Libro.estado_id == estado_id)
 
     # Contar total
     total_query = select(func.count()).select_from(query.subquery())
@@ -510,6 +526,9 @@ async def reactivar_libro(
     
     return libro
 
+# =============================================
+# ENDPOINT ELIMINACION DE LIBRO
+# =============================================
 @router.delete("/{libro_id}")
 async def eliminar_libro(
     libro_id: int,
@@ -518,9 +537,12 @@ async def eliminar_libro(
 ):
     """
     Eliminar libro (soft delete) - cambia estado a "Retirado"
-    Este endpoint mantiene compatibilidad con DELETE tradicional
     """
-    result = await db.execute(select(Libro).filter(Libro.id == libro_id))
+
+    #BUSCAR LIBRO
+    result = await db.execute(
+        select(Libro).filter(Libro.id == libro_id)
+    )
     libro = result.scalar_one_or_none()
     
     if not libro:
@@ -529,16 +551,31 @@ async def eliminar_libro(
             detail="Libro no encontrado"
         )
     
-    if libro.estado_id == 4:  # Ya está retirado
+    if libro.estado_id == 4:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El libro ya está retirado"
         )
-    
-    # Soft delete: cambiar estado a "Retirado" (4)
+
+    #VERFICAR SI TIENE UN PRESTAMO VIGENTE
+    result_prestamo = await db.execute(
+        select(PrestamoLibro).where(
+            PrestamoLibro.libro_id == libro_id,
+            PrestamoLibro.estado_prestamo_id == 1
+        )
+    )
+    prestamo_activo = result_prestamo.scalar_one_or_none()
+
+    if prestamo_activo:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se puede retirar el libro porque tiene un préstamo vigente"
+        )
+
+    #SOFT DELETE, CAMBIAR A RETIRADO
     libro.estado_id = 4
     libro.fecha_cambio_estado = datetime.utcnow()
     
     await db.commit()
-    
+
     return {"message": "Libro retirado exitosamente (soft delete)"}

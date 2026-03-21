@@ -10,7 +10,7 @@ INSERT INTO estados_area (estado) VALUES
 ('Disponible'),
 ('Ocupada'),
 ('Mantenimiento'), 
-('Reservada')
+('Reservada'),
 ('No disponible');
 
 -- Estados para equipos

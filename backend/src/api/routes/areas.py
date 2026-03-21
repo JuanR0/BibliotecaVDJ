@@ -137,10 +137,6 @@ async def listar_areas(
         selectinload(Area.usuario_registro)
     )
     
-    # Excluir áreas eliminadas por defecto
-    if not incluir_eliminadas:
-        query = query.filter(Area.estado_id != ESTADO_ELIMINADO)
-    
     # Aplicar filtros adicionales
     if nombre:
         query = query.filter(Area.nombre.ilike(f"%{nombre}%"))
@@ -278,7 +274,7 @@ async def actualizar_area(
     result = await db.execute(
         select(Area).filter(
             Area.id == area_id,
-            Area.estado_id == ESTADO_DISPONIBLE
+            # Area.estado_id == ESTADO_DISPONIBLE
         )
     )
     area = result.scalar_one_or_none()
@@ -329,8 +325,7 @@ async def desactivar_area(
     """
     result = await db.execute(
         select(Area).filter(
-            Area.id == area_id,
-            Area.estado_id == ESTADO_DISPONIBLE
+            Area.id == area_id
         )
     )
     area = result.scalar_one_or_none()

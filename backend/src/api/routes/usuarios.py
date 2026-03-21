@@ -39,8 +39,8 @@ async def listar_usuarios(
     query = select(Usuario)
     
     # Aplicar filtros
-    if activos_only:
-        query = query.filter(Usuario.esta_activo == True)
+    # if activos_only:
+    #     query = query.filter(Usuario.esta_activo == True)
     
     if codigo_filter:
         query = query.filter(Usuario.codigo_universitario.ilike(f"%{codigo_filter}%"))
