@@ -3,6 +3,8 @@ import { useAuthStore } from '@/stores/auth'
 
 export const usePermissions = () => {
   const authStore = useAuthStore()
+
+  
   
   // Permisos específicos para BookCatalog
   const permissions = computed(() => ({
@@ -33,15 +35,26 @@ export const usePermissions = () => {
     isAdvancedAdmin: authStore.esAdminAvanzado,
     isSuperAdmin: authStore.esSuperAdmin
   }))
-  
 
   const hasPermission = (permissionName) => {
     return permissions.value[permissionName] === true
   }
+
+  const hasAnyPermission = (permissionsList) => {
+    return permissionsList.some(p => permissions.value[p] === true)
+  }
+
+  const hasAllPermissions = (permissionsList) => {
+    return permissionsList.every(p => permissions.value[p] === true)
+}
+
+
   
   return {
     permissions,
     hasPermission,
-    authStore
+    authStore,
+    hasAnyPermission,
+    hasAllPermissions
   }
 }

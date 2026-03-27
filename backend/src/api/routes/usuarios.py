@@ -16,6 +16,7 @@ from schemas.usuarios import (
 from core.security import (
     obtener_usuario_actual, 
     requerir_puede_gestionar_usuarios,
+    requerir_puede_gestionar_recursos,
     obtener_hash_clave
 )
 from models import Usuario, RelacionInstitucional, TipoUsuario
@@ -30,7 +31,7 @@ async def listar_usuarios(
     codigo_filter: Optional[str] = Query(None, description="Filtrar por código universitario"),
     nombre_filter: Optional[str] = Query(None, description="Filtrar por nombre"),
     db: AsyncSession = Depends(get_db),
-    usuario_actual: Usuario = Depends(requerir_puede_gestionar_usuarios)
+    usuario_actual: Usuario = Depends(requerir_puede_gestionar_recursos)
 ):
     """
     Listar todos los usuarios (solo super admin)

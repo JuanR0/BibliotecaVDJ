@@ -3,16 +3,17 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '@/services/api'
 
-//INICIALIZACION
-const isInitialized = ref(false)
-
-
 export const useAuthStore = defineStore('auth', () => {
+
+  const isInitialized = ref(false)
+
   // ========== STATE ==========
   const user = ref(JSON.parse(localStorage.getItem('user')) || null)
   const token = ref(localStorage.getItem('token') || null)
   const permisos = ref(JSON.parse(localStorage.getItem('permisos')) || {})
   const isLoading = ref(false)
+  const tieneMultasPendientes = ref(false)
+
 
   // ========== GETTERS (COMPUTED) ==========
   const isAuthenticated = computed(() => !!token.value)
@@ -47,6 +48,10 @@ export const useAuthStore = defineStore('auth', () => {
     const userType = user.value?.user_type
     return roleMap[userType] || 1
   })
+
+  const puedePedirPrestamo = computed(
+    () => puedePrestar.value && !tieneMultasPendientes.value
+  )
 
 //USER ID
 const userId = computed(() => {
@@ -91,6 +96,12 @@ const userId = computed(() => {
   const puedeCrearAreas = computed(() => userId.value >= 3)    // Tipos 3,4
   const puedeDesactivarAreas = computed(() => userId.value >= 3) // Tipos 3,4
 
+  //PERMISOS PARA MULTAS
+  const puedeVerMultas      = computed(() => tipoUsuarioId.value >= 1)  // todos
+  const puedeGestionarMultas = computed(() => tipoUsuarioId.value >= 2) // admins
+  const puedeLiquidarMultas  = computed(() => tipoUsuarioId.value >= 2) // admins
+  const puedeCrearMultas     = computed(() => tipoUsuarioId.value >= 2) // admins
+
   // ========== ACTIONS ==========
   const login = async (credentials) => {
     isLoading.value = true
@@ -99,33 +110,23 @@ const userId = computed(() => {
       const response = await api.post('api/auth/login', credentials)
       console.log('Login exitoso:', response.data)
       
-      const { access_token, user_type, user_name, user_id } = response.data
+      const { access_token } = response.data
       
       // TOKEN (GUARDADO)
       token.value = access_token
       localStorage.setItem('token', access_token)
       
-      // OBJETO USUARIO (BASICO)
-      const userData = {
-        id: user_id,
-        nombre_completo: user_name,
-        user_type: user_type,
-        codigo_universitario: credentials.codigo_universitario
-      }
-      
-      user.value = userData
-      localStorage.setItem('user', JSON.stringify(userData))
-      
       // Configurar axios (peticiones de HTTP con token de autenticacion)
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+
+      //DATOS DE USUARIO
+      await fetchCurrentUser()
       
-      // Obtener permisos completos del backend
-      await fetchPermisosCompletos()
       
-      return { success: true, user: userData, token: access_token }
+      return { success: true, user: user.value, token: access_token }
       
     } catch (error) {
-      console.error('❌ Error en login:', error)
+      console.error('Error en login:', error)
       return { 
         success: false, 
         error: getErrorMessage(error)
@@ -145,11 +146,18 @@ const userId = computed(() => {
       return { success: true, data: response.data }
       
     } catch (error) {
-      console.error('❌ Error en registro:', error)
+      console.error('Error en registro:', error)
       return { success: false, error: getErrorMessage(error) }
     } finally {
       isLoading.value = false
     }
+  }
+
+  //MULTAS
+  const actualizarEstadoMultas = (multas = []) => {
+    tieneMultasPendientes.value = multas.some(
+    m => Number(m.estado_multa_id) === 1
+    )
   }
 
   // Obteniendo usuario actual con sus permisos
@@ -174,7 +182,7 @@ const userId = computed(() => {
       return userData
       
     } catch (error) {
-      console.error('❌ Error obteniendo usuario:', error)
+      console.error('Error obteniendo usuario:', error)
       logout()
       throw error
     }
@@ -203,7 +211,7 @@ const userId = computed(() => {
       return permisosData
       
     } catch (error) {
-      console.error('⚠️ No se pudieron obtener permisos:', error)
+      console.error('No se pudieron obtener permisos:', error)
       
       // Si no hay endpoint de permisos, crear permisos básicos desde user_type (caso de uso excepcional)
       const defaultPermisos = crearPermisosDesdeUserType()
@@ -327,7 +335,13 @@ const userId = computed(() => {
       'canDeleteAreas': puedeEliminarAreas.value,
       'canReactivateAreas': puedeReactivarAreas.value,
       'canCreateAreas': puedeCrearAreas.value,
-      'canDesactivateAreas': puedeDesactivarAreas.value
+      'canDesactivateAreas': puedeDesactivarAreas.value,
+
+      //Multas
+      'ver_multas':       puedeVerMultas.value,
+      'gestionar_multas': puedeGestionarMultas.value,
+      'liquidar_multas':  puedeLiquidarMultas.value,
+      'crear_multas':     puedeCrearMultas.value
     }
     
     // Permisos del objeto permisos
@@ -368,6 +382,7 @@ const userId = computed(() => {
     token,
     permisos,
     isLoading,
+    tieneMultasPendientes,
     
     // Computed - Autenticación
     isAuthenticated,
@@ -411,6 +426,13 @@ const userId = computed(() => {
     puedeCrearAreas,
     puedeDesactivarAreas,
 
+    //Computed - Multas
+    puedePedirPrestamo,
+    puedeVerMultas,
+    puedeGestionarMultas,
+    puedeLiquidarMultas,
+    puedeCrearMultas,
+
     // Actions
     login,
     register,
@@ -419,6 +441,7 @@ const userId = computed(() => {
     fetchPermisosCompletos,
     inicializarDesdeStorage,
     tienePermiso,
+    actualizarEstadoMultas,
 
     userId,
     isInitialized,

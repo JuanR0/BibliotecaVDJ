@@ -1,125 +1,96 @@
 <template>
   <div class="book-catalog">
+
     <!-- Header -->
     <div class="catalog-header">
       <div class="header-content">
-        <h1>Catálogo de la Biblioteca</h1>
-        <p class="subtitle">Libros pertenecientes a la biblioteca</p>
+        <h1>📚 Catálogo de la Biblioteca</h1>
+        <p class="subtitle">Libros pertenecientes a la biblioteca universitaria</p>
       </div>
-      
-      <!-- Estadísticas rápidas -->
       <div class="catalog-stats">
-        <div class="stat-item">
-          <span class="stat-icon">📖</span>
-          <div>
-            <span class="stat-value">{{ stats.totalBooks || 0 }}</span>
-            <span class="stat-label">Libros totales</span>
-          </div>
+        <div class="stat-pill">
+          <span class="stat-num">{{ stats.totalBooks }}</span>
+          <span class="stat-lbl">Libros totales</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-icon">✅</span>
-          <div>
-            <span class="stat-value">{{ stats.availableBooks || 0 }}</span>
-            <span class="stat-label">Disponibles</span>
-          </div>
+        <div class="stat-pill">
+          <span class="stat-num">{{ stats.availableBooks }}</span>
+          <span class="stat-lbl">Disponibles</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-icon">🔄</span>
-          <div>
-            <span class="stat-value">{{ stats.es_prestable || 0 }}</span>
-            <span class="stat-label">Prestables</span>
-          </div>
+        <div class="stat-pill">
+          <span class="stat-num">{{ stats.prestableBooks }}</span>
+          <span class="stat-lbl">Prestables</span>
         </div>
       </div>
     </div>
 
-    <!-- Sistema de Búsqueda Avanzado -->
+    <!-- Búsqueda -->
     <div class="search-section">
-      <div class="search-container">
-        <div class="search-bar-wrapper">
-          <div class="search-icon">🔍</div>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Buscar por título, autor, ISBN, editorial..."
-            class="search-input"
-            @keyup.enter="handleSearch"
-          />
-          <button @click="handleSearch" class="search-button">
-            Buscar
-          </button>
-          <button @click="toggleAdvancedFilters" class="filter-toggle">
-            {{ showAdvancedFilters ? '▲' : '▼' }} Filtros Avanzados
-          </button>
+      <div class="search-bar">
+        <span class="search-icon-inner">🔍</span>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Buscar por título, autor, ISBN, editorial..."
+          class="search-input"
+          @keyup.enter="handleSearch"
+        />
+        <button @click="showAdvancedFilters = !showAdvancedFilters" class="btn-filter">
+          {{ showAdvancedFilters ? '▲' : '▼' }} Filtros
+        </button>
+        <button @click="handleSearch" class="btn-search">Buscar</button>
+      </div>
+
+      <div v-if="showAdvancedFilters" class="advanced-filters">
+        <div class="filters-grid">
+          <div class="filter-group">
+            <label>Estado:</label>
+            <select v-model="filters.estado_id" class="filter-select">
+              <option value="">Todos los estados</option>
+              <option value="1">Disponible</option>
+              <option value="2">Prestado</option>
+              <option value="3">En reparación</option>
+              <option v-if="canSeeRetiredBooks" value="4">Retirados</option>
+            </select>
+            <div v-if="filters.estado_id === '1'" class="filter-hint">Estado por defecto: Disponible</div>
+          </div>
+          <div class="filter-group">
+            <label>Es prestable:</label>
+            <select v-model="filters.es_prestable" class="filter-select">
+              <option value="">Todos</option>
+              <option value="true">Solo prestables</option>
+              <option value="false">No prestables</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Año de adquisición:</label>
+            <input v-model="filters.ano_adquisicion" type="number" placeholder="Ej: 2023" class="filter-input" min="1900" :max="new Date().getFullYear()" />
+          </div>
+          <div class="filter-group">
+            <label>Editorial:</label>
+            <select v-model="filters.editorial_id" class="filter-select">
+              <option value="">Todas las editoriales</option>
+              <option v-for="e in editoriales" :key="e.id" :value="e.id">{{ e.nombre }}</option>
+            </select>
+          </div>
         </div>
-
-        <!-- FILTROS AVANZADOS -->
-        <div v-if="showAdvancedFilters" class="advanced-filters">
-          <div class="filters-grid">
-            <div class="filter-group">
-              <label>Estado:</label>
-              <select v-model="filters.estado_id" class="filter-select">
-                <option value="">Todos los estados</option>
-                <option value="1">Disponible</option>
-                <option value="2">Prestado</option>
-                <option value="3">En reparación</option>
-
-                <option v-if="canSeeRetiredBooks" value="4">Retirados</option>
-              </select>
-
-              <div v-if="filters.estado_id === '1'" class="filter-hint">
-                Estado por defecto: Disponible
-              </div>
-            </div>
-
-            <div class="filter-group">
-              <label>Es prestable:</label>
-              <select v-model="filters.es_prestable" class="filter-select">
-                <option value="">Todos</option>
-                <option value="true">Solo prestables</option>
-                <option value="false">No prestables</option>
-              </select>
-            </div>
-
-            <div class="filter-group">
-              <label>Año de adquisición:</label>
-              <input v-model="filters.ano_adquisicion" type="number" placeholder="Ej: 2023" class="filter-input" min="1900" :max="new Date().getFullYear()"/>
-            </div>
-
-            <div class="filter-group">
-              <label>Editorial:</label>
-              <select v-model="filters.editorial_id" class="filter-select">
-                <option value="">Todas las editoriales</option>
-                <option v-for="editorial in editoriales" :key="editorial.id" :value="editorial.id">
-                  {{ editorial.nombre }}
-                </option>
-              </select>
-            </div>
-
-          </div>
-
-          <div class="filter-actions">
-            <button @click="applyFilters" class="btn btn-primary">Aplicar Filtros</button>
-            <button @click="resetFilters" class="btn btn-outline">Limpiar Filtros</button>
-          </div>
-
+        <div class="filter-actions">
+          <button @click="currentPage = 1" class="btn btn-primary">Aplicar Filtros</button>
+          <button @click="resetFilters" class="btn btn-outline">Limpiar Filtros</button>
         </div>
       </div>
     </div>
 
-    <!-- RESULTADOS -->
+    <!-- Resultados -->
     <div class="results-section">
-      <!-- CONTROLES -->
+
       <div class="view-controls">
         <div class="view-options">
-          <!--TIPOS DE VISTA-->
-          <button @click="viewMode = 'grid'" :class="{ 'active': viewMode === 'grid' }" class="view-btn">Cuadrícula</button>
-          <button @click="viewMode = 'list'" :class="{ 'active': viewMode === 'list' }" class="view-btn">Lista</button>
+          <button @click="viewMode = 'grid'" :class="{ active: viewMode === 'grid' }" class="view-btn">⊞ Cuadrícula</button>
+          <button @click="viewMode = 'list'" :class="{ active: viewMode === 'list' }" class="view-btn">☰ Lista</button>
         </div>
-        
         <div class="sort-options">
           <label>Ordenar por:</label>
-          <select v-model="sortBy" @change="sortBooks" class="sort-select">
+          <select v-model="sortBy" @change="currentPage = 1" class="sort-select">
             <option value="titulo">Título (A-Z)</option>
             <option value="autor">Autor (A-Z)</option>
             <option value="edicion">Edición (Más reciente)</option>
@@ -128,7 +99,6 @@
         </div>
       </div>
 
-      <!-- ESTADO CARGA/ERROR-->
       <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
         <p>Cargando catálogo...</p>
@@ -139,238 +109,199 @@
         <button @click="loadBooks" class="btn btn-primary">Reintentar</button>
       </div>
 
-
-<!-- =======================================================================================-->
-<!-- =========================== VISTA DE CUADRICULA ============================================-->
-<!-- =======================================================================================-->
+      <!-- ── CUADRÍCULA ── -->
       <div v-if="viewMode === 'grid' && !isLoading && !error" class="books-grid">
         <div v-for="book in paginatedBooks" :key="book.id" class="book-card">
-          <div class="book-card-header">
-            <div class="book-status" :class="getStatusClass(book)"> {{ getStatusText(book) }}</div>
-            <div class="book-code">{{ book.codigo_decimal || 'N/A' }}</div>
+
+          <div class="book-card-top" :class="getCardColorClass(book.id)">
+            <span class="book-icon-lg">📖</span>
+            <div class="badge-status" :class="getStatusClass(book)">{{ getStatusText(book) }}</div>
+            <div class="card-code-badge">{{ book.codigo_decimal || 'N/A' }}</div>
+            <div v-if="book.es_prestable && book.edicion != 1" class="badge-prestable">Prestable</div>
           </div>
-          
-          <!-- PRESTABLE -->
-          <div class="book-cover">
-            <div class="cover-placeholder">
-              <span class="book-icon">📖</span>
-              <div class="book-badge" v-if="book.es_prestable && book.edicion != 1">Prestable</div>
-            </div>
-          </div>
-          
-          <div class="book-info">
+
+          <div class="book-body">
             <h3 class="book-title">{{ book.titulo }}</h3>
             <p class="book-author">✍️ {{ book.autor }}</p>
-
             <div class="book-details">
               <p><strong>ISBN:</strong> {{ book.isbn || 'No disponible' }}</p>
               <p><strong>Etiqueta:</strong> {{ book.etiqueta }}</p>
               <p><strong>Ejemplar:</strong> {{ book.numero_ejemplar }}</p>
               <p><strong>Edición:</strong> {{ book.edicion }}</p>
               <p><strong>Páginas:</strong> {{ book.numero_paginas }}</p>
-              <p v-if="book.editorial_nombre">
-                <strong>Editorial:</strong> {{ book.editorial_nombre }}
-              </p>
-              <p v-if="book.area_conocimiento_nombre">
-                <strong>Área:</strong> {{ book.area_conocimiento_nombre }}
-              </p>
+              <p v-if="book.editorial_nombre"><strong>Editorial:</strong> {{ book.editorial_nombre }}</p>
+              <p v-if="book.area_conocimiento_nombre"><strong>Área:</strong> {{ book.area_conocimiento_nombre }}</p>
             </div>
-
-            
             <div class="book-metadata">
-              <span class="metadata-item">ID:{{ book.id }}</span>
-              <!-- COSTO DE LIBRO NO NECESARIO PARA USUARIO -->
-              <!-- <span class="metadata-item" v-if="book.precio">${{ formatPrecio(book.precio) }}</span> -->
-              <!-- <span class="metadata-item" v-if="book.fecha_adquisicion">{{ formatFecha(book.fecha_adquisicion) }}</span> -->
+              <span class="metadata-item">ID: {{ book.id }}</span>
             </div>
           </div>
-          
 
-          <!-- ACCIONES DE LIBRO -->
           <div class="book-actions">
-            <button @click="viewBookDetails(book.id)" class="btn btn-outline btn-small btn-details-books">Detalles..</button>
-          
-            <!-- SOLICITAR PRÉSTAMO -->
-            <button v-if="book.es_prestable && book.estado_id === 1 && userCanRequestLoans" @click="requestLoanModal(book)" class="btn btn-loan-books">Solicitar</button>
-
-            <!-- DEVOLVER PRÉSTAMO -->
-            <button v-if="userCanRequestLoans && book.estado_id === 2" @click="handleReturn(book)" class="btn btn-recover-books">Devolver</button>
-
-            <!-- EDITAR LIBRO -->
-            <button v-if="canEditBooks" @click="goToEditPage(book.id)" class="btn btn-edit btn-sm" :title="`Editar libro: ${book.titulo}`">Editar</button>
-            
-            <!-- ELIMINAR LIBRO -->
-            <button v-if="canDelete" @click="confirmDelete(book)" class="[btn btn-danger btn-delete-books, { disabled: book.estado_nombre === 'Prestado' }]" :title="book.estado_nombre === 'Prestado'? 'No se puede eliminar porque está prestado': 'Eliminar libro'" :disabled="isDeleting || book.estado_nombre === 'Prestado'">
+            <button @click="viewBookDetails(book.id)" class="btn-detail">Detalles...</button>
+            <button v-if="book.es_prestable && book.estado_id === 1 && userCanRequestLoans" @click="requestLoanModal(book)" class="btn-loan" :disabled="multasPendientes" :title="multasPendientes ? 'Tienes multas pendientes' : 'Solicitar préstamo'">
+              {{ multasPendientes ? '🚫 Bloqueado' : 'Solicitar' }}
+            </button>
+            <button v-if="userCanRequestLoans && book.estado_id === 2" @click="handleReturn(book)" class="btn-devolver">Devolver</button>
+            <button v-if="canEditBooks" @click="goToEditPage(book.id)" class="btn-editar" :title="`Editar: ${book.titulo}`">Editar</button>
+            <button
+              v-if="canDelete"
+              @click="confirmDelete(book)"
+              class="btn-eliminar"
+              :disabled="isDeleting || book.estado_nombre === 'Prestado'"
+              :title="book.estado_nombre === 'Prestado' ? 'No se puede eliminar porque está prestado' : 'Eliminar libro'"
+            >
               <span v-if="isDeleting && deletingBookId === book.id" class="spinner-mini"></span>
               <span v-else>Eliminar</span>
             </button>
-
-            <!-- RECUPERAR LIBRO -->
-            <button v-if="canRecoverBooks && book.estado_id == 4" @click="recoverBook(book)" class="btn btn-warning btn-recover-books" title="Ver y recuperar libros retirados">
-              <span class="btn-text">Recuperar Libro</span>
-            </button>
-
+            <button v-if="canRecoverBooks && book.estado_id === 4" @click="recoverBook(book)" class="btn-recuperar">Recuperar</button>
           </div>
         </div>
 
-        <!--MODAL ELIMINACION-->
+        <!-- Modal: Eliminar -->
         <div v-if="showDeleteModal" class="modal-overlay">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h3>Confirmar Eliminación</h3>
-                <button @click="closeModal" class="modal-close-btn">×</button>
-              </div>
-              
-              <div class="modal-body">
-                <p>¿Estás seguro de que deseas eliminar el siguiente libro?</p>
-                <div class="book-to-delete">
-                  <div class="book-info">
-                    <h4>{{ bookToDelete?.titulo }}</h4>
-                    <p><strong>Autor:</strong> {{ bookToDelete?.autor }}</p>
-                    <p><strong>Código:</strong> {{ bookToDelete?.codigo_decimal }}</p>
-                    <p><strong>Edicion:</strong> {{ bookToDelete?.edicion }}</p>
-                  </div>
-                  <div class="warning-message">
-                    <div class="warning-icon">⚠️</div>
-                    <p>El libro será retirado.</p>
-                  </div>
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Confirmar Eliminación</h3>
+              <button @click="closeModal" class="modal-close-btn">×</button>
+            </div>
+            <div class="modal-body">
+              <p>¿Estás seguro de que deseas eliminar el siguiente libro?</p>
+              <div class="book-to-delete">
+                <div class="book-info-modal">
+                  <h4>{{ bookToDelete?.titulo }}</h4>
+                  <p><strong>Autor:</strong> {{ bookToDelete?.autor }}</p>
+                  <p><strong>Código:</strong> {{ bookToDelete?.codigo_decimal }}</p>
+                  <p><strong>Edición:</strong> {{ bookToDelete?.edicion }}</p>
+                </div>
+                <div class="warning-message">
+                  <div class="warning-icon">⚠️</div>
+                  <p>El libro será retirado.</p>
                 </div>
               </div>
-              
-              <div class="modal-footer">
-                <button @click="closeModal" class="btn btn-secondary" :disabled="isDeleting">
-                  Cancelar
-                </button>
-                <button @click="deleteBook" class="btn btn-danger" :disabled="isDeleting">
-                  <span v-if="isDeleting" class="spinner-small"></span>
-                  {{ isDeleting ? 'Eliminando...' : 'Sí, Eliminar' }}
-                </button>
-              </div>
+            </div>
+            <div class="modal-footer">
+              <button @click="closeModal" class="btn-modal-cancel" :disabled="isDeleting">Cancelar</button>
+              <button @click="deleteBook" class="btn-modal-delete" :disabled="isDeleting">
+                <span v-if="isDeleting" class="spinner-small"></span>
+                {{ isDeleting ? 'Eliminando...' : 'Sí, Eliminar' }}
+              </button>
             </div>
           </div>
-
+        </div>
       </div>
 
-      <!-- MODAL PRESTAMO -->
+      <!-- Modal: Préstamo -->
       <div v-if="showLoanModal" class="modal-overlay">
         <div class="modal-content">
           <div class="modal-header">
             <h3>Crear Préstamo</h3>
             <button @click="cerrarLoanModal" class="modal-close-btn">×</button>
           </div>
-
           <div class="modal-body">
             <p><strong>Libro:</strong> {{ selectedBook?.titulo }}</p>
             <p><strong>Autor:</strong> {{ selectedBook?.autor }}</p>
-
-            <div class="filter-group">
+            <div class="filter-group" style="margin-top:1rem">
               <label>Fecha de devolución:</label>
-              <input type="date" v-model="loanDate" class="filter-input" />
+              <input type="date" v-model="loanDate" class="filter-input" :min="fechaMinima"/><p v-if="loanDate && !fechaEsValida" class="fecha-error">La fecha de devolución no puede ser anterior a hoy.</p>
             </div>
-
-            <div class="filter-group">
+            <div class="filter-group" style="margin-top:.75rem">
               <label>Observaciones:</label>
               <textarea v-model="loanObservaciones" class="filter-input"></textarea>
             </div>
           </div>
-
           <div class="modal-footer">
-            <button @click="cerrarLoanModal" class="btn btn-secondary">
-              Cancelar
-            </button>
-            <button @click="requestLoan" class="btn btn-primary" :disabled="isProcessingLoan">
+            <button @click="cerrarLoanModal" class="btn-modal-cancel">Cancelar</button>
+            <button @click="requestLoan" class="btn-modal-confirm" :disabled="isProcessingLoan">
               {{ isProcessingLoan ? 'Creando...' : 'Confirmar Préstamo' }}
             </button>
           </div>
         </div>
       </div>
 
-      
-      <div v-if="showSuccessToast" class="toast success">
-        <div class="toast-icon">✅</div>
+      <!-- Toast eliminacion -->
+      <div v-if="showSuccessToast" class="toast">
+        <span class="toast-icon">✅</span>
         <div class="toast-content">
           <strong>Libro eliminado correctamente</strong>
           <p>El libro ha sido eliminado del sistema</p>
         </div>
         <button @click="showSuccessToast = false" class="toast-close">×</button>
-      </div>      
-<!-- =======================================================================================-->
-<!-- =========================== VISTA DE LISTA ============================================-->
-<!-- =======================================================================================-->
+      </div>
+
+      <!-- Toast prestamo -->
+      <div v-if="showLoanSuccessToast" class="toast toast-loan-success">
+        <span class="toast-icon">📚</span>
+        <div class="toast-content">
+          <strong>Préstamo creado correctamente</strong>
+          <p>Recuerda devolver el libro antes de la fecha límite</p>
+        </div>
+        <button @click="showLoanSuccessToast = false" class="toast-close">×</button>
+      </div>
+
+      <!-- ── LISTA ── -->
       <div v-if="viewMode === 'list' && !isLoading && !error" class="books-list">
-        <table class="table-ui">
-          
-          <!-- DATOS -->
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Seccion</th>
-              <th>Título</th>
-              <th>Autor</th>
-              <th>Editorial</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-
-            <tr v-for="book in paginatedBooks" :key="book.id">
-              <td>
-                <div class="book-code-cell">
-                  <div>{{ book.codigo_decimal || 'N/A' }}</div>
-                </div>
-              </td>
-              
-              <td>
-                <div class="small-text">{{ book.etiqueta }}-{{ book.numero_ejemplar }}</div>
-              </td>
-
-              <td>
-                <strong>{{ book.titulo }}</strong>
-                <div class="small-text">
-                  Ed. {{ book.edicion }}
-                </div>
-              </td>
-
-              <td>{{ book.autor }}</td>
-              <td>{{ book.editorial_nombre || 'N/A' }}</td>
-              <td>
-                <span :class="getStatusClass(book)" class="status-badge">{{ getStatusText(book) }}</span>
-                <div class="small-text" v-if="book.es_prestable">🔄 Prestable</div>
-              </td>
-              <td>
-                <button @click="viewBookDetails(book.id)" class="table-btn" title="Ver detalles"> 🔍</button>
-                <button v-if="book.es_prestable && book.estado_id === 1" @click="requestLoan(book.id)" class="table-btn" title="Solicitar préstamo" :disabled="isProcessingLoan">📥</button>
-              </td>
-            </tr>
-
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table class="table-ui">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Título</th>
+                <th>Autor</th>
+                <th>Editorial</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="book in paginatedBooks" :key="book.id">
+                <td>
+                  <div class="td-code">{{ book.codigo_decimal || 'N/A' }}</div>
+                  <div class="td-sub">{{ book.etiqueta }}-{{ book.numero_ejemplar }}</div>
+                </td>
+                <td>
+                  <div class="td-title">{{ book.titulo }}</div>
+                  <div class="td-sub">Ed. {{ book.edicion }}</div>
+                </td>
+                <td class="td-author">{{ book.autor }}</td>
+                <td><div class="td-sub">{{ book.editorial_nombre || 'N/A' }}</div></td>
+                <td>
+                  <span :class="getStatusClass(book)" class="status-pill">{{ getStatusText(book) }}</span>
+                  <div class="td-sub" v-if="book.es_prestable" style="margin-top:.25rem">🔄 Prestable</div>
+                </td>
+                <td>
+                  <div class="td-actions">
+                    <button @click="viewBookDetails(book.id)" class="tbl-btn" title="Ver detalles">🔍</button>
+                    <button v-if="book.es_prestable && book.estado_id === 1 && userCanRequestLoans" @click="requestLoanModal(book)" class="btn-loan" :disabled="multasPendientes" :title="multasPendientes ? 'Tienes multas pendientes' : 'Solicitar préstamo'">
+                      {{ multasPendientes ? '🚫 Bloqueado' : 'Solicitar' }}
+                    </button>
+                    <button v-if="canEditBooks" @click="goToEditPage(book.id)" class="tbl-btn tbl-gold" title="Editar">✏️</button>
+                    <button v-if="canDelete" @click="confirmDelete(book)" class="tbl-btn tbl-red" title="Eliminar" :disabled="book.estado_nombre === 'Prestado'">🗑️</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Paginación -->
       <div v-if="!isLoading && !error && books.length > 0" class="pagination-section">
         <div class="pagination-info">
-          Mostrando {{ startItem }}-{{ endItem }} de {{ filteredBooks.length }} libros
-          <span v-if="searchQuery || hasActiveFilters" class="filtered-info">
-            (Filtrado de {{ books.length }} total)
-          </span>
+          Mostrando {{ startItem }}–{{ endItem }} de {{ filteredBooks.length }} libros
+          <span v-if="searchQuery || hasActiveFilters" class="filtered-info">(Filtrado de {{ books.length }} total)</span>
         </div>
-        
         <div class="pagination-controls">
-          <button @click="prevPage" :disabled="currentPage === 1" class="pagination-btn">← Anterior</button>
-          
+          <button @click="prevPage" :disabled="currentPage === 1" class="pbtn">← Anterior</button>
           <div class="page-numbers">
-            <span v-for="page in visiblePages" :key="page" @click="goToPage(page)" :class="{ 'active': page === currentPage }" class="page-number"> {{ page }} </span>
+            <span v-for="page in visiblePages" :key="page" @click="goToPage(page)" :class="{ active: page === currentPage }" class="page-number">{{ page }}</span>
             <span v-if="hasMorePages" class="page-ellipsis">...</span>
           </div>
-          
-          <button @click="nextPage" :disabled="currentPage === totalPages" class="pagination-btn">Siguiente →</button>
+          <button @click="nextPage" :disabled="currentPage === totalPages" class="pbtn">Siguiente →</button>
         </div>
-        
         <div class="items-per-page">
           <label>Mostrar:</label>
-          <select v-model="itemsPerPage" @change="resetPagination" class="page-select">
+          <select v-model="itemsPerPage" @change="currentPage = 1" class="page-select">
             <option value="12">12</option>
             <option value="24">24</option>
             <option value="48">48</option>
@@ -383,20 +314,14 @@
       <div v-if="!isLoading && !error && filteredBooks.length === 0" class="empty-state">
         <div class="empty-icon">📭</div>
         <h3>No se encontraron libros</h3>
-
-        <p v-if="searchQuery || hasActiveFilters"> No hay resultados para tu búsqueda. Intenta con otros términos o ajusta los filtros. </p>
-        <p v-else>
-          No hay libros disponibles en el catálogo.
-        </p>
-
-        <button @click="resetFilters" class="btn btn-primary">🔄 Mostrar todos los libros</button>
+        <p v-if="searchQuery || hasActiveFilters">No hay resultados. Intenta con otros términos o ajusta los filtros.</p>
+        <p v-else>No hay libros disponibles en el catálogo.</p>
+        <button @click="resetFilters" class="btn-loan" style="margin-top:1rem">🔄 Mostrar todos los libros</button>
       </div>
-
 
     </div>
   </div>
 </template>
-
 
 
 <script setup>
@@ -406,146 +331,258 @@ import { bookService } from '@/services/books'
 import { useAuthStore } from '@/stores/auth'
 import { usePermissions } from '@/composables/usePermissions'
 import { prestamoLibroService } from '@/services/PrestamoLibro'
+import { useMultas } from '@/composables/useMultas'
+import { multasService } from '@/services/multas'
 
 import '@/styles/buttons.css'
 
-const { hasPermission } = usePermissions()
 const router = useRouter()
 const authStore = useAuthStore()
 
-// State
-const searchQuery = ref('')
+const { hasPermission } = usePermissions()
+const {tieneMultasPendientes} = useMultas()
+
+// ── Estado UI ──────────────────────────────────────────────────────────────
+const searchQuery         = ref('')
 const showAdvancedFilters = ref(false)
-const viewMode = ref('grid')
-const sortBy = ref('titulo')
-const isLoading = ref(false)
-const error = ref(null)
-const currentPage = ref(1)
-const itemsPerPage = ref(12)
-const isProcessingLoan = ref(false)
+const viewMode            = ref('grid')
+const sortBy              = ref('titulo')
+const isLoading           = ref(false)
+const error               = ref(null)
+const currentPage         = ref(1)
+const itemsPerPage        = ref(12)
 
-// Eliminacion de libro
-const isDeleting = ref(false)
-const deletingBookId = ref(null)
-const showDeleteModal = ref(false)
-const bookToDelete = ref(null)
-const showSuccessToast = ref(false)
+// ── Estado préstamo ────────────────────────────────────────────────────────
+const isProcessingLoan    = ref(false)
+const showLoanModal       = ref(false)
+const selectedBook        = ref(null)
+const loanDate            = ref('')
+const loanObservaciones   = ref('')
 
+// ── Estado multas ────────────────────────────────────────────────────────
+const multasPendientes = ref(false)
 
+// ── Estado eliminación ─────────────────────────────────────────────────────
+const isDeleting          = ref(false)
+const deletingBookId      = ref(null)
+const showDeleteModal     = ref(false)
+const bookToDelete        = ref(null)
+const showSuccessToast    = ref(false)
 
-// Data
-const books = ref([])
-const stats = ref({
-  totalBooks: 0,
-  availableBooks: 0,
-  prestableBooks: 0
-})
+const showLoanSuccessToast = ref(false)
+
+// ── Datos ──────────────────────────────────────────────────────────────────
+const books       = ref([])
 const editoriales = ref([])
+const stats       = ref({ totalBooks: 0, availableBooks: 0, prestableBooks: 0 })
 
-// Filter
 const filters = ref({
-  //ESTADO 1 DISPONIBLE SE ELIGE POR DEFECTO PARA LISTAR LIBROS DISPONIBLES SOLAMENTE DE FORMA PREDETERMINADA
-  estado_id: '1',
-  es_prestable: '',
+  estado_id:       '1',
+  es_prestable:    '',
   ano_adquisicion: '',
-  editorial_id: ''
+  editorial_id:    ''
 })
 
-
-//========================================== PERMISOS ======================================================
-const canEditBooks = computed(() => hasPermission('canEditBooks'))
-const canDelete = computed(() => hasPermission('canDeleteBooks'))
-const canRecoverBooks = computed(() => hasPermission('canRecoverBooks'))
-const canSeeRetiredBooks = computed(() => hasPermission('canSeeRetiredBooks'))
+// ── Permisos ───────────────────────────────────────────────────────────────
+const canEditBooks        = computed(() => hasPermission('canEditBooks'))
+const canDelete           = computed(() => hasPermission('canDeleteBooks'))
+const canRecoverBooks     = computed(() => hasPermission('canRecoverBooks'))
+const canSeeRetiredBooks  = computed(() => hasPermission('canSeeRetiredBooks'))
 const userCanRequestLoans = computed(() => hasPermission('canRequestLoans'))
 
+// ── Computed ───────────────────────────────────────────────────────────────
+const filteredBooks = computed(() => {
+  let result = books.value
 
-//========================================== MODALES ======================================================
-// PRESTAMO MODAL
-const showLoanModal = ref(false)
-const selectedBook = ref(null)
-const loanDate = ref('')
-const loanObservaciones = ref('')
+  if (filters.value.estado_id)
+    result = result.filter(b => b.estado_id === parseInt(filters.value.estado_id))
 
-//DEVOLVER TIPO DE USUARIO
-console.log(`El usuario es ${authStore.userId}`)
+  if (filters.value.es_prestable !== '')
+    result = result.filter(b => b.es_prestable === (filters.value.es_prestable === 'true'))
 
-const requestLoanModal = (book) => {
-  if (!userCanRequestLoans.value) {
-    alert('No tienes permisos para crear préstamos')
-    return
+  if (filters.value.editorial_id)
+    result = result.filter(b => b.editorial_id === parseInt(filters.value.editorial_id))
+
+  if (filters.value.ano_adquisicion) {
+    const year = parseInt(filters.value.ano_adquisicion)
+    result = result.filter(b => b.fecha_adquisicion && new Date(b.fecha_adquisicion).getFullYear() === year)
   }
 
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase().trim()
+    result = result.filter(b =>
+      b.titulo?.toLowerCase().includes(q) ||
+      b.autor?.toLowerCase().includes(q) ||
+      b.isbn?.toLowerCase().includes(q) ||
+      b.editorial_nombre?.toLowerCase().includes(q) ||
+      b.area_conocimiento_nombre?.toLowerCase().includes(q) ||
+      b.codigo_decimal?.toLowerCase().includes(q)
+    )
+  }
+
+  return [...result].sort((a, b) => {
+    switch (sortBy.value) {
+      case 'autor':             return (a.autor || '').localeCompare(b.autor || '')
+      case 'edicion':           return (b.edicion || 0) - (a.edicion || 0)
+      case 'fecha_adquisicion': {
+        const da = a.fecha_adquisicion ? new Date(a.fecha_adquisicion) : new Date(0)
+        const db = b.fecha_adquisicion ? new Date(b.fecha_adquisicion) : new Date(0)
+        return db - da
+      }
+      default: return (a.titulo || '').localeCompare(b.titulo || '')
+    }
+  })
+})
+
+const totalPages   = computed(() => Math.ceil(filteredBooks.value.length / itemsPerPage.value) || 1)
+const paginatedBooks = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  return filteredBooks.value.slice(start, start + itemsPerPage.value)
+})
+const startItem    = computed(() => (currentPage.value - 1) * itemsPerPage.value + 1)
+const endItem      = computed(() => Math.min(currentPage.value * itemsPerPage.value, filteredBooks.value.length))
+const visiblePages = computed(() => {
+  const max = 5, total = totalPages.value
+  if (total <= max) return Array.from({ length: total }, (_, i) => i + 1)
+  let start = Math.max(1, currentPage.value - 2)
+  const end = Math.min(total, start + max - 1)
+  if (end - start + 1 < max) start = end - max + 1
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+const hasMorePages    = computed(() => currentPage.value < totalPages.value - 2)
+const hasActiveFilters = computed(() => Object.values(filters.value).some(v => v !== '' && v != null))
+
+// ── Carga de datos ─────────────────────────────────────────────────────────
+const loadBooks = async () => {
+  isLoading.value = true
+  error.value = null
+  try {
+    const response = await bookService.getBooks()
+    books.value = response?.libros ?? (Array.isArray(response) ? response : [])
+    calculateStats()
+    extractEditoriales()
+  } catch (err) {
+    error.value = err.response?.data?.detail || 'Error cargando el catálogo'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const calculateStats = () => {
+  stats.value = {
+    totalBooks:     books.value.length,
+    availableBooks: books.value.filter(b => b.estado_id === 1).length,
+    prestableBooks: books.value.filter(b => b.es_prestable).length
+  }
+}
+
+const extractEditoriales = () => {
+  const map = new Map()
+  books.value.forEach(b => {
+    if (b.editorial_id && b.editorial_nombre && !map.has(b.editorial_id))
+      map.set(b.editorial_id, { id: b.editorial_id, nombre: b.editorial_nombre })
+  })
+  editoriales.value = Array.from(map.values())
+}
+
+// ── Búsqueda ───────────────────────────────────────────────────────────────
+const handleSearch = async () => {
+  currentPage.value = 1
+  if (!searchQuery.value.trim()) { loadBooks(); return }
+  try {
+    isLoading.value = true
+    const response = await bookService.searchBooks(searchQuery.value, filters.value)
+    if (response?.libros) books.value = response.libros
+    calculateStats()
+  } catch {
+    // fallback: filteredBooks aplica searchQuery localmente
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const resetFilters = () => {
+  searchQuery.value = ''
+  filters.value = { estado_id: '', es_prestable: '', ano_adquisicion: '', editorial_id: '' }
+  currentPage.value = 1
+  loadBooks()
+}
+
+
+//VERIFICACION DE MULTAS
+const verificarMultas = async () => {
+  try {
+    const userId = authStore.userId
+    if (!userId) return
+    const multas = await multasService.getMultasByUsuario(userId)
+    multasPendientes.value = Array.isArray(multas) && multas.length > 0
+    if (authStore.actualizarEstadoMultas) authStore.actualizarEstadoMultas(multas)
+  } catch { /* silencioso */ }
+}
+
+//VALIDACION DE FECHAS
+const fechaMinima = computed(() => {
+  const hoy = new Date()
+  return hoy.toISOString().split('T')[0]
+})
+
+const fechaEsValida = computed(() => {
+  if (!loanDate.value) return false
+  return loanDate.value >= fechaMinima.value
+})
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const CARD_COLORS = ['card-c1', 'card-c2', 'card-c3']
+const getCardColorClass = (id) => CARD_COLORS[id % CARD_COLORS.length]
+
+const STATUS_CLASS = { 1: 'status-available', 2: 'status-borrowed', 3: 'status-repair', 4: 'status-lost' }
+const STATUS_TEXT  = { 1: '✅ Disponible', 2: '⏳ Prestado', 3: '🔧 En reparación', 4: '❌ Retirado' }
+const getStatusClass = (book) => STATUS_CLASS[book.estado_id] || 'status-unknown'
+const getStatusText  = (book) => STATUS_TEXT[book.estado_id]  || book.estado_nombre || 'Desconocido'
+
+// ── Navegación ─────────────────────────────────────────────────────────────
+const goToEditPage    = (id) => router.push(`/admin/libros/editar/${id}`)
+const viewBookDetails = (id) => router.push(`/libros/${id}`)
+
+// ── Paginación ─────────────────────────────────────────────────────────────
+const prevPage = () => { if (currentPage.value > 1) currentPage.value-- }
+const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++ }
+const goToPage = (page) => { if (page >= 1 && page <= totalPages.value) currentPage.value = page }
+
+// ── Modales ────────────────────────────────────────────────────────────────
+const requestLoanModal = (book) => {
+  if (!userCanRequestLoans.value) { alert('No tienes permisos para crear préstamos'); return }
   selectedBook.value = book
   loanDate.value = ''
   loanObservaciones.value = ''
   showLoanModal.value = true
 }
+const cerrarLoanModal = () => { showLoanModal.value = false; selectedBook.value = null }
 
-const cerrarLoanModal = () => {
-  showLoanModal.value = false
-  selectedBook.value = null
-}
-
-
-// ELIMINACION MODAL
 const confirmDelete = (book) => {
-  if (!canDelete.value) {
-    alert('No tienes permisos para eliminar libros')
-    return
-  }
-  
+  if (!canDelete.value) { alert('No tienes permisos para eliminar libros'); return }
   bookToDelete.value = book
   showDeleteModal.value = true
-
 }
-
 const closeModal = () => {
-  if (!isDeleting.value) {
-    showDeleteModal.value = false
-    bookToDelete.value = null
-  }
+  if (isDeleting.value) return
+  showDeleteModal.value = false
+  bookToDelete.value = null
 }
 
-
-
-//========================================== FUNCIONES ======================================================
-
-//ELIMINACION DE LIBRO (SOFT DELETE)
+// ── CRUD ───────────────────────────────────────────────────────────────────
 const deleteBook = async () => {
   if (!bookToDelete.value?.id || isDeleting.value) return
-  
   isDeleting.value = true
   deletingBookId.value = bookToDelete.value.id
-  
   try {
-    console.log(`Eliminando libro ID: ${bookToDelete.value.id}`)
-    
-    // Llamar al endpoint DELETE
     await bookService.deleteBook(bookToDelete.value.id)
-    
-    console.log('✅ Libro eliminado exitosamente')
-    
-    // Mostrar toast de éxito
-    showSuccessToast.value = true
-    
-    // Cerrar modal
+    books.value = books.value.filter(b => b.id !== bookToDelete.value.id)
     showDeleteModal.value = false
-    
-    // Actualizar lista de libros (quitar el libro eliminado)
-    books.value = books.value.filter(book => book.id !== bookToDelete.value.id)
-    
-    // Auto-ocultar toast después de 3 segundos
-    setTimeout(() => {
-      showSuccessToast.value = false
-    }, 3000)
-    
-  } catch (error) {
-    console.error('❌ Error eliminando libro:', error)
-    
-    // Mostrar error al usuario
-    alert(`Error al eliminar el libro: ${error.response?.data?.detail || error.message}`)
-    
+    showSuccessToast.value = true
+    setTimeout(() => { showSuccessToast.value = false }, 3000)
+  } catch (err) {
+    alert(`Error al eliminar: ${err.response?.data?.detail || err.message}`)
   } finally {
     isDeleting.value = false
     deletingBookId.value = null
@@ -553,1539 +590,672 @@ const deleteBook = async () => {
   }
 }
 
-//RECUPERACION DE LIBRO
 const recoverBook = async (book) => {
-  if (!canRecoverBooks.value) {
-    alert('No tienes permisos para recuperar libros')
-    return
-  }
-  
-  if (!confirm(`¿Recuperar el libro "${book.titulo}"?\n\nEl libro pasará a estado "Disponible".`)) {
-    return
-  }
-  
+  if (!canRecoverBooks.value) { alert('No tienes permisos para recuperar libros'); return }
+  if (!confirm(`¿Recuperar el libro "${book.titulo}"?\nEl libro pasará a estado "Disponible".`)) return
   try {
     await bookService.reactivateBook(book.id)
-    
-    const index = books.value.findIndex(b => b.id === book.id)
-    if (index !== -1) {
-      books.value[index].estado_id = 1
-      books.value[index].estado_nombre = 'Disponible'
-    }
-    
+    const target = books.value.find(b => b.id === book.id)
+    if (target) { target.estado_id = 1; target.estado_nombre = 'Disponible' }
     alert(`✅ Libro "${book.titulo}" recuperado.`)
-  } catch (error) {
-    console.error('Error recuperando libro:', error)
+  } catch {
     alert('❌ Error al recuperar el libro')
   }
 }
 
+//PRESTAMO
 
-
-
-//========================================== NAVEGACION ======================================================
-
-
- //ENVIAR A EDICION DE LIBRO
- const goToEditPage = (bookId) => {
-  console.log(`Redirigiendo a página de edición del libro ID: ${bookId}`)
-  router.push(`/admin/libros/editar/${bookId}`)
-}
-
-//ENVIAR A DETALLES DE LIBRO
-const viewBookDetails = (bookId) => {
-  router.push(`/libros/${bookId}`)
-}
-
-
-//========================================== PRESTAMO ======================================================
 const requestLoan = async () => {
   if (!selectedBook.value) return
-
+ 
   if (!loanDate.value) {
     alert('Debes seleccionar una fecha de devolución')
     return
   }
-
+ 
+  if (loanDate.value < fechaMinima.value) {
+    alert('La fecha de devolución no puede ser anterior a hoy')
+    return
+  }
+ 
+  // Bloquear si tiene multas pendientes
+  if (multasPendientes.value) {
+    alert('No puedes solicitar préstamos con multas pendientes. Liquida tus multas en la biblioteca.')
+    return
+  }
+ 
   isProcessingLoan.value = true
-
   try {
     await prestamoLibroService.crearPrestamo({
-      libro_id: selectedBook.value.id,
-      usuario_prestado_id: authStore.user?.id,
-      fecha_devolucion_esperada: new Date(loanDate.value),
-      observaciones: loanObservaciones.value
+      libro_id:                  selectedBook.value.id,
+      usuario_prestado_id:       authStore.user?.id,
+      // Enviar como string ISO sin conversión que causa desfase de zona horaria
+      fecha_devolucion_esperada: `${loanDate.value}T12:00:00`,
+      observaciones:             loanObservaciones.value
     })
-
-    // 🔥 Actualizar estado local sin recargar todo
-    const index = books.value.findIndex(b => b.id === selectedBook.value.id)
-    if (index !== -1) {
-      books.value[index].estado_id = 2
-      books.value[index].estado_nombre = 'Prestado'
-    }
-
+ 
+    const target = books.value.find(b => b.id === selectedBook.value.id)
+    if (target) { target.estado_id = 2; target.estado_nombre = 'Prestado' }
+ 
     cerrarLoanModal()
-    alert('✅ Préstamo creado correctamente')
-
+ 
+    // Toast en lugar de alert
+    showLoanSuccessToast.value = true
+    setTimeout(() => { showLoanSuccessToast.value = false }, 3500)
+ 
   } catch (err) {
-    console.error('Error creando préstamo:', err)
-    alert(err.response?.data?.detail || 'Error al crear préstamo')
+    const detail = err.response?.data?.detail || 'Error al crear préstamo'
+ 
+    // Si el error es por multas (403), mostrar mensaje claro
+    if (err.response?.status === 403) {
+      alert(`⚠️ ${detail}`)
+    } else {
+      alert(detail)
+    }
   } finally {
     isProcessingLoan.value = false
   }
 }
 
-
-//========================================== DEVOLUCION ======================================================
 const handleReturn = async (book) => {
+  isProcessingLoan.value = true
   try {
-    isProcessingLoan.value = true
-
-    //Buscar préstamo vigente de este libro
-    const prestamos = await prestamoLibroService.getPrestamos({
-      libro_id: book.id,
-      solo_vigentes: true
-    })
-
-    if (!prestamos.length) {
-      alert('No se encontró préstamo vigente para este libro')
-      return
-    }
-
-    const prestamo = prestamos[0]
-
-    //Llamar endpoint devolver
-    await prestamoLibroService.devolverPrestamo(
-      prestamo.id,
-      'Devuelto desde catálogo'
-    )
-
-    //Actualizar estado local
+    const prestamos = await prestamoLibroService.getPrestamos({ libro_id: book.id, solo_vigentes: true })
+    if (!prestamos.length) { alert('No se encontró préstamo vigente para este libro'); return }
+    await prestamoLibroService.devolverPrestamo(prestamos[0].id, 'Devuelto desde catálogo')
     book.estado_id = 1
     book.estado_nombre = 'Disponible'
-
     alert(`Libro "${book.titulo}" devuelto correctamente`)
-
-  } catch (error) {
-    console.error('Error devolviendo libro:', error)
-    alert(error.response?.data?.detail || 'Error al devolver libro')
+  } catch (err) {
+    alert(err.response?.data?.detail || 'Error al devolver libro')
   } finally {
     isProcessingLoan.value = false
   }
 }
 
-
-//========================================== FUNCIONES EN LISTADO ===========================================
-//FILATRADO DE LIBROS
-const filteredBooks = computed(() => {
-  let result = [...books.value]
-  
-  // Aplicar filtros
-  if (filters.value.estado_id) {
-    result = result.filter(book => book.estado_id === parseInt(filters.value.estado_id))
-  }
-  
-  if (filters.value.es_prestable !== '') {
-    const isPrestable = filters.value.es_prestable === 'true'
-    result = result.filter(book => book.es_prestable === isPrestable)
-  }
-  
-  if (filters.value.editorial_id) {
-    result = result.filter(book => book.editorial_id === parseInt(filters.value.editorial_id))
-  }
-  
-  if (filters.value.ano_adquisicion) {
-    const year = parseInt(filters.value.ano_adquisicion)
-    result = result.filter(book => {
-      if (!book.fecha_adquisicion) return false
-      const fecha = new Date(book.fecha_adquisicion)
-      return fecha.getFullYear() === year
-    })
-  }
-
-  //BUSQUEDA POR TEXTO
-  if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase().trim()
-    result = result.filter(book => 
-      book.titulo?.toLowerCase().includes(query) ||
-      book.autor?.toLowerCase().includes(query) ||
-      (book.isbn && book.isbn.toLowerCase().includes(query)) ||
-      book.editorial_nombre?.toLowerCase().includes(query) ||
-      book.area_conocimiento_nombre?.toLowerCase().includes(query) ||
-      book.codigo_decimal?.toLowerCase().includes(query)
-    )
-  }
-  
-  // ORDENAMIENTO
-  result.sort((a, b) => {
-    if (sortBy.value === 'titulo') {
-      return (a.titulo || '').localeCompare(b.titulo || '')
-    }
-    if (sortBy.value === 'autor') {
-      return (a.autor || '').localeCompare(b.autor || '')
-    }
-    if (sortBy.value === 'edicion') {
-      return (b.edicion || 0) - (a.edicion || 0)
-    }
-    if (sortBy.value === 'fecha_adquisicion') {
-      const dateA = a.fecha_adquisicion ? new Date(a.fecha_adquisicion) : new Date(0)
-      const dateB = b.fecha_adquisicion ? new Date(b.fecha_adquisicion) : new Date(0)
-      return dateB - dateA
-    }
-    return 0
-  })
-  
-  return result
-})
-
-//PAGINACION
-const totalPages = computed(() => {
-  return Math.ceil(filteredBooks.value.length / itemsPerPage.value) || 1
-})
-
-const paginatedBooks = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
-  return filteredBooks.value.slice(start, end)
-})
-
-const startItem = computed(() => {
-  return (currentPage.value - 1) * itemsPerPage.value + 1
-})
-
-const endItem = computed(() => {
-  const end = currentPage.value * itemsPerPage.value
-  return end > filteredBooks.value.length ? filteredBooks.value.length : end
-})
-
-const visiblePages = computed(() => {
-  const pages = []
-  const maxVisible = 5
-  
-  if (totalPages.value <= maxVisible) {
-    for (let i = 1; i <= totalPages.value; i++) pages.push(i)
-  } else {
-    let start = Math.max(1, currentPage.value - 2)
-    let end = Math.min(totalPages.value, start + maxVisible - 1)
-    
-    if (end - start + 1 < maxVisible) {
-      start = end - maxVisible + 1
-    }
-    
-    for (let i = start; i <= end; i++) pages.push(i)
-  }
-  
-  return pages
-})
-
-const hasMorePages = computed(() => {
-  return currentPage.value < totalPages.value - 2
-})
-
-const hasActiveFilters = computed(() => {
-  return Object.values(filters.value).some(value => 
-    value !== '' && value !== null && value !== undefined
-  )
-})
-
-// Métodos
-const loadBooks = async () => {
-  isLoading.value = true
-  error.value = null
-  
-  try {
-    const response = await bookService.getBooks()
-    
-    // Data structure:{ libros: [], total: 0, pagina: 0, por_pagina: 0 }
-    if (response && response.libros) {
-      books.value = response.libros
-    } else if (Array.isArray(response)) {
-      books.value = response
-    } else {
-      books.value = []
-    }
-    
-    calculateStats()
-    
-    extractEditoriales()
-    
-  } catch (err) {
-    error.value = err.response?.data?.detail || 'Error cargando el catálogo'
-    console.error('Error cargando libros:', err)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const calculateStats = () => {
-  const total = books.value.length
-  const available = books.value.filter(book => book.estado_id === 1).length
-  const prestable = books.value.filter(book => book.es_prestable).length
-  
-  stats.value = {
-    totalBooks: total,
-    availableBooks: available,
-    prestableBooks: prestable
-  }
-}
-
-const extractEditoriales = () => {
-  const editorialSet = new Map()
-  
-  books.value.forEach(book => {
-    if (book.editorial_id && book.editorial_nombre) {
-      if (!editorialSet.has(book.editorial_id)) {
-        editorialSet.set(book.editorial_id, {
-          id: book.editorial_id,
-          nombre: book.editorial_nombre
-        })
-      }
-    }
-  })
-  
-  editoriales.value = Array.from(editorialSet.values())
-}
-
-const handleSearch = async () => {
-  if (searchQuery.value.trim()) {
-    // Si tu API tiene endpoint de búsqueda específico
-    try {
-      isLoading.value = true
-      const response = await bookService.searchBooks(searchQuery.value, filters.value)
-      if (response && response.libros) {
-        books.value = response.libros
-      }
-      calculateStats()
-    } catch (err) {
-      console.error('Error en búsqueda:', err)
-      // Si falla la búsqueda específica, usa filtrado local
-    } finally {
-      isLoading.value = false
-    }
-  } else {
-    // Si no hay búsqueda, recarga todos los libros
-    loadBooks()
-  }
-  currentPage.value = 1
-}
-
-
-const toggleAdvancedFilters = () => {
-  showAdvancedFilters.value = !showAdvancedFilters.value
-}
-
-const applyFilters = () => {
-  currentPage.value = 1
-}
-
-const resetFilters = () => {
-  searchQuery.value = ''
-  filters.value = {
-    estado_id: '',
-    es_prestable: '',
-    ano_adquisicion: '',
-    editorial_id: ''
-  }
-  currentPage.value = 1
-  loadBooks()
-}
-
-const getStatusClass = (book) => {
-  const classes = {
-    1: 'status-available',
-    2: 'status-borrowed',
-    3: 'status-repair',
-    4: 'status-lost'
-  }
-  return classes[book.estado_id] || 'status-unknown'
-}
-
-const getStatusText = (book) => {
-  const statusMap = {
-    1: '✅ Disponible',
-    2: '⏳ Prestado',
-    3: '🔧 En reparación',
-    4: '❌ Retirado'
-  }
-  return statusMap[book.estado_id] || book.estado_nombre || 'Desconocido'
-}
-
-// Paginación
-const prevPage = () => {
-  if (currentPage.value > 1) currentPage.value--
-}
-
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) currentPage.value++
-}
-
-const goToPage = (page) => {
-  if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
-  }
-}
-
-const resetPagination = () => {
-  currentPage.value = 1
-}
-
-const sortBooks = () => {
-  currentPage.value = 1
-}
-
-// Watch para búsqueda en tiempo real (opcional)
+// ── Watchers ───────────────────────────────────────────────────────────────
 let searchTimeout
-watch(searchQuery, (newQuery) => {
+watch(searchQuery, (val) => {
   clearTimeout(searchTimeout)
-  if (newQuery.trim()) {
-    searchTimeout = setTimeout(() => {
-      currentPage.value = 1
-    }, 500)
-  }
+  if (val.trim()) searchTimeout = setTimeout(() => { currentPage.value = 1 }, 500)
 })
-
-// Watch para filtros
-watch(filters, () => {
-  currentPage.value = 1
-}, { deep: true })
+watch(filters, () => { currentPage.value = 1 }, { deep: true })
 
 
-
-// Ciclo de vida
-onMounted(() => {
-  
-  loadBooks()
-  //DEBUG PARA SABER PERMISOS ACTUALES
-  // console.log('Permisos del usuario:', {
-  //   crear: canCreateBooks.value,
-  //   editar: canEditBooks.value,
-  //   eliminar: canDelete.value,
-  //   recuperar: canRecoverBooks.value,
-  //   verRetirados: canSeeRetiredBooks.value,
-  //   prestar: userCanRequestLoans.value
-  // })
-})
-
+onMounted(() => { loadBooks(); verificarMultas() })
 
 
 </script>
 
 
-
-
-
 <style scoped>
-/* Estilos generales */
-.book-catalog {
-  padding: 1rem;
-  max-width: 1400px;
-  margin: 0 auto;
+/* ── Fuentes ────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap');
+
+/* ── Variables ─────────────────────────────────────────────────────────── */
+:root {
+  --green-dark:   #1a4731;
+  --green-mid:    #2d6a4f;
+  --green-light:  #52b788;
+  --green-pale:   #d8f3dc;
+  --gold-dark:    #92650a;
+  --gold-mid:     #c9900c;
+  --gold-light:   #f4c542;
+  --gold-pale:    #fef9e7;
+  --cream:        #f5f0e8;
+  --cream-border: #d4e8da;
+  --card-bg:      #fffef9;
+  --shadow-sm:    0 2px 12px rgba(26,47,26,.10);
+  --shadow-md:    0 8px 24px rgba(26,71,49,.15);
 }
 
-/* Header */
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.book-catalog {
+  font-family: 'DM Sans', sans-serif;
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  background:
+    radial-gradient(ellipse 80% 40% at 10% 0%,  rgba(82,183,136,.13) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 100%, rgba(201,144,12,.10) 0%, transparent 55%),
+    #f5f0e8;
+  min-height: 100vh;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
 .catalog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 2px solid #e9ecef;
-}
-
-.header-content h1 {
-  font-size: 2rem;
-  color: #333;
-  margin-bottom: 0.5rem;
-}
-
-.subtitle {
-  color: #666;
-  font-size: 1.1rem;
-}
-
-.catalog-stats {
-  display: flex;
-  gap: 1.5rem;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  background: #f8f9fa;
-  border-radius: 0.75rem;
-  border: 1px solid #e9ecef;
-}
-
-.stat-icon {
-  font-size: 1.5rem;
-}
-
-.stat-value {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
-}
-
-.stat-label {
-  font-size: 0.85rem;
-  color: #666;
-}
-
-/* Búsqueda */
-.search-section {
-  margin-bottom: 2rem;
-}
-
-.search-container {
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  margin-bottom: 1.5rem;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #1a4731 0%, #2d6a4f 60%, #3a7d5e 100%);
+  border-radius: 16px;
+  color: white;
+  position: relative;
   overflow: hidden;
 }
-
-.search-bar-wrapper {
-  display: flex;
-  padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.catalog-header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
 }
+.header-content { position: relative; }
+.header-content h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem; font-weight: 700;
+  color: #fff; margin-bottom: .25rem;
+}
+.subtitle { font-size: .9rem; color: rgba(255,255,255,.75); }
 
-.search-icon {
+.catalog-stats { display: flex; gap: 1rem; position: relative; }
+.stat-pill {
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 12px;
+  padding: .65rem 1.1rem;
+  text-align: center;
+}
+.stat-num { display: block; font-size: 1.4rem; font-weight: 700; color: #f4c542; }
+.stat-lbl { font-size: .72rem; color: rgba(255,255,255,.78); white-space: nowrap; }
+
+/* ── Búsqueda ────────────────────────────────────────────────────────────── */
+.search-section { margin-bottom: 1.25rem; }
+
+.search-bar {
   display: flex;
   align-items: center;
-  padding: 0 1rem;
-  color: white;
-  font-size: 1.2rem;
+  gap: .5rem;
+  padding: .6rem .85rem;
+  background: #ffffff;
+  border: 1.5px solid var(--cream-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
 }
-
+.search-icon-inner { font-size: 1rem; color: #9ab5a0; }
 .search-input {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  background: rgba(255, 255, 255, 0.9);
+  flex: 1; border: none; outline: none;
+  font-size: .95rem; font-family: 'DM Sans', sans-serif;
+  background: transparent; color: #1a2e1a;
 }
+.search-input::placeholder { color: #9ab5a0; }
 
-.search-button {
-  background: white;
-  color: #667eea;
-  border: none;
-  padding: 0 1.5rem;
-  margin-left: 0.5rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.btn-search {
+  background: var(--green-mid); color: #fff;
+  border: none; border-radius: 10px;
+  padding: .45rem 1.1rem; font-size: .85rem; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: background .2s, color .2s;
 }
+.btn-search:hover { background: #111; color: #fff; }
 
-.search-button:hover {
-  background: #f8f9fa;
-  transform: translateY(-1px);
+.btn-filter {
+  background: var(--gold-pale); color: var(--gold-dark);
+  border: 1.5px solid var(--gold-light); border-radius: 10px;
+  padding: .45rem .9rem; font-size: .83rem; font-weight: 500;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: background .2s, color .2s, border-color .2s;
 }
-
-.filter-toggle {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 0 1rem;
-  margin-left: 0.5rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-}
+.btn-filter:hover { background: #111; color: #fff; border-color: #111; }
 
 /* Filtros avanzados */
 .advanced-filters {
-  padding: 1.5rem;
-  background: #f8f9fa;
-  border-top: 1px solid #e9ecef;
+  margin-top: .75rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--card-bg);
+  border: 1.5px solid var(--cream-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
 }
-
 .filters-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 1rem; margin-bottom: 1rem;
 }
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.filter-group label {
-  font-weight: 500;
-  color: #555;
-  font-size: 0.9rem;
-}
-
+.filter-group { display: flex; flex-direction: column; gap: .4rem; }
+.filter-group label { font-size: .83rem; font-weight: 600; color: var(--green-dark); }
 .filter-select, .filter-input {
-  padding: 0.5rem 0.75rem;
-  border: 2px solid #dee2e6;
-  border-radius: 0.5rem;
-  background: white;
-  font-size: 0.9rem;
+  padding: .45rem .75rem;
+  border: 1.5px solid var(--cream-border);
+  border-radius: 8px; background: #fff;
+  font-size: .88rem; font-family: 'DM Sans', sans-serif;
+  color: #1a2e1a; outline: none; width: 100%;
+  transition: border-color .2s;
 }
+.filter-select:focus, .filter-input:focus { border-color: var(--green-light); }
+.filter-hint { font-size: .75rem; color: #9ab5a0; font-style: italic; }
+.filter-actions { display: flex; gap: .75rem; justify-content: flex-end; }
 
-.filter-input {
-  width: 100%;
-}
-
-.filter-actions {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-}
-
-/* Resultados */
-.results-section {
-  margin-top: 2rem;
-}
-
+/* ── Controles de vista ──────────────────────────────────────────────────── */
+.results-section { margin-top: .5rem; }
 .view-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1rem; padding: .75rem 1rem;
+  background: var(--card-bg);
+  border: 1.5px solid var(--cream-border);
+  border-radius: 12px; box-shadow: var(--shadow-sm);
 }
-
-.view-options, .sort-options {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
+.view-options, .sort-options { display: flex; align-items: center; gap: .5rem; }
+.sort-options label { font-size: .83rem; color: #5a7a5a; }
 
 .view-btn {
-  padding: 0.5rem 1rem;
-  border: 2px solid #dee2e6;
-  background: white;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  background: #fff; color: var(--green-mid);
+  border: 1.5px solid var(--cream-border);
+  border-radius: 8px; padding: .38rem .9rem;
+  font-size: .82rem; font-weight: 500; cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all .2s;
 }
-
-.view-btn.active {
-  background: #667eea;
-  color: white;
-  border-color: #667eea;
-}
+.view-btn:hover { background: #111; color: #fff; border-color: #111; }
+.view-btn.active { background: var(--green-mid); color: #fff; border-color: var(--green-mid); }
+.view-btn.active:hover { background: #111; border-color: #111; }
 
 .sort-select {
-  padding: 0.5rem;
-  border: 2px solid #dee2e6;
-  border-radius: 0.5rem;
-  background: white;
+  border: 1.5px solid var(--cream-border); border-radius: 8px;
+  padding: .35rem .65rem; font-size: .82rem;
+  font-family: 'DM Sans', sans-serif; color: var(--green-dark);
+  background: #fff; outline: none; cursor: pointer;
 }
 
-/* Estados */
-.loading-state {
-  text-align: center;
-  padding: 3rem;
-}
-
+/* ── Estados ─────────────────────────────────────────────────────────────── */
+.loading-state { text-align: center; padding: 3rem; }
 .spinner {
-  width: 50px;
-  height: 50px;
-  border: 3px solid #e9ecef;
-  border-top: 3px solid #667eea;
-  border-radius: 50%;
-  margin: 0 auto 1rem;
+  width: 44px; height: 44px;
+  border: 3px solid var(--green-pale);
+  border-top-color: var(--green-mid);
+  border-radius: 50%; margin: 0 auto 1rem;
   animation: spin 1s linear infinite;
 }
+.error-state { text-align: center; padding: 3rem; color: #b91c1c; }
 
-.error-state {
-  text-align: center;
-  padding: 3rem;
-  color: #dc3545;
-}
-
-/* Grid de libros */
+/* ── Grid ────────────────────────────────────────────────────────────────── */
 .books-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 1.25rem; margin-bottom: 1.5rem;
 }
-
 .book-card {
-  background: white;
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
+  background: var(--card-bg);
+  border: 1.5px solid var(--cream-border);
+  border-radius: 14px; overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column;
+  transition: transform .2s, box-shadow .2s;
 }
+.book-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
 
-.book-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-}
-
-.book-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.book-status {
-  padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
-  font-size: 0.8rem;
-  font-weight: bold;
-}
-
-.status-available {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status-borrowed {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.status-repair {
-  background: #d1ecf1;
-  color: #0c5460;
-}
-
-.status-lost {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.book-code {
-  font-family: monospace;
-  font-size: 0.8rem;
-  color: #666;
-  background: #e9ecef;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-}
-
-.book-cover {
-  height: 180px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.book-card-top {
+  height: 110px; display: flex; align-items: center; justify-content: center;
   position: relative;
 }
+.card-c1 { background: linear-gradient(135deg, #1a4731, #3a7d5e); }
+.card-c2 { background: linear-gradient(135deg, #92650a, #c9900c); }
+.card-c3 { background: linear-gradient(135deg, #1a4731, #c9900c 130%); }
 
-.cover-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: white;
-  position: relative;
+.book-icon-lg { font-size: 2.8rem; opacity: .85; }
+.badge-status {
+  position: absolute; top: .55rem; left: .55rem;
+  padding: .2rem .6rem; border-radius: 20px;
+  font-size: .7rem; font-weight: 700;
+}
+.card-code-badge {
+  position: absolute; top: .55rem; right: .55rem;
+  background: rgba(0,0,0,.28); color: rgba(255,255,255,.9);
+  padding: .15rem .45rem; border-radius: 6px;
+  font-size: .68rem; font-family: monospace;
+}
+.badge-prestable {
+  position: absolute; bottom: .55rem; right: .55rem;
+  background: rgba(255,255,255,.88); color: var(--green-mid);
+  padding: .18rem .5rem; border-radius: 20px;
+  font-size: .68rem; font-weight: 700;
 }
 
-.book-icon {
-  font-size: 4rem;
-  opacity: 0.8;
-}
+.status-available { background: rgba(255,255,255,.9); color: #1a4731; }
+.status-borrowed  { background: rgba(244,197,66,.9);  color: #5a3a00; }
+.status-repair    { background: rgba(219,234,254,.9); color: #1e3a5f; }
+.status-lost      { background: rgba(254,226,226,.9); color: #7f1d1d; }
 
-.book-badge {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #667eea;
-  padding: 0.25rem 0.5rem;
-  border-radius: 1rem;
-  font-size: 0.7rem;
-  font-weight: bold;
-}
-
-.book-info {
-  padding: 1.5rem;
-  flex: 1;
-}
-
+.book-body { padding: 1.1rem 1.1rem .75rem; flex: 1; }
 .book-title {
-  font-size: 1.1rem;
-  margin: 0 0 0.75rem 0;
-  color: #333;
-  line-height: 1.3;
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem; font-weight: 600;
+  color: #1a2e1a; line-height: 1.35; margin-bottom: .3rem;
 }
-
-.book-author {
-  color: #666;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
-
+.book-author { font-size: .78rem; color: #5a7a5a; margin-bottom: .75rem; }
 .book-details {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-  font-size: 0.85rem;
+  background: #f3faf5; padding: .75rem;
+  border-radius: 8px; margin-bottom: .65rem;
+  font-size: .78rem;
 }
+.book-details p { margin: .2rem 0; color: #3d5a3d; }
+.book-details strong { color: var(--green-dark); }
+.book-metadata { font-size: .72rem; color: #9ab5a0; }
 
-.book-details p {
-  margin: 0.25rem 0;
-  color: #555;
-}
-
-.book-metadata {
-  display: flex;
-  gap: 1rem;
-  font-size: 0.8rem;
-  color: #888;
-}
-
+/* ── Botones de acción en cards ──────────────────────────────────────────── */
 .book-actions {
-  padding: 1rem;
-  border-top: 1px solid #e9ecef;
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  padding: .75rem 1rem;
+  border-top: 1.5px solid #eef5f0;
+  display: flex; gap: .4rem; flex-wrap: wrap;
 }
 
-.btn-small {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
+/* BASE compartida */
+.btn-detail, .btn-loan, .btn-devolver,
+.btn-editar, .btn-eliminar, .btn-recuperar {
+  border-radius: 8px; padding: .38rem .8rem;
+  font-size: .76rem; font-weight: 600; cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: background .18s, color .18s, border-color .18s, transform .15s;
+  display: inline-flex; align-items: center; gap: .3rem;
+  border: 1.5px solid transparent;
+}
+.btn-detail, .btn-loan, .btn-devolver,
+.btn-editar, .btn-eliminar, .btn-recuperar {
+  transform: translateY(0);
+}
+.btn-detail:hover, .btn-loan:hover, .btn-devolver:hover,
+.btn-editar:hover, .btn-eliminar:hover, .btn-recuperar:hover {
+  background: #111 !important;
+  color: #fff !important;
+  border-color: #111 !important;
+  transform: translateY(-1px);
+}
+.btn-detail:disabled, .btn-eliminar:disabled {
+  opacity: .45; cursor: not-allowed; transform: none !important;
 }
 
-.book-code-small {
-  font-size: 0.8rem;
-  color: #666;
-  font-family: monospace;
-  margin-top: 0.25rem;
-}
+.btn-detail   { background: #f0f7f2; color: var(--green-mid);  border-color: #b8ddc8; }
+.btn-loan     { background: var(--green-mid); color: #fff; border-color: var(--green-mid); box-shadow: 0 2px 8px rgba(45,106,79,.25); }
+.btn-devolver { background: #fef9e7; color: var(--gold-dark); border-color: var(--gold-light); }
+.btn-editar   { background: #fef3cc; color: #7a5200; border-color: var(--gold-light); }
+.btn-eliminar { background: #fff0f0; color: #b91c1c; border-color: #fca5a5; }
+.btn-recuperar{ background: linear-gradient(135deg, #fef9e7, #fde68a); color: #7a5200; border-color: var(--gold-mid); }
 
-.status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.5rem;
-  font-size: 0.8rem;
-  font-weight: bold;
-}
+/* Botones genéricos (filtros) */
+.btn { border-radius: 8px; padding: .45rem 1rem; font-size: .85rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s; border: 1.5px solid transparent; }
+.btn-primary { background: var(--green-mid); color: #fff; border-color: var(--green-mid); }
+.btn-primary:hover { background: #111; border-color: #111; }
+.btn-outline { background: #fff; color: var(--green-mid); border-color: var(--cream-border); }
+.btn-outline:hover { background: #111; color: #fff; border-color: #111; }
 
-/* Paginación */
+/* ── Tabla ───────────────────────────────────────────────────────────────── */
+.books-list { margin-bottom: 1.5rem; }
+.table-wrap {
+  background: var(--card-bg);
+  border: 1.5px solid var(--cream-border);
+  border-radius: 14px; overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.table-ui { width: 100%; border-collapse: collapse; font-size: .83rem; }
+
+.table-ui thead { background: linear-gradient(135deg, #1a4731, #2d6a4f); }
+.table-ui thead th {
+  padding: .8rem 1rem; text-align: left;
+  color: rgba(255,255,255,.92); font-weight: 600;
+  font-size: .76rem; letter-spacing: .05em; text-transform: uppercase;
+}
+.table-ui tbody tr {
+  border-bottom: 1px solid #eef5f0;
+  transition: background .15s;
+}
+.table-ui tbody tr:last-child { border-bottom: none; }
+.table-ui tbody tr:hover { background: #f0f9f4; }
+.table-ui tbody tr:nth-child(even) { background: #fafef8; }
+.table-ui tbody tr:nth-child(even):hover { background: #edf7f1; }
+.table-ui td { padding: .72rem 1rem; vertical-align: middle; color: #1a2e1a; }
+
+.td-code { font-family: monospace; font-size: .82rem; color: var(--green-mid); font-weight: 700; }
+.td-sub  { font-size: .72rem; color: #7a9a7a; margin-top: .1rem; }
+.td-title { font-weight: 600; color: #1a2e1a; }
+.td-author { color: #3d5a3d; }
+
+.status-pill {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .25rem .65rem; border-radius: 20px;
+  font-size: .72rem; font-weight: 700; white-space: nowrap;
+}
+.status-available { background: #d8f3dc; color: #1a4731; }
+.status-borrowed  { background: #fef3cd; color: #7a5200; }
+.status-repair    { background: #dbeafe; color: #1e3a5f; }
+.status-lost      { background: #fee2e2; color: #7f1d1d; }
+
+.td-actions { display: flex; gap: .35rem; align-items: center; }
+
+.tbl-btn {
+  background: #f0f7f2; border: 1.5px solid var(--cream-border);
+  border-radius: 7px; padding: .3rem .6rem;
+  font-size: .78rem; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; color: var(--green-mid); font-weight: 500;
+  transition: all .15s;
+}
+.tbl-btn:hover        { background: #111; color: #fff; border-color: #111; }
+.tbl-btn:disabled     { opacity: .4; cursor: not-allowed; }
+.tbl-btn.tbl-gold     { background: #fef9e7; color: var(--gold-dark); border-color: var(--gold-light); }
+.tbl-btn.tbl-gold:hover { background: #111; color: #fff; border-color: #111; }
+.tbl-btn.tbl-red      { background: #fff0f0; color: #b91c1c; border-color: #fca5a5; }
+.tbl-btn.tbl-red:hover  { background: #111; color: #fff; border-color: #111; }
+.tbl-btn.tbl-green    { background: #d8f3dc; color: var(--green-dark); border-color: #b8ddc8; }
+.tbl-btn.tbl-green:hover { background: #111; color: #fff; border-color: #111; }
+
+/* ── Paginación ──────────────────────────────────────────────────────────── */
 .pagination-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 1rem; padding: .85rem 1.25rem;
+  background: var(--card-bg);
+  border: 1.5px solid var(--cream-border);
+  border-radius: 12px; box-shadow: var(--shadow-sm);
+  font-size: .82rem; color: #5a7a5a;
 }
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.pagination-btn {
-  padding: 0.5rem 1rem;
-  border: 2px solid #dee2e6;
-  background: white;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.pagination-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.page-numbers {
-  display: flex;
-  gap: 0.5rem;
-}
-
+.pagination-controls { display: flex; align-items: center; gap: .75rem; }
+.page-numbers { display: flex; gap: .3rem; }
 .page-number {
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  padding: .35rem .7rem; border-radius: 7px; cursor: pointer;
+  font-size: .82rem; font-weight: 500; color: var(--green-mid);
+  transition: all .15s;
 }
+.page-number:hover  { background: #111; color: #fff; }
+.page-number.active { background: var(--green-mid); color: #fff; }
+.page-ellipsis { padding: .35rem .3rem; color: #9ab5a0; }
 
-.page-number:hover {
-  background: #f8f9fa;
+.pbtn {
+  background: #fff; border: 1.5px solid var(--cream-border);
+  border-radius: 8px; padding: .38rem .85rem;
+  font-size: .82rem; font-weight: 500; cursor: pointer;
+  color: var(--green-mid); font-family: 'DM Sans', sans-serif;
+  transition: all .15s;
 }
+.pbtn:hover    { background: #111; color: #fff; border-color: #111; }
+.pbtn:disabled { opacity: .4; cursor: not-allowed; }
 
-.page-number.active {
-  background: #667eea;
-  color: white;
-}
-
-.page-ellipsis {
-  padding: 0.5rem;
-}
-
-.items-per-page {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
+.items-per-page { display: flex; align-items: center; gap: .5rem; }
 .page-select {
-  padding: 0.25rem 0.5rem;
-  border: 1px solid #dee2e6;
-  border-radius: 0.25rem;
+  padding: .3rem .55rem; border: 1.5px solid var(--cream-border);
+  border-radius: 7px; font-size: .8rem; font-family: 'DM Sans', sans-serif;
+  color: var(--green-dark); background: #fff; cursor: pointer;
 }
+.filtered-info { font-size: .8rem; color: #9ab5a0; margin-left: .4rem; font-style: italic; }
 
-/* Estado vacío */
+/* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  text-align: center; padding: 4rem 2rem;
+  background: var(--card-bg);
+  border: 1.5px solid var(--cream-border);
+  border-radius: 14px; box-shadow: var(--shadow-sm);
 }
+.empty-icon { font-size: 3.5rem; margin-bottom: 1rem; opacity: .5; }
+.empty-state h3 { color: var(--green-dark); margin-bottom: .5rem; font-family: 'Playfair Display', serif; }
+.empty-state p  { color: #5a7a5a; margin-bottom: .5rem; }
 
-.empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1.5rem;
-  opacity: 0.5;
-}
-
-.empty-state h3 {
-  margin-bottom: 0.5rem;
-  color: #333;
-}
-
-.empty-state p {
-  color: #666;
-  margin-bottom: 1.5rem;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .catalog-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  
-  .catalog-stats {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .search-bar-wrapper {
-    flex-wrap: wrap;
-  }
-  
-  .search-input {
-    order: 1;
-    flex: 100%;
-    margin-bottom: 0.5rem;
-  }
-  
-  .search-button, .filter-toggle {
-    order: 2;
-    flex: 1;
-  }
-  
-  .view-controls {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-  
-  .pagination-section {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: center;
-  }
-}
-
-.filtered-info {
-  font-size: 0.85rem;
-  color: #666;
-  margin-left: 0.5rem;
-  font-style: italic;
-}
-
-.book-code-cell {
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-}
-
-.small-text {
-  font-size: 0.8rem;
-  color: #666;
-  margin-top: 0.25rem;
-}
-
-.books-table td {
-  vertical-align: middle;
-}
-/* 
-.btn-action {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  margin: 0 0.25rem;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  transition: all 0.2s ease;
-}
-
-.btn-action:hover:not(:disabled) {
-  background: #f8f9fa;
-  transform: scale(1.1);
-}
-
-.btn-action:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.book-badge {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #667eea;
-  padding: 0.25rem 0.5rem;
-  border-radius: 1rem;
-  font-size: 0.7rem;
-  font-weight: bold;
-} */
-
-/*STILE FOR EDIT CARD */
-.tooltip-container {
-  position: relative;
-  display: inline-block;
-}
-
-.tooltip-text {
-  visibility: hidden;
-  width: 120px;
-  background-color: #333;
-  color: white;
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px;
-  position: absolute;
-  z-index: 1;
-  bottom: 125%;
-  left: 50%;
-  margin-left: -60px;
-  opacity: 0;
-  transition: opacity 0.3s;
-  font-size: 0.8rem;
-}
-
-.tooltip-container:hover .tooltip-text {
-  visibility: visible;
-  opacity: 1;
-}
-
-/* Responsive improvements */
-@media (max-width: 768px) {
-  .books-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
-  
-  .book-details {
-    font-size: 0.8rem;
-  }
-  
-  .book-details p {
-    margin: 0.2rem 0;
-  }
-  
-  .book-actions {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .book-actions .btn {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-.btn-danger {
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-  color: white;
-  border: none;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
-}
-
-.btn-danger:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
-}
-
-.btn-delete.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #ccc;
-}
-
-.spinner-mini {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 0.6s linear infinite;
-  margin-right: 5px;
-}
-
-/* Modal de confirmación */
+/* ── Modal ───────────────────────────────────────────────────────────────── */
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  backdrop-filter: blur(2px);
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2000; backdrop-filter: blur(3px);
 }
-
 .modal-content {
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  animation: modalSlideIn 0.3s ease-out;
+  background: var(--card-bg); border-radius: 16px;
+  width: 90%; max-width: 480px;
+  border: 1.5px solid var(--cream-border);
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  animation: modalIn .25s ease-out;
 }
-
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
 .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 1.5rem 1rem;
-  border-bottom: 1px solid #e9ecef;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1.5px solid #eef5f0;
 }
-
-.modal-header h3 {
-  margin: 0;
-  color: #dc3545;
-  font-size: 1.3rem;
-}
-
+.modal-header h3 { margin: 0; color: var(--green-dark); font-family: 'Playfair Display', serif; font-size: 1.2rem; }
 .modal-close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: none; border: none; font-size: 1.4rem; color: #9ab5a0;
+  cursor: pointer; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
 }
-
-.modal-close-btn:hover {
-  background: #f8f9fa;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
+.modal-close-btn:hover { background: #f0f9f4; color: var(--green-dark); }
+.modal-body { padding: 1.25rem 1.5rem; font-size: .88rem; color: #3d5a3d; line-height: 1.6; }
 
 .book-to-delete {
-  margin: 1.5rem 0;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #dc3545;
+  margin: 1rem 0; padding: 1rem;
+  background: #f3faf5; border-radius: 10px;
+  border-left: 4px solid var(--green-light);
 }
-
-.book-info h4 {
-  margin: 0 0 0.5rem 0;
-  color: #212529;
-}
-
-.book-info p {
-  margin: 0.25rem 0;
-  color: #6c757d;
-  font-size: 0.95rem;
-}
-
+.book-info-modal h4 { margin: 0 0 .4rem; color: #1a2e1a; }
+.book-info-modal p  { margin: .2rem 0; color: #5a7a5a; font-size: .85rem; }
 .warning-message {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 6px;
-  color: #856404;
+  display: flex; gap: .65rem; margin-top: .85rem;
+  padding: .65rem; background: #fef9e7;
+  border: 1px solid #fde68a; border-radius: 8px; color: #7a5200;
 }
-
-.warning-icon {
-  font-size: 1.5rem;
-}
-
-.warning-message p {
-  margin: 0;
-  font-size: 0.9rem;
-}
+.warning-icon { font-size: 1.25rem; }
+.warning-message p { margin: 0; font-size: .83rem; }
 
 .modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
+  display: flex; justify-content: flex-end; gap: .75rem;
   padding: 1rem 1.5rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1.5px solid #eef5f0;
 }
+.btn-modal-cancel {
+  background: #fff; color: #5a7a5a;
+  border: 1.5px solid var(--cream-border); border-radius: 8px;
+  padding: .45rem 1rem; font-size: .85rem; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s;
+}
+.btn-modal-cancel:hover { background: #111; color: #fff; border-color: #111; }
+.btn-modal-delete, .btn-modal-confirm {
+  background: var(--green-mid); color: #fff;
+  border: none; border-radius: 8px;
+  padding: .45rem 1.1rem; font-size: .85rem; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s;
+  display: inline-flex; align-items: center; gap: .4rem;
+}
+.btn-modal-delete { background: #000; }
+.btn-modal-delete:hover, .btn-modal-confirm:hover { background: #dc2626; }
+.btn-modal-delete:disabled, .btn-modal-confirm:disabled { opacity: .55; cursor: not-allowed; }
 
-/* Toast de éxito */
+/* ── Toast ───────────────────────────────────────────────────────────────── */
 .toast {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  max-width: 350px;
-  z-index: 3000;
-  animation: toastSlideIn 0.3s ease-out;
-  border-left: 4px solid #28a745;
-}
-
-@keyframes toastSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.toast.success {
-  border-left-color: #28a745;
-}
-
-.toast-icon {
-  font-size: 1.8rem;
-}
-
-.toast-content {
-  flex: 1;
-}
-
-.toast-content strong {
-  display: block;
-  margin-bottom: 0.25rem;
-  color: #212529;
-}
-
-.toast-content p {
-  margin: 0;
-  color: #6c757d;
-  font-size: 0.9rem;
-}
-
-.toast-close {
-  background: none;
-  border: none;
-  color: #6c757d;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.toast-close:hover {
-  background: #f8f9fa;
-}
-
-/* Spinner para botón de eliminación */
-.spinner-small {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 0.5rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .book-actions {
-    flex-direction: column;
-  }
-  
-  .book-actions .btn {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .modal-content {
-    width: 95%;
-    margin: 1rem;
-  }
-  
-  .modal-footer {
-    flex-direction: column;
-  }
-  
-  .modal-footer .btn {
-    width: 100%;
-  }
-  
-  .toast {
-    left: 20px;
-    right: 20px;
-    max-width: none;
-  }
-}
-
-.catalog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: fixed; bottom: 24px; right: 24px;
+  background: #52b788;
+  border: 1.5px solid #b8ddc8;
   border-radius: 12px;
-  color: white;
+  box-shadow: 0 6px 24px rgba(0,0,0,.12);
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1rem 1.25rem; max-width: 340px; z-index: 3000;
+  width: 500px;
+  animation: toastIn .3s ease-out;
+  border-left: 4px solid var(--green-light);
 }
-
-.header-left {
-  flex: 1;
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
+.toast-icon { font-size: 1.5rem; }
+.toast-content strong { display: block; color: var(--green-dark); margin-bottom: .2rem; font-size: .9rem; }
+.toast-content p      { margin: 0; color: #5a7a5a; font-size: .8rem; }
+.toast-close {
+  background: none; border: none; color: #9ab5a0;
+  font-size: 1.1rem; cursor: pointer; padding: 0;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
 }
+.toast-close:hover { background: #f0f9f4; }
 
-.btn-create-book {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+/* Toast prestamo estilo */
+.toast-loan-success {
+border-left: 4px solid var(--green-mid);
+background: #f0fdf4;
 }
+.toast-loan-success .toast-content strong { color: var(--green-dark); }
+.toast-loan-success .toast-content p { color: #5a7a5a; }
 
-.btn-create-book:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+/* ── Spinners ────────────────────────────────────────────────────────────── */
+.spinner-mini {
+  display: inline-block; width: 11px; height: 11px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: white; border-radius: 50%;
+  animation: spin .6s linear infinite;
 }
-
-.btn-icon {
-  font-size: 1.2rem;
+.spinner-small {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: white; border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.btn-text {
-  white-space: nowrap;
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+/* Tablet */
+@media (max-width: 900px) {
+  .catalog-header     { flex-direction: column; gap: 1rem; align-items: flex-start; padding: 1.25rem 1.5rem; }
+  .catalog-stats      { width: 100%; justify-content: space-between; }
+  .books-grid         { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .pagination-section { flex-direction: column; align-items: flex-start; gap: .75rem; }
+  .pagination-controls{ width: 100%; justify-content: center; }
 }
-
-/* Responsive */
-@media (max-width: 768px) {
-  .catalog-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-  
-  .header-right {
-    width: 100%;
-    justify-content: flex-end;
-  }
-  
-  .btn-create-book .btn-text {
-    display: none;
-  }
-  
-  .btn-create-book {
-    padding: 0.75rem;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    justify-content: center;
-  }
+ 
+/* Móvil */
+@media (max-width: 600px) {
+  .book-catalog       { padding: .75rem; }
+  .header-content h1  { font-size: 1.3rem; }
+  .catalog-stats      { flex-direction: column; gap: .5rem; }
+  .stat-pill          { display: flex; align-items: center; gap: .75rem; text-align: left; padding: .5rem .85rem; }
+  .stat-num           { font-size: 1.1rem; }
+ 
+  .search-bar         { flex-wrap: wrap; gap: .4rem; }
+  .search-input       { order: 1; flex: 100%; }
+  .btn-filter         { order: 2; flex: 1; }
+  .btn-search         { order: 2; flex: 1; }
+ 
+  .filters-grid       { grid-template-columns: 1fr; }
+  .filter-actions     { justify-content: stretch; }
+  .filter-actions .btn{ flex: 1; text-align: center; }
+ 
+  .view-controls      { flex-direction: column; align-items: flex-start; gap: .65rem; }
+  .books-grid         { grid-template-columns: 1fr; }
+ 
+  .book-actions       { flex-direction: column; }
+  .book-actions > *   { width: 100%; justify-content: center; }
+ 
+  .table-ui thead th,
+  .table-ui td        { padding: .55rem .65rem; }
+ 
+  .pagination-section { padding: .75rem; }
+  .pagination-info    { font-size: .76rem; }
+  .pbtn               { padding: .35rem .65rem; font-size: .78rem; }
+ 
+  .modal-content      { border-radius: 12px; }
+  .modal-footer       { flex-direction: column; }
+  .modal-footer > *   { width: 100%; justify-content: center; }
+ 
+  /* Toast full-width en móvil */
+  .toast              { left: 16px; right: 16px; bottom: 16px; width: auto; max-width: none; }
 }
-
-.btn-loan-books {
-  background: linear-gradient(135deg, #ebd2ff 0%, #7300f7 100%);
-  color: #212529;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  position: relative;
-}
-
-.btn-details-books {
-  background: linear-gradient(135deg, #505050 0%, #ffffff 100%);
-  color: #212529;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  position: relative;
-}
-
-.btn-edit-books {
-  background: linear-gradient(135deg, #f4ff8f 0%, #c4b10b 100%);
-  color: #212529;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  position: relative;
-}
-
-.btn-delete-books {
-  background: linear-gradient(135deg, #b12f2f 0%, #e06c00 100%);
-  color: #212529;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  position: relative;
-}
-
-/*ESTILOS PARA RECUPERAR*/
-.btn-recover-books {
-  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-  color: #212529;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  position: relative;
-}
-
-.btn-recover-books:hover {
-  background: linear-gradient(135deg, #e0a800 0%, #d39e00 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255, 193, 7, 0.3);
-}
-
-.badge-count {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: #dc3545;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: bold;
-  min-width: 20px;
-  height: 20px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 0.25rem;
-}
-
-/*RESPONSIVE */
-@media (max-width: 768px) {
-  .btn-recover-books .btn-text {
-    display: none;
-  }
-  
-  .btn-recover-books {
-    padding: 0.75rem;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    justify-content: center;
-  }
-  
-  .badge-count {
-    top: 0;
-    right: 0;
-    font-size: 0.7rem;
-    min-width: 18px;
-    height: 18px;
-  }
-}
-
 </style>

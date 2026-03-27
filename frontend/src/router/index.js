@@ -17,11 +17,14 @@ import BookManagement from '@/views/user/BookCatalog.vue'
 import BookCreate from '@/views/admin/CrearLibro.vue'
 import BookEdit from '@/views/admin/BookEdit.vue'
 
-import MobiliarioManagementView from '@/views/admin//FurnitureManagement.vue'
+import MobiliarioManagementView from '@/views/admin/FurnitureManagement.vue'
 import MobiliarioCreateView from '@/views/admin/FurnitureCreate.vue'
 import MobiliarioEditView from '@/views/admin/EditFurniture.vue'
 
 import AreasManagement from '@/views/admin/AreasManagement.vue'
+
+import MisMultas from '@/views/user/Multas.vue'
+import MultasPendientes from '@/views/admin/MultasPendientes.vue'
 
 import Error404 from '@/views/NotFoundView.vue'
 
@@ -169,7 +172,30 @@ const routes = [
       requiredPermission: 'canViewAreas'
     }
   },
+
+  // ========== RUTAS DE MULTAS ==========
   
+  {
+    path: '/user/multas',
+    name: 'MisMultas',
+    component: MisMultas,
+    meta:{
+      requiresAuth: true
+    },
+  },
+
+  {
+    path: '/admin/multasPendientes',
+    name: 'MultasPendientes',
+    component: MultasPendientes,
+    meta:
+    {
+      requiresAuth: true,
+      requiresAdminAdvanced: true
+    }
+  },
+
+
   // ========== RUTA 404 ==========
   {
     path: '/:pathMatch(.*)*',
@@ -196,65 +222,90 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
+  // Inicializar autenticación si aún no se ha hecho
+  if (!authStore.isInitialized) {
+    await authStore.initializeAuth()
+  }
+
+  // TITLE DE LA PAGINA
   if (to.meta.title) {
     document.title = `${to.meta.title} | BiblioSys`
   }
-  
+
+  // ==============================
   // RUTAS PUBLICAS
+  // ==============================
   if (to.meta.public === true) {
-    next()
-    return
+    return next()
   }
-  
-  // VERFICACION DE AUTENTICACION
+
+  // ==============================
+  // VERIFICAR AUTENTICACION
+  // ==============================
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    //Usuario no autenficado se envia a login
     console.warn('Acceso no autorizado - Redirigiendo a login')
-    next({ 
+
+    return next({
       name: 'Login',
       query: { redirect: to.fullPath }
     })
-    return
   }
-  
-  // SI ESTA AUTENTICADO Y SE ENVIO A LOGIN O REGISTER, SE ENVIA A HOME
+
+  // ==============================
+  // EVITAR QUE USUARIO AUTENTICADO VAYA A LOGIN
+  // ==============================
   if ((to.name === 'Login' || to.name === 'Register') && authStore.isAuthenticated) {
-    next('/')
-    return
+    return next('/')
   }
-  
-  //VERIFICACION DE PERMISOS DEL USUARIO
-  if (to.meta.requiresAuth && authStore.isAuthenticated) {
+
+  // ==============================
+  // VALIDAR PERMISOS POR TIPO
+  // ==============================
+  if (to.meta.requiresAuth) {
+
     const userTipoId = authStore.tipoUsuarioId
-    
-    //REDIRECCION SI USUARIO NO ES TIPO 4
+
     if (to.meta.requiresSuperAdmin && userTipoId !== 4) {
-      console.warn(`Usuario tipo ${userTipoId} intentó acceder a ruta Super Admin`)
-      showPermissionError()
-      next('/')
-      return
+      showPermissionError('Solo super administradores pueden acceder')
+      return next('/')
     }
-    
-    //REDIRECCION A USUARIOS MENORES A TIPO 3
+
     if (to.meta.requiresAdminAdvanced && userTipoId < 3) {
-      console.warn(`Usuario tipo ${userTipoId} intentó acceder a ruta Admin Avanzado`)
       showPermissionError('Se requieren permisos de administrador avanzado')
-      next('/')
-      return
+      return next('/')
     }
-    
-    //REDIRECCION A USUARIOS QUE NO SEAN AL MENOS TIPO 2
+
     if (to.meta.requiresAnyAdmin && userTipoId < 2) {
-      console.warn(`Usuario tipo ${userTipoId} intentó acceder a ruta Admin`)
       showPermissionError('Se requieren permisos de administrador')
-      next('/')
-      return
+      return next('/')
     }
+
   }
-  
-  //PERMITIR NAVEGACION
+
+  // ==============================
+  // VALIDAR PERMISOS ESPECIFICOS
+  // ==============================
+  if (to.meta.requiredPermission) {
+
+    const permission = to.meta.requiredPermission
+
+    if (!authStore.tienePermiso(permission)) {
+
+      console.warn(`Permiso requerido: ${permission}`)
+
+      showPermissionError('No tienes permisos para acceder a esta sección')
+
+      return next('/')
+    }
+
+  }
+
+  // ==============================
+  // PERMITIR NAVEGACION
+  // ==============================
   next()
 })
+
 
 // Función auxiliar para mostrar errores de permisos
 function showPermissionError(message = 'No tienes permisos para acceder a esta sección') {

@@ -415,7 +415,7 @@ const areasPrestables = computed(() =>
 
 const areasInternas = computed(() => 
   areas.value.filter(a => 
-    a.es_prestable &&
+    a.es_prestable == false &&
     a.estado_id !== 5 &&
     a.nombre.toLowerCase().includes(search.value.toLowerCase())
   )

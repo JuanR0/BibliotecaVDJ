@@ -1,8 +1,12 @@
-from pydantic import BaseModel, validator, field_validator
+from pydantic import BaseModel, field_validator
 from datetime import datetime
 from typing import Optional, List
+from decimal import Decimal
 
-# Schema base común
+# =============================================
+# SCHEMAS BASE
+# =============================================
+
 class PrestamoLibroBase(BaseModel):
     libro_id: int
     usuario_prestado_id: int
@@ -12,19 +16,20 @@ class PrestamoLibroBase(BaseModel):
     class Config:
         from_attributes = True
 
-# Schema para crear préstamo (POST) - SIN ID
 class PrestamoLibroCreate(PrestamoLibroBase):
-    # No incluimos campos que se generan automáticamente
     pass
 
-    # @field_validator('fecha_devolucion_esperada')
-    # @classmethod
-    # def fecha_devolucion_debe_ser_futura(cls, v):
-    #     if v <= datetime.now():
-    #         raise ValueError('La fecha de devolución debe ser futura')
-    #     return v
+    # Validador descomentado — rechaza fechas en el pasado desde el backend también
+    @field_validator('fecha_devolucion_esperada')
+    @classmethod
+    def fecha_devolucion_debe_ser_futura(cls, v):
+        # Comparar solo fechas (ignorar horas) para permitir "hoy"
+        fecha_naive = v.replace(tzinfo=None) if v.tzinfo else v
+        hoy = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        if fecha_naive < hoy:
+            raise ValueError('La fecha de devolución no puede ser anterior a hoy')
+        return v
 
-# Schema para respuesta (GET) - CON ID (igual que LibroResponse)
 class PrestamoLibroResponse(PrestamoLibroBase):
     id: int
     usuario_presta_id: int
@@ -34,12 +39,11 @@ class PrestamoLibroResponse(PrestamoLibroBase):
     fecha_devolucion_real: Optional[datetime] = None
     usuario_ultimo_cambio_id: Optional[int] = None
     fecha_ultimo_cambio_estado: Optional[datetime] = None
-    dias_excedidos: int = 0  
+    dias_excedidos: int = 0
 
     class Config:
         from_attributes = True
 
-# Schema para respuesta con datos relacionados
 class PrestamoLibroConRelaciones(BaseModel):
     id: int
     libro_id: int
@@ -52,8 +56,8 @@ class PrestamoLibroConRelaciones(BaseModel):
     usuario_ultimo_cambio_id: Optional[int] = None
     fecha_ultimo_cambio_estado: Optional[datetime] = None
     observaciones: Optional[str] = None
-    dias_excedidos: int = 0 
-    
+    dias_excedidos: int = 0
+
     # Campos relacionados
     libro_titulo: Optional[str] = None
     libro_autor: Optional[str] = None
@@ -65,7 +69,6 @@ class PrestamoLibroConRelaciones(BaseModel):
     class Config:
         from_attributes = True
 
-# Schema para actualizar préstamo (PUT/PATCH)
 class PrestamoLibroUpdate(BaseModel):
     estado_prestamo_id: Optional[int] = None
     fecha_devolucion_real: Optional[datetime] = None
@@ -74,9 +77,40 @@ class PrestamoLibroUpdate(BaseModel):
     class Config:
         from_attributes = True
 
-# Schema para devolución de libro
 class PrestamoLibroDevolucion(BaseModel):
     observaciones: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+# =============================================
+# NUEVO: Schema para respuesta de devolución
+# Incluye la multa generada si el préstamo estaba vencido
+# =============================================
+
+class MultaResumenEnDevolucion(BaseModel):
+    """Resumen de la multa generada al devolver un libro vencido"""
+    id: int
+    costo_monetario: Decimal
+    dias_excedidos: int
+    observaciones: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+        json_encoders = {Decimal: lambda v: str(v)}
+
+
+class PrestamoDevolucionResponse(BaseModel):
+    """
+    Respuesta del endpoint PATCH /devolver
+    Siempre incluye el préstamo actualizado.
+    Si hubo días excedidos, incluye también la multa generada.
+    """
+    prestamo: PrestamoLibroResponse
+    multa_generada: Optional[MultaResumenEnDevolucion] = None
+    mensaje: str
+
+    class Config:
+        from_attributes = True
+        json_encoders = {Decimal: lambda v: str(v)}

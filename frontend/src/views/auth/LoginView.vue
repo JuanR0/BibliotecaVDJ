@@ -72,13 +72,22 @@ export default {
           result = await authStore.register(registerData)
           
           if (result.success) {
-            this.successMessage = '¡Cuenta creada exitosamente! Ya puedes iniciar sesión.'
-            setTimeout(() => {
-              this.toggleMode()
-            }, 2000)
-          } else {
-            this.errorMessage = result.error
-          }
+          this.successMessage = `¡Bienvenido ${authStore.userName}!`
+
+          // limpiar formulario solo si REGISTRO fue exitoso
+          this.form.codigo_universitario = ''
+          this.form.clave_acceso = ''
+
+          setTimeout(() => {
+            this.redirectBasedOnUserType(authStore.tipoUsuarioId)
+          }, 1500)
+
+        } else {
+          // mantener codigo_universitario
+          this.form.clave_acceso = ''
+          this.errorMessage = result.error
+        }
+
           
         } else {
           // LOGIN
@@ -91,12 +100,23 @@ export default {
           
           if (result.success) {
             this.successMessage = `¡Bienvenido ${authStore.userName}!`
+
+            //LIMPIEZA DE FORMULARIO
+            this.form.codigo_universitario = ''
+            this.form.clave_acceso = ''
             
             setTimeout(() => {
-              this.redirectBasedOnUserType(authStore.userRole)
+              this.redirectBasedOnUserType(authStore.tipoUsuarioId)
             }, 1500)
             
           } else {
+            // mantener codigo_universitario
+            this.form.clave_acceso = ''
+
+            this.$nextTick(() => {
+              this.$refs.passwordInput.focus()
+            })            
+
             this.errorMessage = result.error
           }
         }
@@ -177,13 +197,14 @@ export default {
               class="input-field"
             >
           </div>
-
+          <!-- CLAVE DE ACCESO -->
           <div class="input-group">
             <label for="clave_acceso" class="input-label">
               Contraseña
             </label>
             <div class="password-wrapper">
               <input
+                ref="passwordInput"
                 id="clave_acceso"
                 v-model="form.clave_acceso"
                 :type="showPassword ? 'text' : 'password'"

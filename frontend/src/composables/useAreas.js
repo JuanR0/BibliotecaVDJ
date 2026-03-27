@@ -1,5 +1,5 @@
 // src/composables/useAreas.js - VERSIÓN CORREGIDA
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { areasService } from '@/services/areas'
 
 export function useAreas() {
