@@ -1,202 +1,267 @@
 <template>
-  <div class="dashboard-container">
+  <div class="user-menu">
 
-    <!-- ===== HEADER ===== -->
-    <header class="dashboard-header">
-      <div class="header-content">
-        <div class="user-welcome">
-          <h1 class="welcome-title">👋 Hola, {{ userName }}</h1>
-          <p class="welcome-subtitle">Panel de usuario · Tipo {{ userType }}</p>
+    <!-- ══════════════════════════════════════
+         HEADER
+    ══════════════════════════════════════ -->
+    <header class="page-header">
+      <div class="header-inner">
+
+        <div class="header-saludo">
+          <p class="saludo-label">Bienvenido de vuelta</p>
+          <h1 class="saludo-nombre">{{ userName }}</h1>
+          <p class="saludo-meta">
+            <span class="meta-chip">{{ getRoleName(userType) }}</span>
+            <span class="meta-sep">·</span>
+            <span class="meta-codigo">{{ userCode }}</span>
+          </p>
         </div>
-        <div class="user-info-card">
-          <div class="user-avatar">
-            <span class="avatar-icon">👨‍💼</span>
+
+        <!-- Stats rápidos en header -->
+        <div class="header-stats">
+          <div class="hstat" :class="{ 'hstat-alert': vencidos > 0 }">
+            <span class="hstat-num">{{ activeBooks }}</span>
+            <span class="hstat-lbl">Activos</span>
           </div>
-          <div class="user-details">
-            <div class="user-detail-item">
-              <span class="detail-label">Código:</span>
-              <span class="detail-value">{{ userCode }}</span>
-            </div>
-            <div class="user-detail-item">
-              <span class="detail-label">Último acceso:</span>
-              <span class="detail-value">{{ lastAccess }}</span>
-            </div>
+          <div class="hstat hstat-warn" v-if="porVencer > 0">
+            <span class="hstat-num">{{ porVencer }}</span>
+            <span class="hstat-lbl">Por vencer</span>
           </div>
+          <div class="hstat hstat-danger" v-if="vencidos > 0">
+            <span class="hstat-num">{{ vencidos }}</span>
+            <span class="hstat-lbl">Vencidos</span>
+          </div>
+          <button class="btn-refresh" @click="refreshData" title="Actualizar">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </button>
         </div>
+
       </div>
     </header>
 
-    <!-- ===== BANNER MULTAS PENDIENTES ===== -->
+    <!-- ══════════════════════════════════════
+         BANNER MULTAS
+    ══════════════════════════════════════ -->
     <div v-if="tieneMultasPendientes" class="banner-multas">
-      <span class="banner-icon">⚠️</span>
-      <div class="banner-texto">
-        <strong>Tienes multas pendientes</strong>
-        <p>No puedes solicitar nuevos préstamos. Acude a la biblioteca con tu comprobante de pago.</p>
+      <div class="banner-ico">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
       </div>
-      <button class="banner-btn" @click="$router.push('/user/multas')">Ver mis multas</button>
+      <div class="banner-body">
+        <strong>Tienes multas pendientes</strong>
+        <p>No puedes solicitar nuevos préstamos hasta liquidarlas. Acude a la biblioteca con tu comprobante.</p>
+      </div>
+      <button class="banner-cta" @click="$router.push('/user/multas')">Ver multas →</button>
     </div>
 
-    <!-- ===== CONTENIDO PRINCIPAL ===== -->
-    <main class="dashboard-main">
+    <!-- ══════════════════════════════════════
+         CONTENIDO
+    ══════════════════════════════════════ -->
+    <div class="page-body">
 
-      <!-- Acciones Rápidas -->
-      <section class="quick-actions-section">
-        <h2 class="section-title">Acciones Rápidas</h2>
-        <div class="actions-grid">
-          <button @click="navigateTo('/admin/libros')" class="action-card secondary">
-            <span class="action-icon">📚</span>
-            <span class="action-title">Ver Catálogo</span>
-            <span class="action-desc">Explorar libros disponibles</span>
-          </button>
-          <button @click="navigateTo('/user/multas')" class="action-card"
-            :class="tieneMultasPendientes ? 'danger' : 'accent'">
-            <span class="action-icon">{{ tieneMultasPendientes ? '⚠️' : '✅' }}</span>
-            <span class="action-title">Mis Multas</span>
-            <span class="action-desc">
-              {{ tieneMultasPendientes ? 'Tienes multas pendientes' : 'Sin multas pendientes' }}
-            </span>
-          </button>
-          <button @click="refreshData" class="action-card info">
-            <span class="action-icon">🔄</span>
-            <span class="action-title">Actualizar</span>
-            <span class="action-desc">Refrescar información</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- Estadísticas -->
-      <section class="stats-section">
-        <h2 class="section-title">📊 Resumen</h2>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-header">
-              <span class="stat-icon">📚</span>
-              <span class="stat-title">Activos</span>
-            </div>
-            <div class="stat-value">{{ activeBooks }}</div>
-            <div class="stat-desc">Libros en préstamo</div>
-          </div>
-          <div class="stat-card stat-warning" v-if="porVencer > 0">
-            <div class="stat-header">
-              <span class="stat-icon">⏰</span>
-              <span class="stat-title">Por vencer</span>
-            </div>
-            <div class="stat-value">{{ porVencer }}</div>
-            <div class="stat-desc">En los próximos 7 días</div>
-          </div>
-          <div class="stat-card stat-danger" v-if="vencidos > 0">
-            <div class="stat-header">
-              <span class="stat-icon">🚨</span>
-              <span class="stat-title">Vencidos</span>
-            </div>
-            <div class="stat-value">{{ vencidos }}</div>
-            <div class="stat-desc">Requieren devolución urgente</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Tabla de Préstamos -->
-      <section class="resources-section">
-        <div class="section-header">
-          <h2 class="section-title">Mis Préstamos Activos</h2>
-          <div class="section-tabs">
-            <button @click="activeTab = 'books'" :class="['tab-btn', { active: activeTab === 'books' }]">
-              📚 Libros
-            </button>
-            <button @click="activeTab = 'areas'" :class="['tab-btn', { active: activeTab === 'areas' }]">
-              🏢 Áreas
-            </button>
+      <!-- ── PRÉSTAMOS ACTIVOS ── -->
+      <section class="section-card">
+        <div class="section-head">
+          <div class="section-title-wrap">
+            <h2 class="section-title">Préstamos activos</h2>
+            <span class="section-count">{{ prestamosActivos.length }}</span>
           </div>
         </div>
 
-        <div v-if="loadingPrestamos" class="loading-state">
-          <div class="spinner-sm"></div>
+        <!-- Loading -->
+        <div v-if="loadingPrestamos" class="estado-loading">
+          <div class="spinner"></div>
           <p>Cargando préstamos...</p>
         </div>
 
-        <div v-else class="resources-table-container">
-          <table class="resources-table">
-            <thead>
-              <tr>
-                <th>Recurso</th>
-                <th>Fecha Préstamo</th>
-                <th>Fecha Devolución</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="item in filteredResources"
-                :key="item.id"
-                :class="{ 'row-overdue': item.status === 'overdue', 'row-warning': item.status === 'warning' }"
-              >
-                <td class="resource-name">
-                  <span class="resource-icon">{{ getResourceIcon(item.type) }}</span>
-                  {{ item.name }}
-                </td>
-                <td>{{ formatDate(item.loanDate) }}</td>
-                <td>
-                  <span class="fecha-devolucion">{{ formatDate(item.returnDate) }}</span>
-                  <!-- Badge de días restantes -->
-                  <span v-if="item.status === 'warning'" class="badge-vencimiento badge-warning">
-                    {{ item.diasRestantes === 0 ? 'Vence hoy' : `${item.diasRestantes}d restantes` }}
-                  </span>
-                  <span v-if="item.status === 'overdue'" class="badge-vencimiento badge-overdue">
-                    {{ Math.abs(item.diasRestantes) }}d vencido
-                  </span>
-                </td>
-                <td>
-                  <span :class="['status-badge', item.status]">
+        <!-- Vacío -->
+        <div v-else-if="prestamosActivos.length === 0" class="estado-vacio">
+          <div class="vacio-ico">
+            <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+          </div>
+          <p class="vacio-titulo">Sin préstamos activos</p>
+          <p class="vacio-desc">Explora el catálogo para solicitar un libro</p>
+          <button class="btn-catalogo" @click="$router.push('/admin/libros')">
+            Ver catálogo →
+          </button>
+        </div>
+
+        <!-- Lista de préstamos activos -->
+        <div v-else class="prestamos-lista">
+          <div
+            v-for="item in prestamosActivos"
+            :key="item.id"
+            class="prestamo-card"
+            :class="{
+              'prestamo-overdue': item.status === 'overdue',
+              'prestamo-warning': item.status === 'warning'
+            }"
+          >
+            <!-- Indicador lateral de estado -->
+            <div class="prestamo-indicator"></div>
+
+            <div class="prestamo-body">
+              <div class="prestamo-top">
+                <div class="prestamo-info">
+                  <p class="prestamo-nombre">{{ item.name }}</p>
+                  <div class="prestamo-meta">
+                    <span class="prestamo-fecha-lbl">Prestado</span>
+                    <span class="prestamo-fecha">{{ formatDate(item.loanDate) }}</span>
+                  </div>
+                </div>
+
+                <div class="prestamo-derecha">
+                  <!-- Badge de estado -->
+                  <span class="status-badge" :class="`badge-${item.status}`">
                     {{ getStatusText(item.status) }}
                   </span>
-                </td>
-                <td>
+
+                  <!-- Botón devolver -->
                   <button
-                    v-if="item.status === 'active' || item.status === 'warning' || item.status === 'overdue'"
+                    class="btn-devolver"
                     @click="returnResource(item)"
                     :disabled="returningLoanId === item.id"
-                    class="action-btn return-btn"
                   >
-                    <span v-if="returningLoanId === item.id">Procesando...</span>
-                    <span v-else>Registrar Devolución</span>
+                    <span v-if="returningLoanId === item.id" class="btn-spinner"></span>
+                    <span v-else>Devolver</span>
                   </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+              </div>
 
-          <div v-if="filteredResources.length === 0" class="empty-state">
-            <span class="empty-icon">📭</span>
-            <p>No hay recursos prestados actualmente</p>
+              <!-- Fecha devolución con urgencia -->
+              <div class="prestamo-devolucion">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span class="dev-label">Devolución:</span>
+                <span class="dev-fecha">{{ formatDate(item.returnDate) }}</span>
+                <span v-if="item.status === 'warning'" class="dev-urgencia dev-warn">
+                  {{ item.diasRestantes === 0 ? 'Vence hoy' : `${item.diasRestantes}d restantes` }}
+                </span>
+                <span v-if="item.status === 'overdue'" class="dev-urgencia dev-overdue">
+                  {{ Math.abs(item.diasRestantes) }}d vencido
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
-    </main>
 
-    <!-- ===== TOAST NORMAL ===== -->
-    <transition name="toast-fade">
+      <!-- ── HISTORIAL (colapsable) ── -->
+      <section class="section-card section-historial">
+        <button class="historial-toggle" @click="historialAbierto = !historialAbierto">
+          <div class="section-title-wrap">
+            <h2 class="section-title">Historial de préstamos</h2>
+            <span class="section-count">{{ prestamosHistorial.length }}</span>
+          </div>
+          <svg
+            class="toggle-chevron"
+            :class="{ 'chevron-open': historialAbierto }"
+            width="16" height="16" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor" stroke-width="2.5"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+
+        <transition name="historial-slide">
+          <div v-if="historialAbierto" class="historial-body">
+
+            <!-- Buscador dentro del historial -->
+            <div class="historial-search">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <input
+                v-model="busquedaHistorial"
+                type="text"
+                placeholder="Buscar en historial..."
+                class="historial-input"
+              />
+            </div>
+
+            <div v-if="loadingPrestamos" class="estado-loading estado-loading-sm">
+              <div class="spinner spinner-sm"></div>
+            </div>
+
+            <div v-else-if="historialFiltrado.length === 0" class="estado-vacio estado-vacio-sm">
+              <p>{{ busquedaHistorial ? 'Sin resultados para esa búsqueda' : 'Sin historial registrado' }}</p>
+            </div>
+
+            <div v-else class="historial-lista">
+              <div
+                v-for="item in historialPaginado"
+                :key="item.id"
+                class="historial-item"
+              >
+                <div class="historial-item-ico">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                  </svg>
+                </div>
+                <div class="historial-item-info">
+                  <p class="historial-item-nombre">{{ item.name }}</p>
+                  <p class="historial-item-fechas">
+                    {{ formatDate(item.loanDate) }} → {{ formatDate(item.returnDate) }}
+                  </p>
+                </div>
+                <span class="historial-badge">Devuelto</span>
+              </div>
+            </div>
+
+            <!-- Paginación historial -->
+            <div v-if="totalPaginasHistorial > 1" class="historial-paginacion">
+              <button
+                class="pag-btn"
+                :disabled="paginaHistorial === 1"
+                @click="paginaHistorial--"
+              >← Anterior</button>
+              <span class="pag-info">{{ paginaHistorial }} / {{ totalPaginasHistorial }}</span>
+              <button
+                class="pag-btn"
+                :disabled="paginaHistorial === totalPaginasHistorial"
+                @click="paginaHistorial++"
+              >Siguiente →</button>
+            </div>
+
+          </div>
+        </transition>
+      </section>
+
+    </div>
+
+    <!-- ══════════════════════════════════════
+         TOAST NORMAL
+    ══════════════════════════════════════ -->
+    <transition name="toast-in">
       <div v-if="toast.visible && !toast.esMulta" class="toast" :class="toast.tipo">
-        <span class="toast-icon">{{ toast.icono }}</span>
-        <div class="toast-content">
+        <span class="toast-ico">{{ toast.icono }}</span>
+        <div>
           <strong>{{ toast.titulo }}</strong>
           <p v-if="toast.descripcion">{{ toast.descripcion }}</p>
         </div>
-        <button @click="toast.visible = false" class="toast-close">×</button>
+        <button class="toast-close" @click="toast.visible = false">×</button>
       </div>
     </transition>
 
-    <!-- ===== TOAST MULTA (especial, más grande) ===== -->
-    <transition name="toast-fade">
-      <div v-if="toast.visible && toast.esMulta" class="toast toast-multa">
-        <span class="toast-icon-multa">⚠️</span>
-        <div class="toast-content-multa">
-          <strong class="toast-multa-titulo">Multa registrada</strong>
+    <!-- ══════════════════════════════════════
+         TOAST MULTA
+    ══════════════════════════════════════ -->
+    <transition name="toast-in">
+      <div v-if="toast.visible && toast.esMulta" class="toast-multa">
+        <div class="toast-multa-ico">⚠️</div>
+        <div class="toast-multa-body">
+          <strong>Multa registrada</strong>
           <p class="toast-multa-monto">{{ toast.montoMulta }}</p>
           <p class="toast-multa-desc">{{ toast.descripcion }}</p>
-          <button class="toast-multa-btn" @click="irAMisMultas">Ver mis multas →</button>
+          <button class="toast-multa-cta" @click="irAMisMultas">Ver mis multas →</button>
         </div>
-        <button @click="toast.visible = false" class="toast-close-multa">×</button>
+        <button class="toast-close toast-close-dark" @click="toast.visible = false">×</button>
       </div>
     </transition>
 
@@ -207,11 +272,6 @@
 import { useAuthStore } from '@/stores/auth'
 import { prestamoLibroService } from '@/services/PrestamoLibro'
 import { multasService } from '@/services/multas'
-import {
-  RESOURCE_ICONS,
-  RESOURCE_TYPE,
-  ACTIVITY_ICONS
-} from '@/utils/resourseHelper'
 
 export default {
   name: 'UserMenu',
@@ -221,17 +281,16 @@ export default {
       prestamos: [],
       loadingPrestamos: false,
       returningLoanId: null,
-      activeTab: 'books',
       tieneMultasPendientes: false,
+      historialAbierto: false,
+      busquedaHistorial: '',
+      paginaHistorial: 1,
+      itemsPorPagina: 8,
 
       toast: {
-        visible: false,
-        tipo: '',
-        icono: '',
-        titulo: '',
-        descripcion: '',
-        esMulta: false,
-        montoMulta: ''
+        visible: false, tipo: '', icono: '',
+        titulo: '', descripcion: '',
+        esMulta: false, montoMulta: ''
       }
     }
   },
@@ -246,30 +305,43 @@ export default {
     userCode()  { return this.authStore.userCode },
     userType()  { return this.authStore.tipoUsuarioId },
 
-    lastAccess() {
-      return new Date().toLocaleDateString('es-MX', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-      })
-    },
-
-    filteredResources() {
-      if (this.activeTab === 'books') return this.prestamos
-      return []
-    },
-
-    activeBooks() {
+    // Solo préstamos activos (active, warning, overdue)
+    prestamosActivos() {
       return this.prestamos.filter(p =>
         p.status === 'active' || p.status === 'warning' || p.status === 'overdue'
-      ).length
+      )
     },
 
-    porVencer() {
-      return this.prestamos.filter(p => p.status === 'warning').length
+    // Historial: solo completados
+    prestamosHistorial() {
+      return this.prestamos.filter(p => p.status === 'completed')
     },
 
-    vencidos() {
-      return this.prestamos.filter(p => p.status === 'overdue').length
-    }
+    historialFiltrado() {
+      if (!this.busquedaHistorial.trim()) return this.prestamosHistorial
+      const q = this.busquedaHistorial.toLowerCase()
+      return this.prestamosHistorial.filter(p =>
+        p.name?.toLowerCase().includes(q)
+      )
+    },
+
+    totalPaginasHistorial() {
+      return Math.ceil(this.historialFiltrado.length / this.itemsPorPagina) || 1
+    },
+
+    historialPaginado() {
+      const start = (this.paginaHistorial - 1) * this.itemsPorPagina
+      return this.historialFiltrado.slice(start, start + this.itemsPorPagina)
+    },
+
+    activeBooks() { return this.prestamosActivos.length },
+    porVencer()   { return this.prestamos.filter(p => p.status === 'warning').length },
+    vencidos()    { return this.prestamos.filter(p => p.status === 'overdue').length }
+  },
+
+  watch: {
+    // Resetear página al buscar
+    busquedaHistorial() { this.paginaHistorial = 1 }
   },
 
   mounted() {
@@ -278,86 +350,56 @@ export default {
   },
 
   methods: {
-
-    // ── Carga de préstamos ──────────────────────────────────────────────
     async loadPrestamos() {
       try {
         this.loadingPrestamos = true
-        // soloVigentes = false para mostrar activos + vencidos sin devolver
         this.prestamos = await prestamoLibroService.getPrestamosUsuario(false)
-      } catch (error) {
-        console.error('Error cargando préstamos:', error)
-        this.mostrarToast('error', '❌', 'Error', 'No se pudieron cargar los préstamos')
+      } catch {
+        this.mostrarToast('error', '✕', 'Error', 'No se pudieron cargar los préstamos')
       } finally {
         this.loadingPrestamos = false
       }
     },
 
-    // ── Verificar multas pendientes ─────────────────────────────────────
     async verificarMultasPendientes() {
       try {
         const userId = this.authStore.userId
         if (!userId) return
-        // Trae solo pendientes (solo_pendientes=true por defecto en el endpoint)
         const multas = await multasService.getMultasByUsuario(userId)
         this.tieneMultasPendientes = Array.isArray(multas) && multas.length > 0
-
-        // Actualizar el store para que otros componentes lo sepan
         if (this.authStore.actualizarEstadoMultas) {
           this.authStore.actualizarEstadoMultas(multas)
         }
-      } catch {
-        // Silencioso — no bloquear el dashboard si falla
-      }
+      } catch { /* silencioso */ }
     },
 
-    // ── Devolución de libro ─────────────────────────────────────────────
     async returnResource(resource) {
       try {
         this.returningLoanId = resource.id
-
-        // La respuesta ahora es: { prestamo, multa_generada, mensaje }
         const respuesta = await prestamoLibroService.devolverPrestamo(resource.id)
-
-        // Actualizar lista local
         await this.loadPrestamos()
 
         if (respuesta.multa_generada) {
-          // ── Devolución tardía: mostrar toast de multa ──
           const monto = new Intl.NumberFormat('es-MX', {
             style: 'currency', currency: 'MXN'
           }).format(respuesta.multa_generada.costo_monetario)
-
           this.mostrarToastMulta(
             monto,
             `${respuesta.multa_generada.dias_excedidos} día(s) de retraso. ` +
-            `Preséntate en la biblioteca con tu comprobante de pago para liquidar la multa.`
+            `Preséntate en la biblioteca con tu comprobante de pago.`
           )
-
-          // Actualizar banner de multas
           this.tieneMultasPendientes = true
           if (this.authStore.actualizarEstadoMultas) {
             this.authStore.actualizarEstadoMultas([{ estado_multa_id: 1 }])
           }
         } else {
-          // ── Devolución a tiempo ──
-          this.mostrarToast('success', '✅', 'Devolución registrada', respuesta.mensaje)
+          this.mostrarToast('success', '✓', 'Devolución registrada', respuesta.mensaje)
         }
-
       } catch (error) {
-        const msg = error.response?.data?.detail || 'Error al registrar devolución'
-        this.mostrarToast('error', '❌', 'Error', msg)
+        this.mostrarToast('error', '✕', 'Error', error.response?.data?.detail || 'Error al devolver')
       } finally {
         this.returningLoanId = null
       }
-    },
-
-    // ── Navegación ──────────────────────────────────────────────────────
-    navigateTo(route) { this.$router.push(route) },
-
-    irAMisMultas() {
-      this.toast.visible = false
-      this.$router.push('/user/multas')
     },
 
     refreshData() {
@@ -365,336 +407,483 @@ export default {
       this.verificarMultasPendientes()
     },
 
-    // ── Toasts ──────────────────────────────────────────────────────────
+    irAMisMultas() {
+      this.toast.visible = false
+      this.$router.push('/user/multas')
+    },
+
+    getRoleName(tipoId) {
+      return { 1: 'Usuario', 2: 'Admin Básico', 3: 'Admin Avanzado', 4: 'Super Admin' }[tipoId] || 'Usuario'
+    },
+
+    formatDate(d) {
+      if (!d) return '—'
+      return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+    },
+
+    getStatusText(status) {
+      return { active: 'Activo', warning: 'Por vencer', overdue: 'Vencido', completed: 'Devuelto' }[status] || status
+    },
+
     mostrarToast(tipo, icono, titulo, descripcion = '') {
-      this.toast = {
-        visible: true,
-        tipo: `toast-${tipo}`,
-        icono,
-        titulo,
-        descripcion,
-        esMulta: false,
-        montoMulta: ''
-      }
+      this.toast = { visible: true, tipo: `toast-${tipo}`, icono, titulo, descripcion, esMulta: false, montoMulta: '' }
       setTimeout(() => { this.toast.visible = false }, 4000)
     },
 
     mostrarToastMulta(monto, descripcion) {
-      this.toast = {
-        visible: true,
-        esMulta: true,
-        montoMulta: monto,
-        descripcion,
-        tipo: '',
-        icono: '',
-        titulo: ''
-      }
-      // El toast de multa persiste más tiempo y el usuario lo cierra manualmente
-    },
-
-    // ── Helpers de tabla ────────────────────────────────────────────────
-    formatDate(dateString) {
-      if (!dateString) return '—'
-      return new Date(dateString).toLocaleDateString('es-MX')
-    },
-
-    getStatusText(status) {
-      const statuses = {
-        active:    'Activo',
-        warning:   'Por vencer',
-        overdue:   'Vencido',
-        completed: 'Devuelto'
-      }
-      return statuses[status] || status
-    },
-
-    getResourceIcon(type) {
-      return RESOURCE_ICONS[type] || '📦'
+      this.toast = { visible: true, esMulta: true, montoMulta: monto, descripcion, tipo: '', icono: '', titulo: '' }
     }
   }
 }
 </script>
 
 <style scoped>
-/* ── Base ────────────────────────────────────────────────────────────────── */
-.dashboard-container {
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap');
+
+/* ── Variables BookCatalog ───────────────────────────────────────────────── */
+:root {
+  --green-dark:   #1a4731;
+  --green-mid:    #2d6a4f;
+  --green-light:  #52b788;
+  --green-pale:   #d8f3dc;
+  --gold-mid:     #c9900c;
+  --gold-light:   #f4c542;
+  --gold-pale:    #fef9e7;
+  --cream:        #f5f0e8;
+  --cream-border: #d4e8da;
+  --card-bg:      #fffef9;
+  --shadow-sm:    0 2px 12px rgba(26,47,26,.08);
+  --shadow-md:    0 8px 24px rgba(26,71,49,.12);
+}
+
+/* ── Page ────────────────────────────────────────────────────────────────── */
+.user-menu {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: 'DM Sans', sans-serif;
+  background:
+    radial-gradient(ellipse 70% 40% at 5% 0%, rgba(82,183,136,.1) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 90% 100%, rgba(201,144,12,.08) 0%, transparent 50%),
+    var(--cream);
 }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
-.dashboard-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 30px 40px;
-  border-bottom-left-radius: 30px;
-  border-bottom-right-radius: 30px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+.page-header {
+  background: linear-gradient(135deg, #1a4731 0%, #2d6a4f 60%, #3a7d5e 100%);
+  padding: 2rem 2rem 1.75rem;
+  position: relative;
+  overflow: hidden;
 }
-.header-content {
-  max-width: 1200px;
-  margin: 0 auto;
+
+/* Patrón de puntos igual al BookCatalog */
+.page-header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.header-inner {
+  position: relative;
+  max-width: 900px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
+  gap: 1.5rem;
   flex-wrap: wrap;
-  gap: 30px;
 }
-.welcome-title  { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-.welcome-subtitle { font-size: 16px; opacity: 0.9; }
 
-.user-info-card {
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  min-width: 260px;
+.saludo-label {
+  font-size: .75rem; font-weight: 600;
+  color: rgba(255,255,255,.55);
+  text-transform: uppercase; letter-spacing: .1em;
+  margin-bottom: .2rem;
 }
-.avatar-icon {
-  font-size: 40px;
-  background: rgba(255,255,255,0.2);
-  padding: 15px;
-  border-radius: 50%;
-  display: block;
+.saludo-nombre {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.75rem; font-weight: 700;
+  color: #fff; margin-bottom: .4rem; line-height: 1.15;
 }
-.user-details   { display: flex; flex-direction: column; gap: 8px; }
-.user-detail-item { display: flex; gap: 10px; font-size: 14px; }
-.detail-label   { font-weight: 600; min-width: 80px; }
-.detail-value   { opacity: 0.9; }
+.saludo-meta {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: .8rem;
+}
+.meta-chip {
+  background: rgba(244,197,66,.18);
+  color: var(--gold-light);
+  border: 1px solid rgba(244,197,66,.25);
+  padding: .15rem .55rem; border-radius: 20px;
+  font-weight: 600; font-size: .72rem;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.meta-sep  { color: rgba(255,255,255,.3); }
+.meta-codigo { color: rgba(255,255,255,.6); font-family: monospace; font-size: .78rem; }
+
+/* Stats en header */
+.header-stats {
+  display: flex; align-items: center; gap: .75rem;
+  flex-shrink: 0;
+}
+.hstat {
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px; padding: .5rem .875rem;
+  min-width: 60px;
+}
+.hstat-warn   { background: rgba(244,197,66,.15); border-color: rgba(244,197,66,.2); }
+.hstat-danger { background: rgba(214,40,40,.18);  border-color: rgba(214,40,40,.25); }
+.hstat-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem; font-weight: 700; color: #fff; line-height: 1;
+}
+.hstat-warn .hstat-num   { color: var(--gold-light); }
+.hstat-danger .hstat-num { color: #fca5a5; }
+.hstat-lbl {
+  font-size: .65rem; color: rgba(255,255,255,.55);
+  text-transform: uppercase; letter-spacing: .07em; margin-top: 2px;
+}
+.btn-refresh {
+  width: 34px; height: 34px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px; color: rgba(255,255,255,.7);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .2s, color .2s;
+}
+.btn-refresh:hover { background: rgba(255,255,255,.18); color: #fff; }
 
 /* ── Banner multas ───────────────────────────────────────────────────────── */
 .banner-multas {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  max-width: 1200px;
-  margin: 1.5rem auto 0;
-  padding: 1rem 1.5rem;
+  display: flex; align-items: center; gap: 1rem;
+  margin: 1.25rem 1.5rem 0;
+  padding: .875rem 1.25rem;
   background: #fff3f3;
   border: 1.5px solid #f5c0c0;
-  border-left: 5px solid #d62828;
+  border-left: 4px solid #d62828;
   border-radius: 12px;
+  max-width: 900px;
 }
-.banner-icon    { font-size: 1.5rem; flex-shrink: 0; }
-.banner-texto   { flex: 1; }
-.banner-texto strong { display: block; color: #d62828; font-size: 0.95rem; margin-bottom: 2px; }
-.banner-texto p  { margin: 0; font-size: 0.82rem; color: #6b3333; }
-.banner-btn {
+.banner-ico { color: #d62828; flex-shrink: 0; display: flex; }
+.banner-body { flex: 1; }
+.banner-body strong { display: block; font-size: .875rem; color: #d62828; margin-bottom: 2px; }
+.banner-body p { font-size: .78rem; color: #6b3333; margin: 0; }
+.banner-cta {
   background: #d62828; color: #fff;
   border: none; border-radius: 8px;
-  padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 600;
-  cursor: pointer; white-space: nowrap;
-  transition: background 0.2s;
+  padding: .4rem .9rem; font-size: .8rem; font-weight: 700;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  transition: background .2s;
 }
-.banner-btn:hover { background: #b91c1c; }
+.banner-cta:hover { background: #b91c1c; }
 
-/* ── Main ────────────────────────────────────────────────────────────────── */
-.dashboard-main {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 30px 20px;
+/* ── Page body ───────────────────────────────────────────────────────────── */
+.page-body {
+  padding: 1.5rem;
+  max-width: 900px;
+  display: flex; flex-direction: column; gap: 1.25rem;
+}
+
+/* ── Section card ────────────────────────────────────────────────────────── */
+.section-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--cream-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.section-head {
+  padding: 1.1rem 1.375rem .875rem;
+  border-bottom: 1.5px solid #eef5f0;
+}
+
+.section-title-wrap {
+  display: flex; align-items: center; gap: .625rem;
 }
 .section-title {
-  font-size: 20px; font-weight: 700;
-  color: #2d3436; margin-bottom: 20px;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem; font-weight: 700;
+  color: var(--green-dark); margin: 0;
+}
+.section-count {
+  background: var(--green-pale);
+  color: var(--green-dark);
+  font-size: .72rem; font-weight: 700;
+  padding: .15rem .5rem; border-radius: 20px;
+  border: 1px solid var(--cream-border);
 }
 
-/* ── Acciones rápidas ────────────────────────────────────────────────────── */
-.quick-actions-section { margin-bottom: 40px; }
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+/* ── Estados loading/vacío ───────────────────────────────────────────────── */
+.estado-loading {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 2.5rem; gap: .75rem; color: #5a7a5a; font-size: .875rem;
 }
-.action-card {
-  background: white; border: none; border-radius: 16px;
-  padding: 25px; text-align: left; cursor: pointer;
-  display: flex; flex-direction: column; gap: 12px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
-}
-.action-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.12); }
-.action-card.secondary { border-left: 5px solid #764ba2; }
-.action-card.accent    { border-left: 5px solid #2ecc71; }
-.action-card.info      { border-left: 5px solid #3498db; }
-.action-card.danger    { border-left: 5px solid #d62828; background: #fff9f9; }
-.action-icon  { font-size: 28px; }
-.action-title { font-size: 18px; font-weight: 600; color: #2d3436; }
-.action-desc  { font-size: 14px; color: #636e72; }
-
-/* ── Stats ───────────────────────────────────────────────────────────────── */
-.stats-section { margin-bottom: 40px; }
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 20px;
-}
-.stat-card {
-  background: white; border-radius: 16px;
-  padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-}
-.stat-card.stat-warning { background: #fff8e1; border-left: 4px solid #f59e0b; }
-.stat-card.stat-danger  { background: #fff3f3; border-left: 4px solid #d62828; }
-.stat-header  { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-.stat-icon    { font-size: 24px; }
-.stat-title   { font-size: 14px; font-weight: 600; color: #636e72; text-transform: uppercase; }
-.stat-value   { font-size: 36px; font-weight: 700; color: #2d3436; line-height: 1; }
-.stat-desc    { font-size: 13px; color: #636e72; margin-top: 8px; }
-
-/* ── Tabla recursos ──────────────────────────────────────────────────────── */
-.resources-section {
-  background: white; border-radius: 16px;
-  padding: 30px; margin-bottom: 40px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-}
-.section-header {
-  display: flex; justify-content: space-between;
-  align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;
-}
-.section-tabs   { display: flex; gap: 10px; background: #f8f9fa; padding: 5px; border-radius: 12px; }
-.tab-btn {
-  padding: 10px 20px; border: none; background: transparent;
-  border-radius: 8px; font-size: 14px; font-weight: 600;
-  cursor: pointer; transition: all 0.2s;
-}
-.tab-btn.active { background: white; color: #667eea; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-
-.resources-table-container { overflow-x: auto; }
-.resources-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.resources-table th {
-  background: #f8f9fa; padding: 15px;
-  text-align: left; font-weight: 600;
-  color: #636e72; border-bottom: 2px solid #e9ecef;
-}
-.resources-table td {
-  padding: 15px; border-bottom: 1px solid #e9ecef; vertical-align: middle;
-}
-
-/* Filas con color por estado */
-.row-warning { background: #fffbeb !important; }
-.row-overdue { background: #fff5f5 !important; }
-
-.resource-name  { display: flex; align-items: center; gap: 10px; font-weight: 500; }
-.resource-icon  { font-size: 20px; }
-.fecha-devolucion { display: block; }
-
-/* Badges de vencimiento */
-.badge-vencimiento {
-  display: inline-block; margin-top: 4px;
-  font-size: 11px; font-weight: 700;
-  padding: 2px 8px; border-radius: 20px;
-}
-.badge-warning {
-  background: #fef3c7; color: #92400e;
-  border: 1px solid #fcd34d;
-}
-.badge-overdue {
-  background: #fee2e2; color: #b91c1c;
-  border: 1px solid #fca5a5;
-}
-
-/* Status badges en tabla */
-.status-badge {
-  padding: 6px 12px; border-radius: 20px;
-  font-size: 12px; font-weight: 600; text-transform: uppercase;
-}
-.status-badge.active    { background: #d1ecf1; color: #0c5460; }
-.status-badge.warning   { background: #fff3cd; color: #856404; }
-.status-badge.overdue   { background: #f8d7da; color: #721c24; }
-.status-badge.completed { background: #d4edda; color: #155724; }
-.status-badge.pending   { background: #fff3cd; color: #856404; }
-
-.action-btn {
-  padding: 8px 16px; border: none; border-radius: 8px;
-  font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
-}
-.return-btn           { background: #cce5ff; color: #004085; }
-.return-btn:hover     { background: #b8daff; }
-.return-btn:disabled  { opacity: 0.5; cursor: not-allowed; }
-
-.loading-state  { text-align: center; padding: 3rem; color: #636e72; }
-.spinner-sm {
+.estado-loading-sm { padding: 1.25rem; }
+.spinner {
   width: 32px; height: 32px;
-  border: 3px solid #e9ecef; border-top-color: #667eea;
-  border-radius: 50%; animation: spin 0.7s linear infinite;
-  margin: 0 auto 1rem;
+  border: 3px solid var(--green-pale); border-top-color: var(--green-mid);
+  border-radius: 50%; animation: spin .7s linear infinite;
 }
+.spinner-sm { width: 20px; height: 20px; border-width: 2px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.empty-state  { text-align: center; padding: 40px; color: #636e72; }
-.empty-icon   { font-size: 48px; margin-bottom: 15px; display: block; }
+.estado-vacio {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 3rem 2rem; gap: .5rem; text-align: center;
+}
+.estado-vacio-sm { padding: 1.5rem; }
+.vacio-ico  { color: #b8ddc8; margin-bottom: .25rem; }
+.vacio-titulo { font-weight: 700; color: var(--green-dark); font-size: .95rem; margin: 0; }
+.vacio-desc   { font-size: .82rem; color: #5a7a5a; margin: 0; }
 
-/* ── Toast normal ────────────────────────────────────────────────────────── */
+.btn-catalogo {
+  margin-top: .5rem; padding: .5rem 1.1rem;
+  background: var(--green-mid); color: #000000;
+  border: none; border-radius: 8px;
+  font-size: .82rem; font-weight: 700; cursor: pointer;
+  transition: background .2s;
+}
+.btn-catalogo:hover { background: #79b900; }
+
+/* ── Préstamo card ───────────────────────────────────────────────────────── */
+.prestamos-lista {
+  display: flex; flex-direction: column;
+}
+
+.prestamo-card {
+  display: flex;
+  border-bottom: 1px solid #f1f5f0;
+  transition: background .15s;
+}
+.prestamo-card:last-child { border-bottom: none; }
+.prestamo-card:hover      { background: #fafef8; }
+
+/* Indicador lateral */
+.prestamo-indicator {
+  width: 4px; flex-shrink: 0;
+  background: #b8ddc8;
+}
+.prestamo-warning .prestamo-indicator { background: var(--gold-light); }
+.prestamo-overdue .prestamo-indicator { background: #d62828; }
+
+.prestamo-body {
+  flex: 1; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: .5rem;
+}
+
+.prestamo-top {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; gap: 1rem; flex-wrap: wrap;
+}
+
+.prestamo-nombre {
+  font-weight: 700; font-size: .9rem; color: #1a2e1a; margin: 0;
+}
+.prestamo-meta {
+  display: flex; gap: .4rem; align-items: center; margin-top: 2px;
+}
+.prestamo-fecha-lbl {
+  font-size: .7rem; color: #9ab5a0; text-transform: uppercase; letter-spacing: .05em;
+}
+.prestamo-fecha { font-size: .75rem; color: #5a7a5a; }
+
+.prestamo-derecha {
+  display: flex; align-items: center; gap: .625rem; flex-shrink: 0;
+}
+
+/* Status badges */
+.status-badge {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; padding: .2rem .55rem; border-radius: 20px;
+  white-space: nowrap;
+}
+.badge-active  { background: var(--green-pale); color: var(--green-dark); border: 1px solid #b8ddc8; }
+.badge-warning { background: var(--gold-pale); color: var(--gold-mid); border: 1px solid #fde68a; }
+.badge-overdue { background: #fff0f0; color: #b91c1c; border: 1px solid #fca5a5; }
+
+/* Botón devolver */
+.btn-devolver {
+  padding: .38rem .875rem;
+  background: var(--green-mid); color: #fff;
+  border: none; border-radius: 8px;
+  font-size: .78rem; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: .3rem;
+  transition: background .2s;
+}
+.btn-devolver:hover:not(:disabled) { background: #111; }
+.btn-devolver:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-spinner {
+  width: 12px; height: 12px;
+  border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin .6s linear infinite;
+}
+
+/* Fila de fecha devolución */
+.prestamo-devolucion {
+  display: flex; align-items: center; gap: .4rem;
+  font-size: .75rem; color: #5a7a5a;
+}
+.dev-label { color: #9ab5a0; }
+.dev-fecha  { color: #3d5a3d; }
+.dev-urgencia {
+  font-weight: 700; font-size: .7rem;
+  padding: .1rem .45rem; border-radius: 20px;
+}
+.dev-warn    { background: var(--gold-pale); color: var(--gold-mid); }
+.dev-overdue { background: #fff0f0; color: #b91c1c; }
+
+/* ── Historial colapsable ────────────────────────────────────────────────── */
+.historial-toggle {
+  width: 100%; padding: 1.1rem 1.375rem .875rem;
+  display: flex; justify-content: space-between; align-items: center;
+  background: none; border: none; cursor: pointer;
+  text-align: left;
+  transition: background .15s;
+}
+.historial-toggle:hover { background: #fafef8; }
+
+.toggle-chevron {
+  color: #9ab5a0; flex-shrink: 0;
+  transition: transform .28s cubic-bezier(.4,0,.2,1);
+}
+.chevron-open { transform: rotate(180deg); }
+
+/* Transición historial */
+.historial-slide-enter-active { transition: all .3s cubic-bezier(.4,0,.2,1); }
+.historial-slide-leave-active { transition: all .2s ease-in; }
+.historial-slide-enter-from   { opacity: 0; transform: translateY(-8px); }
+.historial-slide-leave-to     { opacity: 0; transform: translateY(-4px); }
+
+.historial-body {
+  border-top: 1.5px solid #eef5f0;
+  padding: .875rem 1.375rem 1.1rem;
+  display: flex; flex-direction: column; gap: .875rem;
+}
+
+/* Buscador historial */
+.historial-search {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .5rem .75rem;
+  background: var(--cream);
+  border: 1.5px solid var(--cream-border); border-radius: 8px;
+  color: #9ab5a0;
+}
+.historial-input {
+  flex: 1; border: none; background: none;
+  font-family: 'DM Sans', sans-serif; font-size: .82rem;
+  color: #1a2e1a; outline: none;
+}
+.historial-input::placeholder { color: #9ab5a0; }
+
+/* Items historial */
+.historial-lista { display: flex; flex-direction: column; gap: .375rem; }
+
+.historial-item {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .625rem .75rem;
+  border-radius: 9px; background: #f8fdf9;
+  border: 1px solid #eef5f0;
+  transition: background .15s;
+}
+.historial-item:hover { background: #f0faf3; }
+
+.historial-item-ico {
+  width: 28px; height: 28px;
+  background: var(--green-pale); border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--green-mid); flex-shrink: 0;
+}
+.historial-item-info { flex: 1; min-width: 0; }
+.historial-item-nombre {
+  font-size: .82rem; font-weight: 600; color: #1a2e1a;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0;
+}
+.historial-item-fechas {
+  font-size: .72rem; color: #9ab5a0; margin: 1px 0 0;
+}
+.historial-badge {
+  font-size: .65rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; padding: .15rem .5rem; border-radius: 20px;
+  background: var(--green-pale); color: var(--green-dark);
+  border: 1px solid #b8ddc8; flex-shrink: 0;
+}
+
+/* Paginación historial */
+.historial-paginacion {
+  display: flex; justify-content: center; align-items: center; gap: .75rem;
+  padding-top: .5rem; border-top: 1px solid #eef5f0;
+}
+.pag-btn {
+  padding: .35rem .75rem;
+  background: #fff; border: 1.5px solid var(--cream-border);
+  border-radius: 7px; font-size: .78rem; font-weight: 600;
+  color: var(--green-mid); cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all .15s;
+}
+.pag-btn:hover:not(:disabled) { background: #111; color: #fff; border-color: #111; }
+.pag-btn:disabled { opacity: .4; cursor: not-allowed; }
+.pag-info { font-size: .78rem; color: #5a7a5a; }
+
+/* ── Toasts ──────────────────────────────────────────────────────────────── */
 .toast {
   position: fixed; bottom: 2rem; right: 2rem;
-  display: flex; align-items: flex-start; gap: 0.75rem;
-  padding: 1rem 1.25rem; border-radius: 12px;
-  max-width: 360px; z-index: 9999;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-  color: #fff;
+  display: flex; align-items: flex-start; gap: .75rem;
+  padding: .875rem 1.1rem; border-radius: 12px;
+  max-width: 340px; z-index: 9999;
+  box-shadow: 0 8px 30px rgba(0,0,0,.15);
+  color: #fff; font-size: .82rem;
 }
-.toast-success  { background: #16a34a; }
-.toast-error    { background: #d62828; }
-.toast-info     { background: #6366f1; }
-.toast-icon     { font-size: 1.25rem; flex-shrink: 0; margin-top: 2px; }
-.toast-content strong { display: block; font-size: 0.9rem; margin-bottom: 2px; }
-.toast-content p      { margin: 0; font-size: 0.8rem; opacity: 0.9; }
+.toast-success { background: #16a34a; }
+.toast-error   { background: #d62828; }
+.toast-ico     { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.toast strong  { display: block; font-size: .875rem; margin-bottom: 2px; }
+.toast p       { margin: 0; opacity: .9; font-size: .78rem; }
 .toast-close {
-  background: none; border: none; color: rgba(255,255,255,0.7);
-  font-size: 1.2rem; cursor: pointer; margin-left: auto; padding: 0;
-  line-height: 1;
+  background: none; border: none; color: rgba(255,255,255,.7);
+  font-size: 1.1rem; cursor: pointer; margin-left: auto; padding: 0; line-height: 1;
 }
 .toast-close:hover { color: #fff; }
 
-/* ── Toast multa (especial) ──────────────────────────────────────────────── */
 .toast-multa {
   position: fixed; bottom: 2rem; right: 2rem;
   display: flex; align-items: flex-start; gap: 1rem;
-  padding: 1.25rem 1.5rem;
-  background: #fff;
-  border: 2px solid #f5c0c0;
-  border-left: 5px solid #d62828;
-  border-radius: 14px;
-  max-width: 400px; z-index: 9999;
-  box-shadow: 0 8px 40px rgba(214, 40, 40, 0.2);
+  padding: 1.1rem 1.25rem;
+  background: #fff; border: 2px solid #f5c0c0;
+  border-left: 5px solid #d62828; border-radius: 14px;
+  max-width: 380px; z-index: 9999;
+  box-shadow: 0 8px 40px rgba(214,40,40,.15);
 }
-.toast-icon-multa   { font-size: 1.75rem; flex-shrink: 0; margin-top: 2px; }
-.toast-content-multa { flex: 1; }
-.toast-multa-titulo { display: block; font-size: 1rem; font-weight: 800; color: #d62828; margin-bottom: 4px; }
-.toast-multa-monto  { font-size: 1.4rem; font-weight: 800; color: #1a1a2e; margin: 0 0 4px; }
-.toast-multa-desc   { font-size: 0.8rem; color: #475569; margin: 0 0 0.75rem; line-height: 1.5; }
-.toast-multa-btn {
+.toast-multa-ico    { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+.toast-multa-body   { flex: 1; }
+.toast-multa-body strong { display: block; font-size: .9rem; font-weight: 800; color: #d62828; margin-bottom: 3px; }
+.toast-multa-monto  { font-size: 1.3rem; font-weight: 800; color: #1a1a2e; margin: 0 0 3px; }
+.toast-multa-desc   { font-size: .75rem; color: #475569; margin: 0 0 .6rem; line-height: 1.5; }
+.toast-multa-cta {
   background: #d62828; color: #fff;
-  border: none; border-radius: 8px;
-  padding: 0.4rem 0.9rem; font-size: 0.8rem; font-weight: 700;
-  cursor: pointer; transition: background 0.2s;
+  border: none; border-radius: 7px;
+  padding: .35rem .8rem; font-size: .75rem; font-weight: 700;
+  cursor: pointer; transition: background .2s;
 }
-.toast-multa-btn:hover { background: #b91c1c; }
-.toast-close-multa {
-  background: none; border: none;
-  font-size: 1.3rem; color: #94a3b8;
-  cursor: pointer; padding: 0; line-height: 1;
-}
-.toast-close-multa:hover { color: #1a1a2e; }
+.toast-multa-cta:hover { background: #b91c1c; }
+.toast-close-dark { color: #94a3b8; }
+.toast-close-dark:hover { color: #1a1a2e; }
 
-/* ── Transición toast ────────────────────────────────────────────────────── */
-.toast-fade-enter-active,
-.toast-fade-leave-active { transition: all 0.3s ease; }
-.toast-fade-enter-from,
-.toast-fade-leave-to     { opacity: 0; transform: translateX(20px); }
+.toast-in-enter-active,
+.toast-in-leave-active { transition: all .3s ease; }
+.toast-in-enter-from,
+.toast-in-leave-to { opacity: 0; transform: translateX(16px); }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .dashboard-header { padding: 20px; border-radius: 0 0 20px 20px; }
-  .header-content   { flex-direction: column; text-align: center; }
-  .user-info-card   { width: 100%; justify-content: center; }
-  .actions-grid     { grid-template-columns: 1fr; }
-  .stats-grid       { grid-template-columns: repeat(2, 1fr); }
-  .banner-multas    { flex-direction: column; text-align: center; margin: 1rem; }
+@media (max-width: 600px) {
+  .page-header    { padding: 1.5rem 1.25rem 1.25rem; }
+  .header-inner   { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .header-stats   { width: 100%; }
+  .saludo-nombre  { font-size: 1.4rem; }
+  .page-body      { padding: 1rem; }
+  .banner-multas  { margin: 1rem 1rem 0; flex-direction: column; text-align: center; }
+  .prestamo-top   { flex-direction: column; }
+  .prestamo-derecha { align-self: flex-start; }
   .toast, .toast-multa { left: 1rem; right: 1rem; bottom: 1rem; max-width: none; }
 }
 </style>

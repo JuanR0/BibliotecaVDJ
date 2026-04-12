@@ -848,8 +848,8 @@ onMounted(() => { loadBooks(); verificarMultas() })
   transition: all .2s;
 }
 .view-btn:hover { background: #111; color: #fff; border-color: #111; }
-.view-btn.active { background: var(--green-mid); color: #fff; border-color: var(--green-mid); }
-.view-btn.active:hover { background: #111; border-color: #111; }
+.view-btn.active { background: var(--green-mid); color: #000000; border-color: var(--green-mid); }
+.view-btn.active:hover { background: #fffbfb; border-color: #111; }
 
 .sort-select {
   border: 1.5px solid var(--cream-border); border-radius: 8px;
@@ -966,7 +966,7 @@ onMounted(() => { loadBooks(); verificarMultas() })
 }
 
 .btn-detail   { background: #f0f7f2; color: var(--green-mid);  border-color: #b8ddc8; }
-.btn-loan     { background: var(--green-mid); color: #fff; border-color: var(--green-mid); box-shadow: 0 2px 8px rgba(45,106,79,.25); }
+.btn-loan     { background: var(--green-mid); color: #000000; border-color: var(--green-mid); box-shadow: 0 2px 8px rgba(45,106,79,.25); }
 .btn-devolver { background: #fef9e7; color: var(--gold-dark); border-color: var(--gold-light); }
 .btn-editar   { background: #fef3cc; color: #7a5200; border-color: var(--gold-light); }
 .btn-eliminar { background: #fff0f0; color: #b91c1c; border-color: #fca5a5; }
@@ -1090,17 +1090,24 @@ onMounted(() => { loadBooks(); verificarMultas() })
 /* ── Modal ───────────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,.45);
+  background: rgba(26, 47, 26, 0.45); /* verde oscuro suave en lugar de negro */
   display: flex; align-items: center; justify-content: center;
-  z-index: 2000; backdrop-filter: blur(3px);
+  z-index: 2000;
+  backdrop-filter: blur(6px); /* el blur hace el trabajo pesado */
 }
+
 .modal-content {
-  background: var(--card-bg); border-radius: 16px;
-  width: 90%; max-width: 480px;
+  background: var(--card-bg);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 480px;
   border: 1.5px solid var(--cream-border);
   box-shadow: 0 20px 60px rgba(0,0,0,.2);
   animation: modalIn .25s ease-out;
+  position: relative;  /* ← agregar esto */
+  z-index: 1;          /* ← agregar esto */
 }
+
 @keyframes modalIn {
   from { opacity: 0; transform: translateY(-16px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -1112,13 +1119,13 @@ onMounted(() => { loadBooks(); verificarMultas() })
 }
 .modal-header h3 { margin: 0; color: var(--green-dark); font-family: 'Playfair Display', serif; font-size: 1.2rem; }
 .modal-close-btn {
-  background: none; border: none; font-size: 1.4rem; color: #9ab5a0;
+  background: none; border: none; font-size: 1.4rem; color: #000000;
   cursor: pointer; width: 28px; height: 28px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   transition: background .15s;
 }
 .modal-close-btn:hover { background: #f0f9f4; color: var(--green-dark); }
-.modal-body { padding: 1.25rem 1.5rem; font-size: .88rem; color: #3d5a3d; line-height: 1.6; }
+.modal-body { padding: 1.25rem 1.5rem; font-size: .88rem; color: #060f03; line-height: 1.6; }
 
 .book-to-delete {
   margin: 1rem 0; padding: 1rem;
@@ -1146,7 +1153,7 @@ onMounted(() => { loadBooks(); verificarMultas() })
   padding: .45rem 1rem; font-size: .85rem; font-weight: 600;
   cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s;
 }
-.btn-modal-cancel:hover { background: #111; color: #fff; border-color: #111; }
+.btn-modal-cancel:hover { background: #ff4f4f; color: #fff; border-color: #111; }
 .btn-modal-delete, .btn-modal-confirm {
   background: var(--green-mid); color: #fff;
   border: none; border-radius: 8px;
@@ -1155,7 +1162,7 @@ onMounted(() => { loadBooks(); verificarMultas() })
   display: inline-flex; align-items: center; gap: .4rem;
 }
 .btn-modal-delete { background: #000; }
-.btn-modal-delete:hover, .btn-modal-confirm:hover { background: #dc2626; }
+.btn-modal-delete:hover, .btn-modal-confirm:hover { background: #2c7709; }
 .btn-modal-delete:disabled, .btn-modal-confirm:disabled { opacity: .55; cursor: not-allowed; }
 
 /* ── Toast ───────────────────────────────────────────────────────────────── */
