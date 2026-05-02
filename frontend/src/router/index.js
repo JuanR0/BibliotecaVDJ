@@ -22,9 +22,12 @@ import MobiliarioCreateView from '@/views/admin/FurnitureCreate.vue'
 import MobiliarioEditView from '@/views/admin/EditFurniture.vue'
 
 import AreasManagement from '@/views/admin/AreasManagement.vue'
+import AreasEstudio from '@/views/user/AreasEstudio.vue'
+import SolicitudesArea from '@/views/admin/SolicitudesArea.vue'
 
 import MisMultas from '@/views/user/Multas.vue'
 import MultasPendientes from '@/views/admin/MultasPendientes.vue'
+import DevolucionesPendientes from '@/views/admin/DevolucionesPendientes.vue'
 
 import Error404 from '@/views/NotFoundView.vue'
 
@@ -163,6 +166,8 @@ const routes = [
     props: true
   },
 
+  // ========== RUTAS DE AREAS ==========
+
   {
     path: '/admin/areas',
     name: 'AreasManagement',
@@ -172,6 +177,21 @@ const routes = [
       requiredPermission: 'canViewAreas'
     }
   },
+
+  {
+    path: '/areas-estudio',
+    name: 'AreasEstudio',
+    component: AreasEstudio,
+    meta: { requiresAuth: true }
+  },
+
+  { 
+    path: '/admin/solicitudes-areas', 
+    name: 'SolicitudesAreas', 
+    component: SolicitudesArea, 
+    meta: { requiresAuth: true, requiresAdmin: true } 
+  },
+
 
   // ========== RUTAS DE MULTAS ==========
   
@@ -192,6 +212,16 @@ const routes = [
     {
       requiresAuth: true,
       requiresAdminAdvanced: true
+    }
+  },
+
+  {
+    path: '/admin/devoluciones-pendientes',
+    name: 'DevolucionesPendientes',
+    component: DevolucionesPendientes,
+    meta: 
+    { 
+      requiresAuth: true, requiresAdminAdvanced: true 
     }
   },
 

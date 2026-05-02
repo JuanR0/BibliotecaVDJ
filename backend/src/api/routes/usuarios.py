@@ -252,3 +252,43 @@ async def eliminar_usuario(
     await db.commit()
     
     return {"message": "Usuario desactivado exitosamente"}
+
+@router.patch("/{usuario_id}/reset-password")
+async def resetear_contrasena(
+    usuario_id: int,
+    db: AsyncSession = Depends(get_db),
+    usuario_actual: Usuario = Depends(requerir_puede_gestionar_recursos)
+):
+    if usuario_id == usuario_actual.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes resetear tu propia contraseña desde aquí"
+        )
+
+    result = await db.execute(
+        select(Usuario).filter(Usuario.id == usuario_id)
+    )
+    usuario = result.scalar_one_or_none()
+
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+
+    if usuario.tipo_usuario_id == 4:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No se puede resetear la contraseña de un Super Admin"
+        )
+
+    CONTRASENA_TEMPORAL = "biblioteca2025"
+    usuario.clave_acceso = obtener_hash_clave(CONTRASENA_TEMPORAL)
+
+    await db.commit()
+
+    return {
+        "mensaje": f"Contraseña reseteada. El usuario debe ingresar con 'biblioteca2025'.",
+        "usuario_id": usuario_id,
+        "usuario_nombre": usuario.nombre_completo
+    }

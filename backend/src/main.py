@@ -10,6 +10,8 @@ import logging
 from config.database import verify_connection, create_tables
 from api.routes import auth, usuarios, libros, libros_virtuales, areas, equipos_computo, mobiliario, tesis, prestamos_libro, prestamos_area, prestamos_equipo_computo, multas
 
+from src.api.routes.chat import router as chat_router
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,7 @@ app.include_router(prestamos_libro.router)
 app.include_router(prestamos_area.router)
 app.include_router(prestamos_equipo_computo.router)
 app.include_router(multas.router)
+app.include_router(chat_router)
 
 @app.on_event("startup")
 async def startup_event():

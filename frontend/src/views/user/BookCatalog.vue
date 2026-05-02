@@ -63,7 +63,8 @@
           </div>
           <div class="filter-group">
             <label>Año de adquisición:</label>
-            <input v-model="filters.ano_adquisicion" type="number" placeholder="Ej: 2023" class="filter-input" min="1900" :max="new Date().getFullYear()" />
+            <input v-model="filters.ano_adquisicion" type="number" placeholder="Ej: 2023"
+              class="filter-input" min="1900" :max="new Date().getFullYear()" />
           </div>
           <div class="filter-group">
             <label>Editorial:</label>
@@ -137,9 +138,16 @@
             </div>
           </div>
 
+          <!-- Botones — clases vienen de buttons.css -->
           <div class="book-actions">
             <button @click="viewBookDetails(book.id)" class="btn-detail">Detalles...</button>
-            <button v-if="book.es_prestable && book.estado_id === 1 && userCanRequestLoans" @click="requestLoanModal(book)" class="btn-loan" :disabled="multasPendientes" :title="multasPendientes ? 'Tienes multas pendientes' : 'Solicitar préstamo'">
+            <button
+              v-if="book.es_prestable && book.estado_id === 1 && userCanRequestLoans"
+              @click="requestLoanModal(book)"
+              class="btn-loan"
+              :disabled="multasPendientes"
+              :title="multasPendientes ? 'Tienes multas pendientes' : 'Solicitar préstamo'"
+            >
               {{ multasPendientes ? '🚫 Bloqueado' : 'Solicitar' }}
             </button>
             <button v-if="userCanRequestLoans && book.estado_id === 2" @click="handleReturn(book)" class="btn-devolver">Devolver</button>
@@ -203,7 +211,10 @@
             <p><strong>Autor:</strong> {{ selectedBook?.autor }}</p>
             <div class="filter-group" style="margin-top:1rem">
               <label>Fecha de devolución:</label>
-              <input type="date" v-model="loanDate" class="filter-input" :min="fechaMinima"/><p v-if="loanDate && !fechaEsValida" class="fecha-error">La fecha de devolución no puede ser anterior a hoy.</p>
+              <input type="date" v-model="loanDate" class="filter-input" :min="fechaMinima"/>
+              <p v-if="loanDate && !fechaEsValida" class="fecha-error">
+                La fecha de devolución no puede ser anterior a hoy.
+              </p>
             </div>
             <div class="filter-group" style="margin-top:.75rem">
               <label>Observaciones:</label>
@@ -219,7 +230,7 @@
         </div>
       </div>
 
-      <!-- Toast eliminacion -->
+      <!-- Toast eliminación -->
       <div v-if="showSuccessToast" class="toast">
         <span class="toast-icon">✅</span>
         <div class="toast-content">
@@ -229,7 +240,7 @@
         <button @click="showSuccessToast = false" class="toast-close">×</button>
       </div>
 
-      <!-- Toast prestamo -->
+      <!-- Toast préstamo -->
       <div v-if="showLoanSuccessToast" class="toast toast-loan-success">
         <span class="toast-icon">📚</span>
         <div class="toast-content">
@@ -272,8 +283,14 @@
                 <td>
                   <div class="td-actions">
                     <button @click="viewBookDetails(book.id)" class="tbl-btn" title="Ver detalles">🔍</button>
-                    <button v-if="book.es_prestable && book.estado_id === 1 && userCanRequestLoans" @click="requestLoanModal(book)" class="btn-loan" :disabled="multasPendientes" :title="multasPendientes ? 'Tienes multas pendientes' : 'Solicitar préstamo'">
-                      {{ multasPendientes ? '🚫 Bloqueado' : 'Solicitar' }}
+                    <button
+                      v-if="book.es_prestable && book.estado_id === 1 && userCanRequestLoans"
+                      @click="requestLoanModal(book)"
+                      class="btn-loan btn-sm"
+                      :disabled="multasPendientes"
+                      :title="multasPendientes ? 'Tienes multas pendientes' : 'Solicitar préstamo'"
+                    >
+                      {{ multasPendientes ? '🚫' : 'Solicitar' }}
                     </button>
                     <button v-if="canEditBooks" @click="goToEditPage(book.id)" class="tbl-btn tbl-gold" title="Editar">✏️</button>
                     <button v-if="canDelete" @click="confirmDelete(book)" class="tbl-btn tbl-red" title="Eliminar" :disabled="book.estado_nombre === 'Prestado'">🗑️</button>
@@ -331,16 +348,14 @@ import { bookService } from '@/services/books'
 import { useAuthStore } from '@/stores/auth'
 import { usePermissions } from '@/composables/usePermissions'
 import { prestamoLibroService } from '@/services/PrestamoLibro'
-import { useMultas } from '@/composables/useMultas'
 import { multasService } from '@/services/multas'
 
+// ── Import centralizado de botones ─────────────────────────────────────────
 import '@/styles/buttons.css'
 
-const router = useRouter()
+const router    = useRouter()
 const authStore = useAuthStore()
-
 const { hasPermission } = usePermissions()
-const {tieneMultasPendientes} = useMultas()
 
 // ── Estado UI ──────────────────────────────────────────────────────────────
 const searchQuery         = ref('')
@@ -353,23 +368,22 @@ const currentPage         = ref(1)
 const itemsPerPage        = ref(12)
 
 // ── Estado préstamo ────────────────────────────────────────────────────────
-const isProcessingLoan    = ref(false)
-const showLoanModal       = ref(false)
-const selectedBook        = ref(null)
-const loanDate            = ref('')
-const loanObservaciones   = ref('')
+const isProcessingLoan  = ref(false)
+const showLoanModal     = ref(false)
+const selectedBook      = ref(null)
+const loanDate          = ref('')
+const loanObservaciones = ref('')
+const showLoanSuccessToast = ref(false)
 
-// ── Estado multas ────────────────────────────────────────────────────────
+// ── Estado multas ──────────────────────────────────────────────────────────
 const multasPendientes = ref(false)
 
 // ── Estado eliminación ─────────────────────────────────────────────────────
-const isDeleting          = ref(false)
-const deletingBookId      = ref(null)
-const showDeleteModal     = ref(false)
-const bookToDelete        = ref(null)
-const showSuccessToast    = ref(false)
-
-const showLoanSuccessToast = ref(false)
+const isDeleting       = ref(false)
+const deletingBookId   = ref(null)
+const showDeleteModal  = ref(false)
+const bookToDelete     = ref(null)
+const showSuccessToast = ref(false)
 
 // ── Datos ──────────────────────────────────────────────────────────────────
 const books       = ref([])
@@ -405,7 +419,9 @@ const filteredBooks = computed(() => {
 
   if (filters.value.ano_adquisicion) {
     const year = parseInt(filters.value.ano_adquisicion)
-    result = result.filter(b => b.fecha_adquisicion && new Date(b.fecha_adquisicion).getFullYear() === year)
+    result = result.filter(b =>
+      b.fecha_adquisicion && new Date(b.fecha_adquisicion).getFullYear() === year
+    )
   }
 
   if (searchQuery.value.trim()) {
@@ -434,14 +450,14 @@ const filteredBooks = computed(() => {
   })
 })
 
-const totalPages   = computed(() => Math.ceil(filteredBooks.value.length / itemsPerPage.value) || 1)
+const totalPages     = computed(() => Math.ceil(filteredBooks.value.length / itemsPerPage.value) || 1)
 const paginatedBooks = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value
   return filteredBooks.value.slice(start, start + itemsPerPage.value)
 })
-const startItem    = computed(() => (currentPage.value - 1) * itemsPerPage.value + 1)
-const endItem      = computed(() => Math.min(currentPage.value * itemsPerPage.value, filteredBooks.value.length))
-const visiblePages = computed(() => {
+const startItem      = computed(() => (currentPage.value - 1) * itemsPerPage.value + 1)
+const endItem        = computed(() => Math.min(currentPage.value * itemsPerPage.value, filteredBooks.value.length))
+const visiblePages   = computed(() => {
   const max = 5, total = totalPages.value
   if (total <= max) return Array.from({ length: total }, (_, i) => i + 1)
   let start = Math.max(1, currentPage.value - 2)
@@ -451,6 +467,10 @@ const visiblePages = computed(() => {
 })
 const hasMorePages    = computed(() => currentPage.value < totalPages.value - 2)
 const hasActiveFilters = computed(() => Object.values(filters.value).some(v => v !== '' && v != null))
+
+// Validación fecha
+const fechaMinima  = computed(() => new Date().toISOString().split('T')[0])
+const fechaEsValida = computed(() => !!loanDate.value && loanDate.value >= fechaMinima.value)
 
 // ── Carga de datos ─────────────────────────────────────────────────────────
 const loadBooks = async () => {
@@ -494,9 +514,7 @@ const handleSearch = async () => {
     const response = await bookService.searchBooks(searchQuery.value, filters.value)
     if (response?.libros) books.value = response.libros
     calculateStats()
-  } catch {
-    // fallback: filteredBooks aplica searchQuery localmente
-  } finally {
+  } catch { /* fallback local */ } finally {
     isLoading.value = false
   }
 }
@@ -508,8 +526,7 @@ const resetFilters = () => {
   loadBooks()
 }
 
-
-//VERIFICACION DE MULTAS
+// ── Verificar multas ───────────────────────────────────────────────────────
 const verificarMultas = async () => {
   try {
     const userId = authStore.userId
@@ -520,19 +537,8 @@ const verificarMultas = async () => {
   } catch { /* silencioso */ }
 }
 
-//VALIDACION DE FECHAS
-const fechaMinima = computed(() => {
-  const hoy = new Date()
-  return hoy.toISOString().split('T')[0]
-})
-
-const fechaEsValida = computed(() => {
-  if (!loanDate.value) return false
-  return loanDate.value >= fechaMinima.value
-})
-
 // ── Helpers ────────────────────────────────────────────────────────────────
-const CARD_COLORS = ['card-c1', 'card-c2', 'card-c3']
+const CARD_COLORS    = ['card-c1', 'card-c2', 'card-c3']
 const getCardColorClass = (id) => CARD_COLORS[id % CARD_COLORS.length]
 
 const STATUS_CLASS = { 1: 'status-available', 2: 'status-borrowed', 3: 'status-repair', 4: 'status-lost' }
@@ -603,55 +609,32 @@ const recoverBook = async (book) => {
   }
 }
 
-//PRESTAMO
-
 const requestLoan = async () => {
   if (!selectedBook.value) return
- 
-  if (!loanDate.value) {
-    alert('Debes seleccionar una fecha de devolución')
-    return
-  }
- 
-  if (loanDate.value < fechaMinima.value) {
-    alert('La fecha de devolución no puede ser anterior a hoy')
-    return
-  }
- 
-  // Bloquear si tiene multas pendientes
+  if (!loanDate.value) { alert('Debes seleccionar una fecha de devolución'); return }
+  if (!fechaEsValida.value) { alert('La fecha de devolución no puede ser anterior a hoy'); return }
   if (multasPendientes.value) {
     alert('No puedes solicitar préstamos con multas pendientes. Liquida tus multas en la biblioteca.')
     return
   }
- 
+
   isProcessingLoan.value = true
   try {
     await prestamoLibroService.crearPrestamo({
       libro_id:                  selectedBook.value.id,
       usuario_prestado_id:       authStore.user?.id,
-      // Enviar como string ISO sin conversión que causa desfase de zona horaria
       fecha_devolucion_esperada: `${loanDate.value}T12:00:00`,
       observaciones:             loanObservaciones.value
     })
- 
     const target = books.value.find(b => b.id === selectedBook.value.id)
     if (target) { target.estado_id = 2; target.estado_nombre = 'Prestado' }
- 
     cerrarLoanModal()
- 
-    // Toast en lugar de alert
     showLoanSuccessToast.value = true
     setTimeout(() => { showLoanSuccessToast.value = false }, 3500)
- 
   } catch (err) {
     const detail = err.response?.data?.detail || 'Error al crear préstamo'
- 
-    // Si el error es por multas (403), mostrar mensaje claro
-    if (err.response?.status === 403) {
-      alert(`⚠️ ${detail}`)
-    } else {
-      alert(detail)
-    }
+    if (err.response?.status === 403) { alert(`⚠️ ${detail}`) }
+    else { alert(detail) }
   } finally {
     isProcessingLoan.value = false
   }
@@ -681,16 +664,21 @@ watch(searchQuery, (val) => {
 })
 watch(filters, () => { currentPage.value = 1 }, { deep: true })
 
-
 onMounted(() => { loadBooks(); verificarMultas() })
-
-
 </script>
 
 
 <style scoped>
 /* ── Fuentes ────────────────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap');
+
+/*
+ * NOTA: Los estilos de botones (.btn-detail, .btn-loan, .btn-devolver,
+ * .btn-editar, .btn-eliminar, .btn-recuperar, .btn-primary, .btn-outline,
+ * .btn-danger, .tbl-btn y variantes) viven en:
+ *   src/styles/buttons.css
+ * importado en el <script setup> con: import '@/styles/buttons.css'
+ */
 
 /* ── Variables ─────────────────────────────────────────────────────────── */
 :root {
@@ -762,16 +750,11 @@ onMounted(() => { loadBooks(); verificarMultas() })
 
 /* ── Búsqueda ────────────────────────────────────────────────────────────── */
 .search-section { margin-bottom: 1.25rem; }
-
 .search-bar {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .6rem .85rem;
-  background: #ffffff;
+  display: flex; align-items: center; gap: .5rem;
+  padding: .6rem .85rem; background: #ffffff;
   border: 1.5px solid var(--cream-border);
-  border-radius: 14px;
-  box-shadow: var(--shadow-sm);
+  border-radius: 14px; box-shadow: var(--shadow-sm);
 }
 .search-icon-inner { font-size: 1rem; color: #9ab5a0; }
 .search-input {
@@ -786,9 +769,9 @@ onMounted(() => { loadBooks(); verificarMultas() })
   border: none; border-radius: 10px;
   padding: .45rem 1.1rem; font-size: .85rem; font-weight: 600;
   cursor: pointer; font-family: 'DM Sans', sans-serif;
-  transition: background .2s, color .2s;
+  transition: background .2s;
 }
-.btn-search:hover { background: #111; color: #fff; }
+.btn-search:hover { background: #111; }
 
 .btn-filter {
   background: var(--gold-pale); color: var(--gold-dark);
@@ -801,39 +784,33 @@ onMounted(() => { loadBooks(); verificarMultas() })
 
 /* Filtros avanzados */
 .advanced-filters {
-  margin-top: .75rem;
-  padding: 1.25rem 1.5rem;
-  background: var(--card-bg);
-  border: 1.5px solid var(--cream-border);
-  border-radius: 14px;
-  box-shadow: var(--shadow-sm);
+  margin-top: .75rem; padding: 1.25rem 1.5rem;
+  background: var(--card-bg); border: 1.5px solid var(--cream-border);
+  border-radius: 14px; box-shadow: var(--shadow-sm);
 }
 .filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem; margin-bottom: 1rem;
 }
 .filter-group { display: flex; flex-direction: column; gap: .4rem; }
 .filter-group label { font-size: .83rem; font-weight: 600; color: var(--green-dark); }
 .filter-select, .filter-input {
-  padding: .45rem .75rem;
-  border: 1.5px solid var(--cream-border);
-  border-radius: 8px; background: #fff;
-  font-size: .88rem; font-family: 'DM Sans', sans-serif;
-  color: #1a2e1a; outline: none; width: 100%;
-  transition: border-color .2s;
+  padding: .45rem .75rem; border: 1.5px solid var(--cream-border);
+  border-radius: 8px; background: #fff; font-size: .88rem;
+  font-family: 'DM Sans', sans-serif; color: #1a2e1a; outline: none;
+  width: 100%; transition: border-color .2s;
 }
 .filter-select:focus, .filter-input:focus { border-color: var(--green-light); }
 .filter-hint { font-size: .75rem; color: #9ab5a0; font-style: italic; }
 .filter-actions { display: flex; gap: .75rem; justify-content: flex-end; }
+.fecha-error { font-size: .75rem; color: #b91c1c; margin-top: .25rem; }
 
 /* ── Controles de vista ──────────────────────────────────────────────────── */
 .results-section { margin-top: .5rem; }
 .view-controls {
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 1rem; padding: .75rem 1rem;
-  background: var(--card-bg);
-  border: 1.5px solid var(--cream-border);
+  background: var(--card-bg); border: 1.5px solid var(--cream-border);
   border-radius: 12px; box-shadow: var(--shadow-sm);
 }
 .view-options, .sort-options { display: flex; align-items: center; gap: .5rem; }
@@ -841,14 +818,12 @@ onMounted(() => { loadBooks(); verificarMultas() })
 
 .view-btn {
   background: #fff; color: var(--green-mid);
-  border: 1.5px solid var(--cream-border);
-  border-radius: 8px; padding: .38rem .9rem;
-  font-size: .82rem; font-weight: 500; cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
-  transition: all .2s;
+  border: 1.5px solid var(--cream-border); border-radius: 8px;
+  padding: .38rem .9rem; font-size: .82rem; font-weight: 500;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .2s;
 }
 .view-btn:hover { background: #111; color: #fff; border-color: #111; }
-.view-btn.active { background: var(--green-mid); color: #000000; border-color: var(--green-mid); }
+.view-btn.active { background: var(--green-mid); color: #000; border-color: var(--green-mid); }
 .view-btn.active:hover { background: #fffbfb; border-color: #111; }
 
 .sort-select {
@@ -862,8 +837,7 @@ onMounted(() => { loadBooks(); verificarMultas() })
 .loading-state { text-align: center; padding: 3rem; }
 .spinner {
   width: 44px; height: 44px;
-  border: 3px solid var(--green-pale);
-  border-top-color: var(--green-mid);
+  border: 3px solid var(--green-pale); border-top-color: var(--green-mid);
   border-radius: 50%; margin: 0 auto 1rem;
   animation: spin 1s linear infinite;
 }
@@ -871,143 +845,70 @@ onMounted(() => { loadBooks(); verificarMultas() })
 
 /* ── Grid ────────────────────────────────────────────────────────────────── */
 .books-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.25rem; margin-bottom: 1.5rem;
 }
 .book-card {
-  background: var(--card-bg);
-  border: 1.5px solid var(--cream-border);
-  border-radius: 14px; overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  display: flex; flex-direction: column;
-  transition: transform .2s, box-shadow .2s;
+  background: var(--card-bg); border: 1.5px solid var(--cream-border);
+  border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s;
 }
 .book-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
 
 .book-card-top {
-  height: 110px; display: flex; align-items: center; justify-content: center;
-  position: relative;
+  height: 110px; display: flex; align-items: center;
+  justify-content: center; position: relative;
 }
 .card-c1 { background: linear-gradient(135deg, #1a4731, #3a7d5e); }
 .card-c2 { background: linear-gradient(135deg, #92650a, #c9900c); }
 .card-c3 { background: linear-gradient(135deg, #1a4731, #c9900c 130%); }
 
-.book-icon-lg { font-size: 2.8rem; opacity: .85; }
-.badge-status {
-  position: absolute; top: .55rem; left: .55rem;
-  padding: .2rem .6rem; border-radius: 20px;
-  font-size: .7rem; font-weight: 700;
-}
-.card-code-badge {
-  position: absolute; top: .55rem; right: .55rem;
-  background: rgba(0,0,0,.28); color: rgba(255,255,255,.9);
-  padding: .15rem .45rem; border-radius: 6px;
-  font-size: .68rem; font-family: monospace;
-}
-.badge-prestable {
-  position: absolute; bottom: .55rem; right: .55rem;
-  background: rgba(255,255,255,.88); color: var(--green-mid);
-  padding: .18rem .5rem; border-radius: 20px;
-  font-size: .68rem; font-weight: 700;
-}
+.book-icon-lg   { font-size: 2.8rem; opacity: .85; }
+.badge-status   { position: absolute; top: .55rem; left: .55rem; padding: .2rem .6rem; border-radius: 20px; font-size: .7rem; font-weight: 700; }
+.card-code-badge{ position: absolute; top: .55rem; right: .55rem; background: rgba(0,0,0,.28); color: rgba(255,255,255,.9); padding: .15rem .45rem; border-radius: 6px; font-size: .68rem; font-family: monospace; }
+.badge-prestable{ position: absolute; bottom: .55rem; right: .55rem; background: rgba(255,255,255,.88); color: var(--green-mid); padding: .18rem .5rem; border-radius: 20px; font-size: .68rem; font-weight: 700; }
 
 .status-available { background: rgba(255,255,255,.9); color: #1a4731; }
 .status-borrowed  { background: rgba(244,197,66,.9);  color: #5a3a00; }
 .status-repair    { background: rgba(219,234,254,.9); color: #1e3a5f; }
 .status-lost      { background: rgba(254,226,226,.9); color: #7f1d1d; }
 
-.book-body { padding: 1.1rem 1.1rem .75rem; flex: 1; }
-.book-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 1rem; font-weight: 600;
-  color: #1a2e1a; line-height: 1.35; margin-bottom: .3rem;
-}
-.book-author { font-size: .78rem; color: #5a7a5a; margin-bottom: .75rem; }
-.book-details {
-  background: #f3faf5; padding: .75rem;
-  border-radius: 8px; margin-bottom: .65rem;
-  font-size: .78rem;
-}
-.book-details p { margin: .2rem 0; color: #3d5a3d; }
+.book-body    { padding: 1.1rem 1.1rem .75rem; flex: 1; }
+.book-title   { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 600; color: #1a2e1a; line-height: 1.35; margin-bottom: .3rem; }
+.book-author  { font-size: .78rem; color: #5a7a5a; margin-bottom: .75rem; }
+.book-details { background: #f3faf5; padding: .75rem; border-radius: 8px; margin-bottom: .65rem; font-size: .78rem; }
+.book-details p      { margin: .2rem 0; color: #3d5a3d; }
 .book-details strong { color: var(--green-dark); }
 .book-metadata { font-size: .72rem; color: #9ab5a0; }
 
-/* ── Botones de acción en cards ──────────────────────────────────────────── */
 .book-actions {
   padding: .75rem 1rem;
   border-top: 1.5px solid #eef5f0;
   display: flex; gap: .4rem; flex-wrap: wrap;
 }
 
-/* BASE compartida */
-.btn-detail, .btn-loan, .btn-devolver,
-.btn-editar, .btn-eliminar, .btn-recuperar {
-  border-radius: 8px; padding: .38rem .8rem;
-  font-size: .76rem; font-weight: 600; cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
-  transition: background .18s, color .18s, border-color .18s, transform .15s;
-  display: inline-flex; align-items: center; gap: .3rem;
-  border: 1.5px solid transparent;
-}
-.btn-detail, .btn-loan, .btn-devolver,
-.btn-editar, .btn-eliminar, .btn-recuperar {
-  transform: translateY(0);
-}
-.btn-detail:hover, .btn-loan:hover, .btn-devolver:hover,
-.btn-editar:hover, .btn-eliminar:hover, .btn-recuperar:hover {
-  background: #111 !important;
-  color: #fff !important;
-  border-color: #111 !important;
-  transform: translateY(-1px);
-}
-.btn-detail:disabled, .btn-eliminar:disabled {
-  opacity: .45; cursor: not-allowed; transform: none !important;
-}
-
-.btn-detail   { background: #f0f7f2; color: var(--green-mid);  border-color: #b8ddc8; }
-.btn-loan     { background: var(--green-mid); color: #000000; border-color: var(--green-mid); box-shadow: 0 2px 8px rgba(45,106,79,.25); }
-.btn-devolver { background: #fef9e7; color: var(--gold-dark); border-color: var(--gold-light); }
-.btn-editar   { background: #fef3cc; color: #7a5200; border-color: var(--gold-light); }
-.btn-eliminar { background: #fff0f0; color: #b91c1c; border-color: #fca5a5; }
-.btn-recuperar{ background: linear-gradient(135deg, #fef9e7, #fde68a); color: #7a5200; border-color: var(--gold-mid); }
-
-/* Botones genéricos (filtros) */
-.btn { border-radius: 8px; padding: .45rem 1rem; font-size: .85rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s; border: 1.5px solid transparent; }
-.btn-primary { background: var(--green-mid); color: #fff; border-color: var(--green-mid); }
-.btn-primary:hover { background: #111; border-color: #111; }
-.btn-outline { background: #fff; color: var(--green-mid); border-color: var(--cream-border); }
-.btn-outline:hover { background: #111; color: #fff; border-color: #111; }
-
 /* ── Tabla ───────────────────────────────────────────────────────────────── */
 .books-list { margin-bottom: 1.5rem; }
 .table-wrap {
-  background: var(--card-bg);
-  border: 1.5px solid var(--cream-border);
-  border-radius: 14px; overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  background: var(--card-bg); border: 1.5px solid var(--cream-border);
+  border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-sm);
 }
 .table-ui { width: 100%; border-collapse: collapse; font-size: .83rem; }
-
 .table-ui thead { background: linear-gradient(135deg, #1a4731, #2d6a4f); }
 .table-ui thead th {
-  padding: .8rem 1rem; text-align: left;
-  color: rgba(255,255,255,.92); font-weight: 600;
-  font-size: .76rem; letter-spacing: .05em; text-transform: uppercase;
+  padding: .8rem 1rem; text-align: left; color: rgba(255,255,255,.92);
+  font-weight: 600; font-size: .76rem; letter-spacing: .05em; text-transform: uppercase;
 }
-.table-ui tbody tr {
-  border-bottom: 1px solid #eef5f0;
-  transition: background .15s;
-}
+.table-ui tbody tr { border-bottom: 1px solid #eef5f0; transition: background .15s; }
 .table-ui tbody tr:last-child { border-bottom: none; }
 .table-ui tbody tr:hover { background: #f0f9f4; }
 .table-ui tbody tr:nth-child(even) { background: #fafef8; }
 .table-ui tbody tr:nth-child(even):hover { background: #edf7f1; }
 .table-ui td { padding: .72rem 1rem; vertical-align: middle; color: #1a2e1a; }
 
-.td-code { font-family: monospace; font-size: .82rem; color: var(--green-mid); font-weight: 700; }
-.td-sub  { font-size: .72rem; color: #7a9a7a; margin-top: .1rem; }
-.td-title { font-weight: 600; color: #1a2e1a; }
+.td-code   { font-family: monospace; font-size: .82rem; color: var(--green-mid); font-weight: 700; }
+.td-sub    { font-size: .72rem; color: #7a9a7a; margin-top: .1rem; }
+.td-title  { font-weight: 600; color: #1a2e1a; }
 .td-author { color: #3d5a3d; }
 
 .status-pill {
@@ -1022,52 +923,30 @@ onMounted(() => { loadBooks(); verificarMultas() })
 
 .td-actions { display: flex; gap: .35rem; align-items: center; }
 
-.tbl-btn {
-  background: #f0f7f2; border: 1.5px solid var(--cream-border);
-  border-radius: 7px; padding: .3rem .6rem;
-  font-size: .78rem; cursor: pointer;
-  font-family: 'DM Sans', sans-serif; color: var(--green-mid); font-weight: 500;
-  transition: all .15s;
-}
-.tbl-btn:hover        { background: #111; color: #fff; border-color: #111; }
-.tbl-btn:disabled     { opacity: .4; cursor: not-allowed; }
-.tbl-btn.tbl-gold     { background: #fef9e7; color: var(--gold-dark); border-color: var(--gold-light); }
-.tbl-btn.tbl-gold:hover { background: #111; color: #fff; border-color: #111; }
-.tbl-btn.tbl-red      { background: #fff0f0; color: #b91c1c; border-color: #fca5a5; }
-.tbl-btn.tbl-red:hover  { background: #111; color: #fff; border-color: #111; }
-.tbl-btn.tbl-green    { background: #d8f3dc; color: var(--green-dark); border-color: #b8ddc8; }
-.tbl-btn.tbl-green:hover { background: #111; color: #fff; border-color: #111; }
-
 /* ── Paginación ──────────────────────────────────────────────────────────── */
 .pagination-section {
   display: flex; justify-content: space-between; align-items: center;
   margin-top: 1rem; padding: .85rem 1.25rem;
-  background: var(--card-bg);
-  border: 1.5px solid var(--cream-border);
+  background: var(--card-bg); border: 1.5px solid var(--cream-border);
   border-radius: 12px; box-shadow: var(--shadow-sm);
   font-size: .82rem; color: #5a7a5a;
 }
 .pagination-controls { display: flex; align-items: center; gap: .75rem; }
-.page-numbers { display: flex; gap: .3rem; }
+.page-numbers        { display: flex; gap: .3rem; }
 .page-number {
   padding: .35rem .7rem; border-radius: 7px; cursor: pointer;
-  font-size: .82rem; font-weight: 500; color: var(--green-mid);
-  transition: all .15s;
+  font-size: .82rem; font-weight: 500; color: var(--green-mid); transition: all .15s;
 }
 .page-number:hover  { background: #111; color: #fff; }
 .page-number.active { background: var(--green-mid); color: #fff; }
 .page-ellipsis { padding: .35rem .3rem; color: #9ab5a0; }
-
 .pbtn {
-  background: #fff; border: 1.5px solid var(--cream-border);
-  border-radius: 8px; padding: .38rem .85rem;
-  font-size: .82rem; font-weight: 500; cursor: pointer;
-  color: var(--green-mid); font-family: 'DM Sans', sans-serif;
-  transition: all .15s;
+  background: #fff; border: 1.5px solid var(--cream-border); border-radius: 8px;
+  padding: .38rem .85rem; font-size: .82rem; font-weight: 500; cursor: pointer;
+  color: var(--green-mid); font-family: 'DM Sans', sans-serif; transition: all .15s;
 }
 .pbtn:hover    { background: #111; color: #fff; border-color: #111; }
 .pbtn:disabled { opacity: .4; cursor: not-allowed; }
-
 .items-per-page { display: flex; align-items: center; gap: .5rem; }
 .page-select {
   padding: .3rem .55rem; border: 1.5px solid var(--cream-border);
@@ -1078,10 +957,8 @@ onMounted(() => { loadBooks(); verificarMultas() })
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
-  text-align: center; padding: 4rem 2rem;
-  background: var(--card-bg);
-  border: 1.5px solid var(--cream-border);
-  border-radius: 14px; box-shadow: var(--shadow-sm);
+  text-align: center; padding: 4rem 2rem; background: var(--card-bg);
+  border: 1.5px solid var(--cream-border); border-radius: 14px; box-shadow: var(--shadow-sm);
 }
 .empty-icon { font-size: 3.5rem; margin-bottom: 1rem; opacity: .5; }
 .empty-state h3 { color: var(--green-dark); margin-bottom: .5rem; font-family: 'Playfair Display', serif; }
@@ -1089,94 +966,64 @@ onMounted(() => { loadBooks(); verificarMultas() })
 
 /* ── Modal ───────────────────────────────────────────────────────────────── */
 .modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(26, 47, 26, 0.45); /* verde oscuro suave en lugar de negro */
-  display: flex; align-items: center; justify-content: center;
-  z-index: 2000;
-  backdrop-filter: blur(6px); /* el blur hace el trabajo pesado */
+  position: fixed; inset: 0; background: transparent;
+  display: flex; align-items: center; justify-content: center; z-index: 2000;
 }
-
+.modal-overlay::before {
+  content: ''; position: fixed; inset: 0;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(10px); z-index: -1;
+}
 .modal-content {
-  background: var(--card-bg);
-  border-radius: 16px;
-  width: 90%;
-  max-width: 480px;
+  background: #e7d784 !important;
+  border-radius: 16px; width: 90%; max-width: 480px;
   border: 1.5px solid var(--cream-border);
   box-shadow: 0 20px 60px rgba(0,0,0,.2);
   animation: modalIn .25s ease-out;
-  position: relative;  /* ← agregar esto */
-  z-index: 1;          /* ← agregar esto */
+  position: relative; z-index: 1;
 }
-
 @keyframes modalIn {
   from { opacity: 0; transform: translateY(-16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .modal-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 1.25rem 1.5rem 1rem;
-  border-bottom: 1.5px solid #eef5f0;
+  padding: 1.25rem 1.5rem 1rem; border-bottom: 1.5px solid #eef5f0;
 }
 .modal-header h3 { margin: 0; color: var(--green-dark); font-family: 'Playfair Display', serif; font-size: 1.2rem; }
 .modal-close-btn {
-  background: none; border: none; font-size: 1.4rem; color: #000000;
+  background: none; border: none; font-size: 1.4rem; color: #000;
   cursor: pointer; width: 28px; height: 28px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  transition: background .15s;
+  display: flex; align-items: center; justify-content: center; transition: background .15s;
 }
 .modal-close-btn:hover { background: #f0f9f4; color: var(--green-dark); }
 .modal-body { padding: 1.25rem 1.5rem; font-size: .88rem; color: #060f03; line-height: 1.6; }
 
 .book-to-delete {
-  margin: 1rem 0; padding: 1rem;
-  background: #f3faf5; border-radius: 10px;
-  border-left: 4px solid var(--green-light);
+  margin: 1rem 0; padding: 1rem; background: #f3faf5;
+  border-radius: 10px; border-left: 4px solid var(--green-light);
 }
 .book-info-modal h4 { margin: 0 0 .4rem; color: #1a2e1a; }
 .book-info-modal p  { margin: .2rem 0; color: #5a7a5a; font-size: .85rem; }
 .warning-message {
-  display: flex; gap: .65rem; margin-top: .85rem;
-  padding: .65rem; background: #fef9e7;
-  border: 1px solid #fde68a; border-radius: 8px; color: #7a5200;
+  display: flex; gap: .65rem; margin-top: .85rem; padding: .65rem;
+  background: #fef9e7; border: 1px solid #fde68a; border-radius: 8px; color: #7a5200;
 }
 .warning-icon { font-size: 1.25rem; }
 .warning-message p { margin: 0; font-size: .83rem; }
 
 .modal-footer {
   display: flex; justify-content: flex-end; gap: .75rem;
-  padding: 1rem 1.5rem;
-  border-top: 1.5px solid #eef5f0;
+  padding: 1rem 1.5rem; border-top: 1.5px solid #eef5f0;
 }
-.btn-modal-cancel {
-  background: #fff; color: #5a7a5a;
-  border: 1.5px solid var(--cream-border); border-radius: 8px;
-  padding: .45rem 1rem; font-size: .85rem; font-weight: 600;
-  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s;
-}
-.btn-modal-cancel:hover { background: #ff4f4f; color: #fff; border-color: #111; }
-.btn-modal-delete, .btn-modal-confirm {
-  background: var(--green-mid); color: #fff;
-  border: none; border-radius: 8px;
-  padding: .45rem 1.1rem; font-size: .85rem; font-weight: 600;
-  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s;
-  display: inline-flex; align-items: center; gap: .4rem;
-}
-.btn-modal-delete { background: #000; }
-.btn-modal-delete:hover, .btn-modal-confirm:hover { background: #2c7709; }
-.btn-modal-delete:disabled, .btn-modal-confirm:disabled { opacity: .55; cursor: not-allowed; }
 
 /* ── Toast ───────────────────────────────────────────────────────────────── */
 .toast {
   position: fixed; bottom: 24px; right: 24px;
-  background: #52b788;
-  border: 1.5px solid #b8ddc8;
-  border-radius: 12px;
+  background: #52b788; border: 1.5px solid #b8ddc8; border-radius: 12px;
   box-shadow: 0 6px 24px rgba(0,0,0,.12);
   display: flex; align-items: center; gap: 1rem;
-  padding: 1rem 1.25rem; max-width: 340px; z-index: 3000;
-  width: 500px;
-  animation: toastIn .3s ease-out;
-  border-left: 4px solid var(--green-light);
+  padding: 1rem 1.25rem; max-width: 340px; z-index: 3000; width: 500px;
+  animation: toastIn .3s ease-out; border-left: 4px solid var(--green-light);
 }
 @keyframes toastIn {
   from { opacity: 0; transform: translateX(100%); }
@@ -1186,40 +1033,30 @@ onMounted(() => { loadBooks(); verificarMultas() })
 .toast-content strong { display: block; color: var(--green-dark); margin-bottom: .2rem; font-size: .9rem; }
 .toast-content p      { margin: 0; color: #5a7a5a; font-size: .8rem; }
 .toast-close {
-  background: none; border: none; color: #9ab5a0;
-  font-size: 1.1rem; cursor: pointer; padding: 0;
-  width: 22px; height: 22px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  transition: background .15s;
+  background: none; border: none; color: #9ab5a0; font-size: 1.1rem;
+  cursor: pointer; padding: 0; width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; transition: background .15s;
 }
 .toast-close:hover { background: #f0f9f4; }
 
-/* Toast prestamo estilo */
-.toast-loan-success {
-border-left: 4px solid var(--green-mid);
-background: #f0fdf4;
-}
+.toast-loan-success { border-left: 4px solid var(--green-mid); background: #f0fdf4; }
 .toast-loan-success .toast-content strong { color: var(--green-dark); }
-.toast-loan-success .toast-content p { color: #5a7a5a; }
+.toast-loan-success .toast-content p      { color: #5a7a5a; }
 
 /* ── Spinners ────────────────────────────────────────────────────────────── */
 .spinner-mini {
   display: inline-block; width: 11px; height: 11px;
-  border: 2px solid rgba(255,255,255,.3);
-  border-top-color: white; border-radius: 50%;
-  animation: spin .6s linear infinite;
+  border: 2px solid rgba(255,255,255,.3); border-top-color: white;
+  border-radius: 50%; animation: spin .6s linear infinite;
 }
 .spinner-small {
   display: inline-block; width: 14px; height: 14px;
-  border: 2px solid rgba(255,255,255,.3);
-  border-top-color: white; border-radius: 50%;
-  animation: spin 1s linear infinite;
+  border: 2px solid rgba(255,255,255,.3); border-top-color: white;
+  border-radius: 50%; animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-
 /* ── Responsive ──────────────────────────────────────────────────────────── */
-/* Tablet */
 @media (max-width: 900px) {
   .catalog-header     { flex-direction: column; gap: 1rem; align-items: flex-start; padding: 1.25rem 1.5rem; }
   .catalog-stats      { width: 100%; justify-content: space-between; }
@@ -1227,42 +1064,32 @@ background: #f0fdf4;
   .pagination-section { flex-direction: column; align-items: flex-start; gap: .75rem; }
   .pagination-controls{ width: 100%; justify-content: center; }
 }
- 
-/* Móvil */
+
 @media (max-width: 600px) {
-  .book-catalog       { padding: .75rem; }
-  .header-content h1  { font-size: 1.3rem; }
-  .catalog-stats      { flex-direction: column; gap: .5rem; }
-  .stat-pill          { display: flex; align-items: center; gap: .75rem; text-align: left; padding: .5rem .85rem; }
-  .stat-num           { font-size: 1.1rem; }
- 
-  .search-bar         { flex-wrap: wrap; gap: .4rem; }
-  .search-input       { order: 1; flex: 100%; }
-  .btn-filter         { order: 2; flex: 1; }
-  .btn-search         { order: 2; flex: 1; }
- 
-  .filters-grid       { grid-template-columns: 1fr; }
-  .filter-actions     { justify-content: stretch; }
-  .filter-actions .btn{ flex: 1; text-align: center; }
- 
-  .view-controls      { flex-direction: column; align-items: flex-start; gap: .65rem; }
-  .books-grid         { grid-template-columns: 1fr; }
- 
-  .book-actions       { flex-direction: column; }
-  .book-actions > *   { width: 100%; justify-content: center; }
- 
+  .book-catalog      { padding: .75rem; }
+  .header-content h1 { font-size: 1.3rem; }
+  .catalog-stats     { flex-direction: column; gap: .5rem; }
+  .stat-pill         { display: flex; align-items: center; gap: .75rem; text-align: left; padding: .5rem .85rem; }
+  .stat-num          { font-size: 1.1rem; }
+  .search-bar        { flex-wrap: wrap; gap: .4rem; }
+  .search-input      { order: 1; flex: 100%; }
+  .btn-filter        { order: 2; flex: 1; }
+  .btn-search        { order: 2; flex: 1; }
+  .filters-grid      { grid-template-columns: 1fr; }
+  .filter-actions    { justify-content: stretch; }
+  .filter-actions .btn { flex: 1; text-align: center; }
+  .view-controls     { flex-direction: column; align-items: flex-start; gap: .65rem; }
+  .books-grid        { grid-template-columns: 1fr; }
+  .book-actions      { flex-direction: column; }
+  .book-actions > *  { width: 100%; justify-content: center; }
   .table-ui thead th,
-  .table-ui td        { padding: .55rem .65rem; }
- 
-  .pagination-section { padding: .75rem; }
-  .pagination-info    { font-size: .76rem; }
-  .pbtn               { padding: .35rem .65rem; font-size: .78rem; }
- 
-  .modal-content      { border-radius: 12px; }
-  .modal-footer       { flex-direction: column; }
-  .modal-footer > *   { width: 100%; justify-content: center; }
- 
-  /* Toast full-width en móvil */
-  .toast              { left: 16px; right: 16px; bottom: 16px; width: auto; max-width: none; }
+  .table-ui td       { padding: .55rem .65rem; }
+  .pagination-section{ padding: .75rem; }
+  .pagination-info   { font-size: .76rem; }
+  .pbtn              { padding: .35rem .65rem; font-size: .78rem; }
+  .modal-content     { border-radius: 12px; }
+  .modal-footer      { flex-direction: column; }
+  .modal-footer > *  { width: 100%; justify-content: center; }
+  .toast             { left: 16px; right: 16px; bottom: 16px; width: auto; max-width: none; }
 }
 </style>

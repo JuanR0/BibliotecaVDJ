@@ -1,68 +1,368 @@
-/* Botón base */
+/* ── Variables globales del sistema ─────────────────────────────────────── */
+:root {
+  --green-dark:   #1a4731;
+  --green-mid:    #2d6a4f;
+  --green-light:  #52b788;
+  --green-pale:   #d8f3dc;
+  --gold-dark:    #92650a;
+  --gold-mid:     #c9900c;
+  --gold-light:   #f4c542;
+  --gold-pale:    #fef9e7;
+  --cream:        #f5f0e8;
+  --cream-border: #d4e8da;
+  --card-bg:      #fffef9;
+  --shadow-sm:    0 2px 12px rgba(26,47,26,.10);
+  --shadow-md:    0 8px 24px rgba(26,71,49,.15);
+}
 
-.btn {
-  border: none;
+/* ============================================================
+   BASE COMPARTIDA
+   Todos los botones del sistema heredan de aquí
+   ============================================================ */
+.btn,
+.btn-detail,
+.btn-loan,
+.btn-devolver,
+.btn-editar,
+.btn-eliminar,
+.btn-recuperar,
+.btn-primary,
+.btn-outline,
+.btn-danger,
+.btn-warning,
+.tbl-btn {
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: .38rem .8rem;
+  font-size: .76rem;
   font-weight: 600;
-  font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  transition: background .18s, color .18s, border-color .18s, transform .15s;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: .3rem;
+  border: 1.5px solid transparent;
+  transform: translateY(0);
+  text-decoration: none;
 }
 
-/* Botón editar */
-
-.btn-edit {
-  background-color: #1976D2;
-  color: white;
+/* Disabled global */
+.btn:disabled,
+.btn-detail:disabled,
+.btn-loan:disabled,
+.btn-devolver:disabled,
+.btn-editar:disabled,
+.btn-eliminar:disabled,
+.btn-recuperar:disabled,
+.btn-primary:disabled,
+.btn-outline:disabled,
+.btn-danger:disabled,
+.btn-warning:disabled,
+.tbl-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  transform: none !important;
 }
 
-.btn-edit:hover {
-  background-color: #1565C0;
+/* ============================================================
+   BOTONES DE ACCIÓN EN CARDS (BookCatalog style)
+   ============================================================ */
+
+/* Detalles — verde suave */
+.btn-detail {
+  background: #f0f7f2;
+  color: var(--green-mid);
+  border-color: #b8ddc8;
+}
+.btn-detail:hover:not(:disabled) {
+  background: #36d1d6 !important;
+  color: #000 !important;
+  border-color: #111 !important;
   transform: translateY(-1px);
 }
 
-/* Botón eliminar */
-
-.btn-delete {
-  background-color: #E53935;
-  color: white;
+/* Solicitar préstamo — verde sólido */
+.btn-loan {
+  background: #a5ffb1;
+  color: #000;
+  border-color: var(--green-mid);
+  box-shadow: 0 2px 8px rgba(45,106,79,.25);
 }
-
-.btn-delete:hover {
-  background-color: #C62828;
+.btn-loan:hover:not(:disabled) {
+  background: #00ff80 !important;
+  color: #000 !important;
+  border-color: #111 !important;
   transform: translateY(-1px);
 }
 
-/* Botón agregar */
-
-.btn-add {
-  background-color: #4CAF50;
-  color: white;
+/* Devolver — verde claro */
+.btn-devolver {
+  background: #b8ffb2;
+  color: var(--gold-dark);
+  border-color: var(--gold-light);
 }
-
-.btn-add:hover {
-  background-color: #388E3C;
+.btn-devolver:hover:not(:disabled) {
+  background: #00ff00 !important;
+  color: #000 !important;
+  border-color: #111 !important;
   transform: translateY(-1px);
 }
 
-/* Botón neutral */
-
-.btn-secondary {
-  background-color: #ECEFF1;
-  color: #333;
+/* Editar — dorado suave */
+.btn-editar {
+  background: #fef3cc;
+  color: #7a5200;
+  border-color: var(--gold-light);
+}
+.btn-editar:hover:not(:disabled) {
+  background: #ffd323 !important;
+  color: #000 !important;
+  border-color: #111 !important;
+  transform: translateY(-1px);
 }
 
-.btn-secondary:hover {
-  background-color: #CFD8DC;
+/* Eliminar — rojo suave */
+.btn-eliminar {
+  background: #fff0f0;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+.btn-eliminar:hover:not(:disabled) {
+  background: #ff0f0f !important;
+  color: #000 !important;
+  border-color: #111 !important;
+  transform: translateY(-1px);
 }
 
-/* Botones pequeños para tablas */
+/* Recuperar — gradiente dorado */
+.btn-recuperar {
+  background: linear-gradient(135deg, #fef9e7, #fde68a);
+  color: #7a5200;
+  border-color: var(--gold-mid);
+}
+.btn-recuperar:hover:not(:disabled) {
+  background: #6070ff !important;
+  color: #fff !important;
+  border-color: #111 !important;
+  transform: translateY(-1px);
+}
 
+/* ============================================================
+   BOTONES GENÉRICOS
+   ============================================================ */
+
+/* Primary — verde sólido, hover negro */
+.btn-primary {
+  background: var(--green-mid);
+  color: #fff;
+  border-color: var(--green-mid);
+  padding: .45rem 1rem;
+  font-size: .85rem;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #111;
+  border-color: #111;
+}
+
+/* Outline — borde verde, hover negro */
+.btn-outline {
+  background: #fff;
+  color: var(--green-mid);
+  border-color: var(--cream-border);
+  padding: .45rem 1rem;
+  font-size: .85rem;
+}
+.btn-outline:hover:not(:disabled) {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+/* Danger — fondo blanco, texto rojo, hover rojo */
+.btn-danger {
+  background: #fff;
+  color: #c22a2a;
+  border-color: #fca5a5;
+  padding: .45rem 1rem;
+  font-size: .85rem;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #c22a2a;
+  color: #fff;
+  border-color: #c22a2a;
+}
+
+/* Warning — fondo dorado suave, hover negro */
+.btn-warning {
+  background: var(--gold-pale);
+  color: var(--gold-dark);
+  border-color: var(--gold-light);
+  padding: .45rem 1rem;
+  font-size: .85rem;
+}
+.btn-warning:hover:not(:disabled) {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+/* ============================================================
+   BOTONES DE TABLA (compactos, solo ícono o texto corto)
+   ============================================================ */
+
+.tbl-btn {
+  background: #f0f7f2;
+  border-color: var(--cream-border);
+  color: var(--green-mid);
+  font-weight: 500;
+  padding: .3rem .6rem;
+  font-size: .78rem;
+}
+.tbl-btn:hover:not(:disabled) {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+/* Variantes de tabla */
+.tbl-btn.tbl-gold {
+  background: #fef9e7;
+  color: #c09d00;
+  border-color: #c09d00;
+}
+.tbl-btn.tbl-gold:hover:not(:disabled) {
+  background: #856c00;
+  color: #fff;
+  border-color: #c09d00;
+}
+
+.tbl-btn.tbl-red {
+  background: #fff0f0;
+  color: #fca5a5;
+  border-color: #fca5a5;
+}
+.tbl-btn.tbl-red:hover:not(:disabled) {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+.tbl-btn.tbl-green {
+  background: #d8f3dc;
+  color: var(--green-dark);
+  border-color: #b8ddc8;
+}
+.tbl-btn.tbl-green:hover:not(:disabled) {
+  background: #00d111;
+  color: #fff;
+  border-color: #b8ddc8;
+}
+
+.tbl-btn.tbl-blue {
+  background: #b1c3ff;
+  color: var(--blue-dark);
+  border-color: #c7d2fe;
+}
+.tbl-btn.tbl-blue:hover:not(:disabled) {
+  background: #0044ff;
+  color: #fff;
+  border-color: #c7d2fe;
+}
+
+.tbl-btn.tbl-warning {
+  background: #f8ff9b;
+  color:  var(--yellow-dark);
+  border-color: #a5b100;
+}
+.tbl-btn.tbl-warning:hover:not(:disabled) {
+  background: #fbff00;
+  color: #000000;
+  border-color: #a5b100;
+}
+
+.tbl-btn.tbl-danger {
+  background: #ff7f7f;
+  color: var(--red-dark);
+  border-color: #ff0000;
+}
+.tbl-btn.tbl-danger:hover:not(:disabled) {
+  background: #ff0000;
+  color: #ffffff;
+  border-color: #ff7f7f;
+}
+
+/* ============================================================
+   TAMAÑOS
+   ============================================================ */
+
+/* Grande — para acciones principales en headers */
+.btn-lg {
+  padding: .6rem 1.25rem !important;
+  font-size: .875rem !important;
+  border-radius: 10px !important;
+}
+
+/* Pequeño — para tablas densas */
 .btn-sm {
-  padding: 6px 10px;
-  font-size: 13px;
+  padding: .25rem .6rem !important;
+  font-size: .72rem !important;
+  border-radius: 6px !important;
 }
+
+/* ============================================================
+   BOTONES DE MODAL
+   ============================================================ */
+
+.btn-modal-cancel {
+  background: #fff;
+  color: #c22a2a;
+  border: 1.5px solid var(--cream-border);
+  border-radius: 8px;
+  padding: .45rem 1rem;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  transition: all .18s;
+}
+.btn-modal-cancel:hover {
+  background: #c22a2a;
+  color: #fff;
+  border-color: #111;
+}
+
+.btn-modal-confirm {
+  background: #fff;
+  color: #5a7a5a;
+  border: none;
+  border-radius: 8px;
+  padding: .45rem 1.1rem;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  transition: all .18s;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+}
+.btn-modal-confirm:hover { background: #4ffd66; color: #000; }
+.btn-modal-confirm:disabled { opacity: .55; cursor: not-allowed; }
+
+.btn-modal-delete {
+  background: #fff;
+  color: #5a7a5a;
+  border: none;
+  border-radius: 8px;
+  padding: .45rem 1.1rem;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  transition: all .18s;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+}
+.btn-modal-delete:hover    { background: #c22a2a; color: #fff; }
+.btn-modal-delete:disabled { opacity: .55; cursor: not-allowed; }

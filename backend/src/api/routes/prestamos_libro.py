@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -19,7 +19,9 @@ from schemas.prestamos_libro import (
     PrestamoLibroUpdate,
     PrestamoLibroDevolucion,
     PrestamoDevolucionResponse,
-    MultaResumenEnDevolucion
+    MultaResumenEnDevolucion,
+    SolicitudDevolucionResponse,
+    AprobacionDevolucionRequest,
 )
 from core.security import (
     obtener_usuario_actual,
@@ -33,9 +35,15 @@ router = APIRouter(prefix="/prestamos-libros", tags=["Préstamos de Libros"])
 # CONSTANTES
 # =============================================
 
-COSTO_MULTA_POR_DIA = Decimal('10.00')   # $10 MXN por día de retraso
-TIPO_PAGO_ID_DEFAULT = 1                  # "Banco" o el primer tipo de pago disponible
-TIPO_RECURSO_LIBRO_ID = 1                 # ID del tipo de recurso "Libro" en tipos_recurso_multa
+COSTO_MULTA_POR_DIA   = Decimal('5.00')  # $5 MXN por día de retraso
+TIPO_PAGO_ID_DEFAULT  = 1
+TIPO_RECURSO_LIBRO_ID = 1
+
+# Estados de préstamo
+ESTADO_VIGENTE              = 1
+ESTADO_EXPIRADO             = 2
+ESTADO_TERMINADO            = 3
+ESTADO_PENDIENTE_DEVOLUCION = 5   # Nuevo — esperando aprobación del admin
 
 # =============================================
 # FUNCIONES AUXILIARES
@@ -46,26 +54,41 @@ def to_naive(dt: datetime) -> datetime:
         return dt.replace(tzinfo=None)
     return dt
 
+
 def calcular_dias_excedidos(fecha_esperada: datetime, fecha_real: datetime) -> int:
+    """
+    Compara solo fechas (sin horas). Cada día calendario completo = 1 día.
+    IMPORTANTE: se usa fecha_solicitud_dev (cuando el usuario solicitó),
+    NO la fecha en que el admin aprueba — esto evita que el admin
+    retrase la aprobación y cobre más días al usuario.
+    """
     if not fecha_real:
         return 0
-    fecha_esperada_date = fecha_esperada.date()
-    fecha_real_date = fecha_real.date()
-    diferencia = fecha_real_date - fecha_esperada_date
+    diferencia = fecha_real.date() - fecha_esperada.date()
     return max(0, diferencia.days)
+
+
+def generar_numero_ticket(prestamo_id: int, fecha: datetime) -> int:
+    """
+    Genera un número de ticket único basado en timestamp + id del préstamo.
+    Formato: YYYYMMDDHHmmSS + id (relleno a 3 dígitos)
+    Ejemplo: préstamo id=15 del 25/04/2026 14:30:22 → 20260425143022015
+    """
+    timestamp = fecha.strftime('%Y%m%d%H%M%S')
+    return int(f"{timestamp}{prestamo_id:03d}")
+
 
 async def verificar_libro_disponible(db: AsyncSession, libro_id: int) -> Libro:
     result = await db.execute(select(Libro).filter(Libro.id == libro_id))
-    libro = result.scalar_one_or_none()
-
+    libro  = result.scalar_one_or_none()
     if not libro:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Libro no encontrado")
+        raise HTTPException(status_code=404, detail="Libro no encontrado")
     if libro.estado_id != 1:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El libro no está disponible para préstamo")
+        raise HTTPException(status_code=400, detail="El libro no está disponible para préstamo")
     if not libro.es_prestable:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El libro no es prestable")
-
+        raise HTTPException(status_code=400, detail="El libro no es prestable")
     return libro
+
 
 async def verificar_usuario_activo(db: AsyncSession, usuario_id: int) -> Usuario:
     result = await db.execute(
@@ -73,31 +96,18 @@ async def verificar_usuario_activo(db: AsyncSession, usuario_id: int) -> Usuario
     )
     usuario = result.scalar_one_or_none()
     if not usuario:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuario no válido para préstamo")
+        raise HTTPException(status_code=400, detail="Usuario no válido para préstamo")
     return usuario
 
 
-# =============================================
-# NUEVA FUNCIÓN: Verificar multas pendientes
-# Implementa el patrón "Lazy evaluation":
-# Se ejecuta al intentar crear un nuevo préstamo.
-# =============================================
-
 async def verificar_sin_multas_pendientes(db: AsyncSession, usuario_id: int):
-    """
-    Verifica que el usuario no tenga multas pendientes (estado_multa_id = 1).
-    Si tiene, lanza 403 con detalle claro para el frontend.
-    """
-    result = await db.execute(
+    """Lazy evaluation: bloquea si el usuario tiene multas pendientes."""
+    result   = await db.execute(
         select(func.count(Multa.id)).where(
-            and_(
-                Multa.usuario_multado_id == usuario_id,
-                Multa.estado_multa_id == 1  # Pendiente
-            )
+            and_(Multa.usuario_multado_id == usuario_id, Multa.estado_multa_id == 1)
         )
     )
     cantidad = result.scalar() or 0
-
     if cantidad > 0:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -106,53 +116,46 @@ async def verificar_sin_multas_pendientes(db: AsyncSession, usuario_id: int):
         )
 
 
-# =============================================
-# NUEVA FUNCIÓN: Generar multa por devolución tardía
-# =============================================
-
 async def generar_multa_por_retraso(
     db: AsyncSession,
     prestamo: PrestamoLibro,
     dias_excedidos: int,
     usuario_admin_id: int
 ) -> Multa:
-    """
-    Crea una multa automáticamente cuando se devuelve un libro con retraso.
-    Costo = dias_excedidos * COSTO_MULTA_POR_DIA
-    """
+    """Genera multa automática. Usa fecha_solicitud_dev para el cálculo."""
     costo = Decimal(str(dias_excedidos)) * COSTO_MULTA_POR_DIA
 
     nueva_multa = Multa(
-        usuario_multa_id=usuario_admin_id,
-        usuario_multado_id=prestamo.usuario_prestado_id,
-        estado_multa_id=1,  # Pendiente
-        fecha_multa=datetime.utcnow() - timedelta(hours=6),
-        usuario_ultimo_cambio_id=usuario_admin_id,
-        fecha_ultimo_cambio_estado=datetime.utcnow() - timedelta(hours=6),
-        tipo_pago_id=TIPO_PAGO_ID_DEFAULT,
-        tipo_recurso_multa_id=TIPO_RECURSO_LIBRO_ID,
-        costo_monetario=costo,
-        observaciones=(
-            f"Multa generada automáticamente por devolución tardía. "
+        usuario_multa_id           = usuario_admin_id,
+        usuario_multado_id         = prestamo.usuario_prestado_id,
+        estado_multa_id            = 1,
+        fecha_multa                = datetime.utcnow() - timedelta(hours=6),
+        usuario_ultimo_cambio_id   = usuario_admin_id,
+        fecha_ultimo_cambio_estado = datetime.utcnow() - timedelta(hours=6),
+        tipo_pago_id               = TIPO_PAGO_ID_DEFAULT,
+        tipo_recurso_multa_id      = TIPO_RECURSO_LIBRO_ID,
+        costo_monetario            = costo,
+        observaciones              = (
+            f"Multa automática por devolución tardía. "
             f"Préstamo #{prestamo.id} — {dias_excedidos} día(s) de retraso. "
-            f"Costo: ${costo} MXN (${COSTO_MULTA_POR_DIA}/día)."
+            f"Cargo: ${COSTO_MULTA_POR_DIA} MXN/día × {dias_excedidos} = ${costo} MXN. "
+            f"Fecha solicitud devolución: {prestamo.fecha_solicitud_dev.strftime('%d/%m/%Y %H:%M') if prestamo.fecha_solicitud_dev else 'N/A'}."
         )
     )
-
     db.add(nueva_multa)
     return nueva_multa
 
 
 # =============================================
-# ENDPOINTS DE CONSULTA (LISTAR)
+# ENDPOINTS DE CONSULTA
 # =============================================
 
 @router.get("/", response_model=List[PrestamoLibroConRelaciones])
 async def listar_prestamos(
     skip: int = 0,
     limit: int = 100,
-    estado_prestamo_id: Optional[int] = Query(None),
-    libro_id: Optional[int] = Query(None),
+    estado_prestamo_id:  Optional[int] = Query(None),
+    libro_id:            Optional[int] = Query(None),
     usuario_prestado_id: Optional[int] = Query(None),
     db: AsyncSession = Depends(get_db),
     usuario_actual: Usuario = Depends(requerir_puede_consultar)
@@ -163,9 +166,9 @@ async def listar_prestamos(
             selectinload(PrestamoLibro.usuario_presta),
             selectinload(PrestamoLibro.usuario_prestado),
             selectinload(PrestamoLibro.estado_prestamo),
-            selectinload(PrestamoLibro.usuario_ultimo_cambio)
+            selectinload(PrestamoLibro.usuario_ultimo_cambio),
+            selectinload(PrestamoLibro.aprobado_por)
         )
-
         if estado_prestamo_id:
             query = query.where(PrestamoLibro.estado_prestamo_id == estado_prestamo_id)
         if libro_id:
@@ -173,10 +176,9 @@ async def listar_prestamos(
         if usuario_prestado_id:
             query = query.where(PrestamoLibro.usuario_prestado_id == usuario_prestado_id)
 
-        query = query.offset(skip).limit(limit)
-        result = await db.execute(query)
+        query     = query.offset(skip).limit(limit)
+        result    = await db.execute(query)
         prestamos = result.scalars().all()
-
         return [_serializar_prestamo(p) for p in prestamos]
 
     except Exception as e:
@@ -185,16 +187,45 @@ async def listar_prestamos(
 
 @router.get("/vigentes", response_model=List[PrestamoLibroConRelaciones])
 async def listar_prestamos_vigentes(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = 0, limit: int = 100,
     db: AsyncSession = Depends(get_db),
     usuario_actual: Usuario = Depends(requerir_puede_consultar)
 ):
     return await listar_prestamos(
-        skip=skip, limit=limit, estado_prestamo_id=1,
+        skip=skip, limit=limit, estado_prestamo_id=ESTADO_VIGENTE,
         libro_id=None, usuario_prestado_id=None,
         db=db, usuario_actual=usuario_actual
     )
+
+
+@router.get("/pendientes-devolucion", response_model=List[PrestamoLibroConRelaciones])
+async def listar_pendientes_devolucion(
+    skip: int = 0, limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    usuario_actual: Usuario = Depends(requerir_puede_gestionar_recursos)
+):
+    """
+    Lista todos los préstamos en estado 'Pendiente devolución'.
+    Solo accesible para admins. Usado en el panel de aprobaciones.
+    """
+    try:
+        query = select(PrestamoLibro).options(
+            selectinload(PrestamoLibro.libro),
+            selectinload(PrestamoLibro.usuario_presta),
+            selectinload(PrestamoLibro.usuario_prestado),
+            selectinload(PrestamoLibro.estado_prestamo),
+            selectinload(PrestamoLibro.aprobado_por)
+        ).where(
+            PrestamoLibro.estado_prestamo_id == ESTADO_PENDIENTE_DEVOLUCION
+        ).order_by(PrestamoLibro.fecha_solicitud_dev.asc())
+
+        query     = query.offset(skip).limit(limit)
+        result    = await db.execute(query)
+        prestamos = result.scalars().all()
+        return [_serializar_prestamo(p) for p in prestamos]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 @router.get("/mis-prestamos", response_model=List[PrestamoLibroConRelaciones])
@@ -215,11 +246,15 @@ async def mis_prestamos(
     )
 
     if solo_vigentes:
-        query = query.where(PrestamoLibro.estado_prestamo_id == 1)
+        # Vigentes Y pendientes de devolución (el usuario debe ver ambos)
+        query = query.where(
+            PrestamoLibro.estado_prestamo_id.in_(
+                [ESTADO_VIGENTE, ESTADO_PENDIENTE_DEVOLUCION]
+            )
+        )
 
-    result = await db.execute(query)
+    result    = await db.execute(query)
     prestamos = result.scalars().all()
-
     return [_serializar_prestamo(p) for p in prestamos]
 
 
@@ -236,20 +271,19 @@ async def obtener_prestamo(
             selectinload(PrestamoLibro.usuario_presta),
             selectinload(PrestamoLibro.usuario_prestado),
             selectinload(PrestamoLibro.estado_prestamo),
-            selectinload(PrestamoLibro.usuario_ultimo_cambio)
+            selectinload(PrestamoLibro.usuario_ultimo_cambio),
+            selectinload(PrestamoLibro.aprobado_por)
         )
         .filter(PrestamoLibro.id == prestamo_id)
     )
     prestamo = result.scalar_one_or_none()
-
     if not prestamo:
         raise HTTPException(status_code=404, detail="Préstamo no encontrado")
-
     return _serializar_prestamo(prestamo)
 
 
 # =============================================
-# ENDPOINTS DE CREACIÓN (POST)
+# CREAR PRÉSTAMO
 # =============================================
 
 @router.post("/", response_model=PrestamoLibroResponse)
@@ -258,39 +292,33 @@ async def crear_prestamo(
     db: AsyncSession = Depends(get_db),
     usuario_actual: Usuario = Depends(requerir_puede_gestionar_recursos)
 ):
-    """
-    Crear un nuevo préstamo de libro.
-    BLOQUEA si el usuario tiene multas pendientes (Lazy evaluation).
-    """
+    """Crear préstamo. Bloquea si el usuario tiene multas pendientes."""
     fecha_devolucion = to_naive(prestamo_data.fecha_devolucion_esperada)
-    fecha_actual = datetime.utcnow().replace(tzinfo=None) - timedelta(hours=6)
+    fecha_actual     = datetime.utcnow().replace(tzinfo=None) - timedelta(hours=6)
 
     try:
-        # ── NUEVO: Verificar multas pendientes antes de crear préstamo ──
         await verificar_sin_multas_pendientes(db, prestamo_data.usuario_prestado_id)
-
-        libro = await verificar_libro_disponible(db, prestamo_data.libro_id)
+        libro            = await verificar_libro_disponible(db, prestamo_data.libro_id)
         usuario_prestado = await verificar_usuario_activo(db, prestamo_data.usuario_prestado_id)
 
-        libro.estado_id = 2
-        libro.fecha_cambio_estado = datetime.utcnow() - timedelta(hours=6)
+        libro.estado_id          = 2
+        libro.fecha_cambio_estado = fecha_actual
 
         nuevo_prestamo = PrestamoLibro(
-            libro_id=prestamo_data.libro_id,
-            usuario_presta_id=usuario_actual.id,
-            usuario_prestado_id=prestamo_data.usuario_prestado_id,
-            estado_prestamo_id=1,
-            fecha_prestamo=fecha_actual,
-            fecha_devolucion_esperada=fecha_devolucion,
-            usuario_ultimo_cambio_id=usuario_actual.id,
-            fecha_ultimo_cambio_estado=fecha_actual,
-            observaciones=prestamo_data.observaciones
+            libro_id                   = prestamo_data.libro_id,
+            usuario_presta_id          = usuario_actual.id,
+            usuario_prestado_id        = prestamo_data.usuario_prestado_id,
+            estado_prestamo_id         = ESTADO_VIGENTE,
+            fecha_prestamo             = fecha_actual,
+            fecha_devolucion_esperada  = fecha_devolucion,
+            usuario_ultimo_cambio_id   = usuario_actual.id,
+            fecha_ultimo_cambio_estado = fecha_actual,
+            observaciones              = prestamo_data.observaciones
         )
 
         db.add(nuevo_prestamo)
         await db.commit()
         await db.refresh(nuevo_prestamo)
-
         return nuevo_prestamo
 
     except HTTPException:
@@ -302,99 +330,74 @@ async def crear_prestamo(
 
 
 # =============================================
-# ENDPOINTS DE DEVOLUCIÓN (PATCH)
+# NUEVO: SOLICITAR DEVOLUCIÓN (usuario)
 # =============================================
 
-@router.patch("/{prestamo_id}/devolver", response_model=PrestamoDevolucionResponse)
-async def devolver_prestamo(
+@router.patch("/{prestamo_id}/solicitar-devolucion",
+              response_model=SolicitudDevolucionResponse)
+async def solicitar_devolucion(
     prestamo_id: int,
-    devolucion_data: PrestamoLibroDevolucion,
     db: AsyncSession = Depends(get_db),
-    usuario_actual: Usuario = Depends(requerir_puede_gestionar_recursos)
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
 ):
     """
-    Registrar devolución de un préstamo.
+    El usuario solicita devolver su libro.
 
-    NUEVO COMPORTAMIENTO:
-    - Si el libro se devuelve con retraso (dias_excedidos > 0),
-      se genera automáticamente una multa al usuario.
-    - La respuesta siempre incluye el préstamo actualizado.
-    - Si hubo multa, la incluye en `multa_generada`.
+    - Cambia estado a 'Pendiente devolución' (5)
+    - Registra fecha_solicitud_dev — este timestamp se usará para
+      calcular días de retraso, no la fecha de aprobación del admin
+    - Genera número de ticket único para presentar en el CID
+    - El libro sigue en estado 'Prestado' hasta que el admin apruebe
     """
     try:
-        result = await db.execute(
-            select(PrestamoLibro).filter(PrestamoLibro.id == prestamo_id)
+        result   = await db.execute(
+            select(PrestamoLibro)
+            .options(selectinload(PrestamoLibro.libro))
+            .filter(PrestamoLibro.id == prestamo_id)
         )
         prestamo = result.scalar_one_or_none()
 
         if not prestamo:
             raise HTTPException(status_code=404, detail="Préstamo no encontrado")
 
-        if prestamo.estado_prestamo_id != 1:
-            raise HTTPException(status_code=400, detail="Solo se pueden devolver préstamos vigentes")
+        # Solo el dueño del préstamo puede solicitar la devolución
+        if prestamo.usuario_prestado_id != usuario_actual.id:
+            raise HTTPException(status_code=403,
+                                detail="No puedes solicitar la devolución de un préstamo ajeno")
 
-        # ── Actualizar libro a Disponible ──
-        result_libro = await db.execute(
-            select(Libro).filter(Libro.id == prestamo.libro_id)
-        )
-        libro = result_libro.scalar_one_or_none()
-        if libro:
-            libro.estado_id = 1
-            libro.fecha_cambio_estado = datetime.utcnow() - timedelta(hours=6)
+        # Solo préstamos vigentes pueden solicitar devolución
+        if prestamo.estado_prestamo_id != ESTADO_VIGENTE:
+            estados_msg = {
+                ESTADO_PENDIENTE_DEVOLUCION: "Este préstamo ya tiene una solicitud de devolución pendiente",
+                ESTADO_TERMINADO:            "Este préstamo ya fue devuelto",
+                ESTADO_EXPIRADO:             "Este préstamo está expirado"
+            }
+            msg = estados_msg.get(prestamo.estado_prestamo_id,
+                                  "Este préstamo no puede solicitar devolución")
+            raise HTTPException(status_code=400, detail=msg)
 
-        # ── Calcular días excedidos ──
-        fecha_devolucion_real = datetime.utcnow() - timedelta(hours=6)
-        dias_excedidos = calcular_dias_excedidos(
-            prestamo.fecha_devolucion_esperada,
-            fecha_devolucion_real
-        )
+        # ── Registrar solicitud ───────────────────────────────────────────
+        fecha_solicitud = datetime.utcnow() - timedelta(hours=6)
+        ticket          = generar_numero_ticket(prestamo.id, fecha_solicitud)
 
-        # ── Actualizar préstamo ──
-        prestamo.estado_prestamo_id = 3  # Terminado
-        prestamo.fecha_devolucion_real = fecha_devolucion_real
-        prestamo.usuario_ultimo_cambio_id = usuario_actual.id
-        prestamo.fecha_ultimo_cambio_estado = fecha_devolucion_real
-        prestamo.dias_excedidos = dias_excedidos
-
-        if devolucion_data.observaciones:
-            prestamo.observaciones = devolucion_data.observaciones
-
-        # ── NUEVO: Generar multa si hay retraso ──
-        multa_generada = None
-        if dias_excedidos > 0:
-            multa_generada = await generar_multa_por_retraso(
-                db=db,
-                prestamo=prestamo,
-                dias_excedidos=dias_excedidos,
-                usuario_admin_id=usuario_actual.id
-            )
+        prestamo.estado_prestamo_id        = ESTADO_PENDIENTE_DEVOLUCION
+        prestamo.fecha_solicitud_dev       = fecha_solicitud
+        prestamo.numero_ticket             = ticket
+        prestamo.usuario_ultimo_cambio_id  = usuario_actual.id
+        prestamo.fecha_ultimo_cambio_estado= fecha_solicitud
 
         await db.commit()
         await db.refresh(prestamo)
-        if multa_generada:
-            await db.refresh(multa_generada)
 
-        # ── Construir respuesta ──
-        multa_resumen = None
-        if multa_generada:
-            multa_resumen = MultaResumenEnDevolucion(
-                id=multa_generada.id,
-                costo_monetario=multa_generada.costo_monetario,
-                dias_excedidos=dias_excedidos,
-                observaciones=multa_generada.observaciones
+        return SolicitudDevolucionResponse(
+            prestamo_id     = prestamo.id,
+            numero_ticket   = ticket,
+            fecha_solicitud = fecha_solicitud,
+            libro_titulo    = prestamo.libro.titulo if prestamo.libro else None,
+            mensaje         = (
+                f"Solicitud registrada. Presenta el ticket #{ticket} "
+                f"en el CID para completar la devolución."
             )
-
-        mensaje = (
-            f"Devolución registrada. Se generó una multa de "
-            f"${multa_generada.costo_monetario} MXN por {dias_excedidos} día(s) de retraso."
-            if multa_generada
-            else "Devolución registrada correctamente."
-        )
-
-        return PrestamoDevolucionResponse(
-            prestamo=prestamo,
-            multa_generada=multa_resumen,
-            mensaje=mensaje
         )
 
     except HTTPException:
@@ -402,7 +405,161 @@ async def devolver_prestamo(
         raise
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al registrar devolución: {str(e)}")
+        raise HTTPException(status_code=500,
+                            detail=f"Error al solicitar devolución: {str(e)}")
+
+
+# =============================================
+# NUEVO: APROBAR DEVOLUCIÓN (admin)
+# =============================================
+
+@router.patch("/{prestamo_id}/aprobar-devolucion",
+              response_model=PrestamoDevolucionResponse)
+async def aprobar_devolucion(
+    prestamo_id: int,
+    aprobacion_data: AprobacionDevolucionRequest,
+    db: AsyncSession = Depends(get_db),
+    usuario_actual: Usuario = Depends(requerir_puede_gestionar_recursos)
+):
+    """
+    El admin aprueba la devolución de un préstamo.
+
+    - Verifica que exista solicitud pendiente (estado 5)
+    - Calcula días de retraso usando fecha_solicitud_dev
+      (no la fecha actual — esto protege al usuario de retrasos del admin)
+    - Genera multa si aplica ($5/día)
+    - Libera el libro (estado → Disponible)
+    - Cierra el préstamo (estado → Terminado)
+    """
+    try:
+        result = await db.execute(
+            select(PrestamoLibro)
+            .options(selectinload(PrestamoLibro.libro))
+            .filter(PrestamoLibro.id == prestamo_id)
+        )
+        prestamo = result.scalar_one_or_none()
+
+        if not prestamo:
+            raise HTTPException(status_code=404, detail="Préstamo no encontrado")
+
+        if prestamo.estado_prestamo_id != ESTADO_PENDIENTE_DEVOLUCION:
+            raise HTTPException(
+                status_code=400,
+                detail="Solo se pueden aprobar préstamos en estado 'Pendiente devolución'"
+            )
+
+        # ── Liberar libro ─────────────────────────────────────────────────
+        result_libro = await db.execute(
+            select(Libro).filter(Libro.id == prestamo.libro_id)
+        )
+        libro = result_libro.scalar_one_or_none()
+        if libro:
+            libro.estado_id           = 1   # Disponible
+            libro.fecha_cambio_estado = datetime.utcnow() - timedelta(hours=6)
+
+        # ── Calcular días de retraso ──────────────────────────────────────
+        # CLAVE: se usa fecha_solicitud_dev, no datetime.now()
+        # Así el admin no puede "cobrar más días" retrasando la aprobación
+        fecha_base     = prestamo.fecha_solicitud_dev or (datetime.utcnow() - timedelta(hours=6))
+        dias_excedidos = calcular_dias_excedidos(
+            prestamo.fecha_devolucion_esperada,
+            fecha_base
+        )
+
+        # ── Cerrar préstamo ───────────────────────────────────────────────
+        fecha_aprobacion                    = datetime.utcnow() - timedelta(hours=6)
+        prestamo.estado_prestamo_id         = ESTADO_TERMINADO
+        prestamo.fecha_devolucion_real      = fecha_aprobacion
+        prestamo.usuario_ultimo_cambio_id   = usuario_actual.id
+        prestamo.fecha_ultimo_cambio_estado = fecha_aprobacion
+        prestamo.aprobado_por_id            = usuario_actual.id
+        prestamo.dias_excedidos             = dias_excedidos
+
+        if aprobacion_data.observaciones:
+            prestamo.observaciones = aprobacion_data.observaciones
+
+        # ── Generar multa si hay retraso ──────────────────────────────────
+        multa_generada = None
+        if dias_excedidos > 0:
+            multa_generada = await generar_multa_por_retraso(
+                db               = db,
+                prestamo         = prestamo,
+                dias_excedidos   = dias_excedidos,
+                usuario_admin_id = usuario_actual.id
+            )
+
+        await db.commit()
+        await db.refresh(prestamo)
+        if multa_generada:
+            await db.refresh(multa_generada)
+
+        multa_resumen = None
+        if multa_generada:
+            multa_resumen = MultaResumenEnDevolucion(
+                id              = multa_generada.id,
+                costo_monetario = multa_generada.costo_monetario,
+                dias_excedidos  = dias_excedidos,
+                observaciones   = multa_generada.observaciones
+            )
+
+        mensaje = (
+            f"Devolución aprobada. Multa generada: "
+            f"${multa_generada.costo_monetario} MXN "
+            f"({dias_excedidos} día(s) × $5.00 MXN/día)."
+            if multa_generada
+            else "Devolución aprobada correctamente. Sin retraso."
+        )
+
+        return PrestamoDevolucionResponse(
+            prestamo       = prestamo,
+            multa_generada = multa_resumen,
+            mensaje        = mensaje
+        )
+
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500,
+                            detail=f"Error al aprobar devolución: {str(e)}")
+
+
+# =============================================
+# BUSCAR POR TICKET (admin)
+# =============================================
+
+@router.get("/ticket/{numero_ticket}",
+            response_model=PrestamoLibroConRelaciones)
+async def buscar_por_ticket(
+    numero_ticket: int,
+    db: AsyncSession = Depends(get_db),
+    usuario_actual: Usuario = Depends(requerir_puede_gestionar_recursos)
+):
+    """
+    Busca un préstamo por número de ticket.
+    El admin lo usa en el CID cuando el estudiante presenta su ticket.
+    """
+    result = await db.execute(
+        select(PrestamoLibro)
+        .options(
+            selectinload(PrestamoLibro.libro),
+            selectinload(PrestamoLibro.usuario_presta),
+            selectinload(PrestamoLibro.usuario_prestado),
+            selectinload(PrestamoLibro.estado_prestamo),
+            selectinload(PrestamoLibro.aprobado_por)
+        )
+        .filter(PrestamoLibro.numero_ticket == numero_ticket)
+    )
+    prestamo = result.scalar_one_or_none()
+
+    if not prestamo:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No se encontró ningún préstamo con el ticket #{numero_ticket}"
+        )
+
+    return _serializar_prestamo(prestamo)
 
 
 @router.get("/usuario/{usuario_id}", response_model=List[PrestamoLibroConRelaciones])
@@ -420,36 +577,43 @@ async def listar_prestamos_usuario(
     ).filter(PrestamoLibro.usuario_prestado_id == usuario_id)
 
     if solo_vigentes:
-        query = query.where(PrestamoLibro.estado_prestamo_id == 1)
+        query = query.where(
+            PrestamoLibro.estado_prestamo_id.in_(
+                [ESTADO_VIGENTE, ESTADO_PENDIENTE_DEVOLUCION]
+            )
+        )
 
-    result = await db.execute(query)
+    result    = await db.execute(query)
     prestamos = result.scalars().all()
-
     return [_serializar_prestamo(p) for p in prestamos]
 
 
 # =============================================
-# HELPER DE SERIALIZACIÓN (evita repetición)
+# HELPER DE SERIALIZACIÓN
 # =============================================
 
 def _serializar_prestamo(prestamo: PrestamoLibro) -> dict:
     return {
-        "id": prestamo.id,
-        "libro_id": prestamo.libro_id,
-        "usuario_presta_id": prestamo.usuario_presta_id,
-        "usuario_prestado_id": prestamo.usuario_prestado_id,
-        "estado_prestamo_id": prestamo.estado_prestamo_id,
-        "fecha_prestamo": prestamo.fecha_prestamo,
-        "fecha_devolucion_esperada": prestamo.fecha_devolucion_esperada,
-        "fecha_devolucion_real": prestamo.fecha_devolucion_real,
-        "usuario_ultimo_cambio_id": prestamo.usuario_ultimo_cambio_id,
+        "id":                         prestamo.id,
+        "libro_id":                   prestamo.libro_id,
+        "usuario_presta_id":          prestamo.usuario_presta_id,
+        "usuario_prestado_id":        prestamo.usuario_prestado_id,
+        "estado_prestamo_id":         prestamo.estado_prestamo_id,
+        "fecha_prestamo":             prestamo.fecha_prestamo,
+        "fecha_devolucion_esperada":  prestamo.fecha_devolucion_esperada,
+        "fecha_devolucion_real":      prestamo.fecha_devolucion_real,
+        "usuario_ultimo_cambio_id":   prestamo.usuario_ultimo_cambio_id,
         "fecha_ultimo_cambio_estado": prestamo.fecha_ultimo_cambio_estado,
-        "observaciones": prestamo.observaciones,
-        "dias_excedidos": prestamo.dias_excedidos or 0,
-        "libro_titulo": prestamo.libro.titulo if prestamo.libro else None,
-        "libro_autor": prestamo.libro.autor if prestamo.libro else None,
-        "libro_codigo_decimal": prestamo.libro.codigo_decimal if prestamo.libro else None,
-        "usuario_presta_nombre": prestamo.usuario_presta.nombre_completo if prestamo.usuario_presta else None,
-        "usuario_prestado_nombre": prestamo.usuario_prestado.nombre_completo if prestamo.usuario_prestado else None,
-        "estado_prestamo_nombre": prestamo.estado_prestamo.estado if prestamo.estado_prestamo else None,
+        "observaciones":              prestamo.observaciones,
+        "dias_excedidos":             prestamo.dias_excedidos or 0,
+        "numero_ticket":              prestamo.numero_ticket,
+        "fecha_solicitud_dev":        prestamo.fecha_solicitud_dev,
+        "aprobado_por_id":            prestamo.aprobado_por_id,
+        "libro_titulo":               prestamo.libro.titulo         if prestamo.libro           else None,
+        "libro_autor":                prestamo.libro.autor          if prestamo.libro           else None,
+        "libro_codigo_decimal":       prestamo.libro.codigo_decimal if prestamo.libro           else None,
+        "usuario_presta_nombre":      prestamo.usuario_presta.nombre_completo   if prestamo.usuario_presta   else None,
+        "usuario_prestado_nombre":    prestamo.usuario_prestado.nombre_completo if prestamo.usuario_prestado else None,
+        "estado_prestamo_nombre":     prestamo.estado_prestamo.estado           if prestamo.estado_prestamo  else None,
+        "aprobado_por_nombre":        prestamo.aprobado_por.nombre_completo     if prestamo.aprobado_por     else None,
     }

@@ -1,4 +1,3 @@
-// services/PrestamoLibro.js
 import api from '@/services/api'
 
 export const prestamoLibroService = {
@@ -29,17 +28,44 @@ export const prestamoLibroService = {
   },
 
   // ==============================
-  // DEVOLVER PRÉSTAMO
-  // Respuesta: { prestamo, multa_generada, mensaje }
-  // multa_generada es null si no hubo retraso,
-  // o { id, costo_monetario, dias_excedidos, observaciones } si hubo multa.
+  // SOLICITAR DEVOLUCION
+  // Genera ticket y cambia estado a "Pendiente devolución"
   // ==============================
-  async devolverPrestamo(prestamoId, observaciones = null) {
+  async solicitarDevolucion(prestamoId) {
     const response = await api.patch(
-      `/prestamos-libros/${prestamoId}/devolver`,
+      `/prestamos-libros/${prestamoId}/solicitar-devolucion`
+    )
+    return response.data
+  },
+
+  // ==============================
+  // APROBAR DEVOLUCION
+  // Calcula días con fecha_solicitud_dev, genera multa si aplica
+  // ==============================
+
+  async aprobarDevolucion(prestamoId, observaciones = null) {
+    const response = await api.patch(
+      `/prestamos-libros/${prestamoId}/aprobar-devolucion`,
       { observaciones }
     )
-    return response.data  // { prestamo, multa_generada, mensaje }
+    return response.data
+  },
+
+  // ==============================
+  // BUSCAR POR TICKET
+  // Permite al administrador en CID encontrar la solicitud
+  // ==============================
+  async buscarPorTicket(numeroTicket) {
+    const response = await api.get(`/prestamos-libros/ticket/${numeroTicket}`)
+    return response.data
+  },
+
+  // ==============================
+  // LISTAR PENDIENTES DE DEVOLUCION
+  // ==============================
+  async getPendientesDevolucion() {
+    const response = await api.get('/prestamos-libros/pendientes-devolucion')
+    return response.data
   },
 
   // ==============================
@@ -89,7 +115,10 @@ export const prestamoLibroService = {
         returnDate: p.fecha_devolucion_esperada,
         status,
         diasRestantes: diffDias,
-        diasExcedidos: p.dias_excedidos || 0
+        diasExcedidos: p.dias_excedidos || 0,
+        numeroTicket:   p.numero_ticket  || null,
+        fechaSolicitud: p.fecha_solicitud_dev || null,
+        estadoNombre:   p.estado_prestamo_nombre
       }
     })
   }

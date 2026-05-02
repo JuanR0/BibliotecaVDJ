@@ -16,3 +16,20 @@ psql -h localhost -U postgres -f reset_bd.sql
 
 psql -h localhost -p 5432 -U postgres -d BibliotecaVDJ  -f 01_esquema_completo.sql
 psql -h localhost -p 5432 -U postgres -d BibliotecaVDJ  -f 02_datos_referencia.sql
+
+##DATOS NUEVOS DE DB
+
+INSERT INTO estados_prestamo (id, estado)
+VALUES (5, 'Pendiente devolución')
+ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE prestamos_libro
+    ADD COLUMN IF NOT EXISTS numero_ticket        BIGINT UNIQUE,
+    ADD COLUMN IF NOT EXISTS fecha_solicitud_dev  TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS aprobado_por_id      INTEGER REFERENCES usuarios(id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_prestamos_ticket
+    ON prestamos_libro (numero_ticket)
+    WHERE numero_ticket IS NOT NULL;
+
+Ejecucion en PGAdmin4

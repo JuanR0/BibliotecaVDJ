@@ -45,6 +45,7 @@
 import { useChatStore } from '@/stores/chat'
 import { ref } from 'vue'
 import { nextTick, watch } from 'vue'
+import { chatService } from '@/services/chat'
 
 
 //CONST
@@ -85,71 +86,12 @@ const onAfterLeave = () => {
   showBubble.value = true
 }
 
-
-const knowledgeBase = {
-  horario: {
-    preguntas: [
-        "Horario",
-        "¿cuál es el horario?",
-        "¿a qué hora abren?",
-        "horario de atención",
-        "¿cuándo cierran?"
-    ],
-    respuesta:
-      "La biblioteca atiende de lunes a viernes de 8:00 a 20:00, sábados de 9:00 a 14:00."
-  },
-  ubicaciones: {
-    preguntas: [
-      "¿dónde está el baño?",
-      "ubicación del wc",
-      "¿dónde están los servicios?"
-    ],
-    respuesta:
-      "Los baños se encuentran en el primer piso, al lado de la sala de lectura."
-  },
-  prestamo_libros: {
-    preguntas: [
-        "prestamo",
-        "¿cómo presto un libro?",
-        "préstamo de libros",
-        "quiero llevar un texto",
-        "tomar prestado un volumen",
-        "cómo me llevo un libro",
-        "procedimiento para préstamo de obras",
-        "necesito un libro de la biblioteca"
-    ],
-    respuesta:
-      "Puedes prestar hasta 3 libros por 15 días. Se requiere carné vigente."
-  }
-}
-
-const getBotReply = (userText) => {
-  const normalize = (str) =>
-    str.toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    const text = normalize(userText)
-
-  for (const key in knowledgeBase) {
-    const item = knowledgeBase[key]
-
-    const match = item.preguntas.some(p =>text.includes(normalize(p)))
-
-    if (match) {
-      return item.respuesta
-    }
-  }
-
-  return "No c krnal :("
-}
-
-//FUNCION DE ENVIO DE MENSAJE
+//FUNCION DE ENVIO DE MENSAJE conectado al backend para respuesta del microservicio!
 const sendMessage = async () => {
     if (!input.value.trim()) return
 
     const userText = input.value
 
-    // Mensaje usuario
     chat.addMessage({
         from: 'user',
         text: userText
@@ -157,22 +99,19 @@ const sendMessage = async () => {
 
     input.value = ''
 
-    // Mensaje temporal del bot
     const thinkingIndex = chat.messages.length
     chat.addMessage({
         from: 'bot',
         text: 'Pensando...'
     })
 
-    // Delay de 1 segundo
-    const delay = 700 + Math.random() * 800
-    await new Promise(r => setTimeout(r, delay))
-
-    // Obtener respuesta real
-    const reply = getBotReply(userText)
-
-    // Reemplazar "Pensando..."
-    chat.messages[thinkingIndex].text = reply
+    try {
+        const data = await chatService.ask(userText)
+        chat.messages[thinkingIndex].text = data.answer
+    } catch (err) {
+        const errorMsg = err.response?.data?.detail || 'No se pudo contactar al asistente'
+        chat.messages[thinkingIndex].text = errorMsg
+    }
 }
 
 watch(

@@ -88,6 +88,27 @@ class PrestamoLibroDevolucion(BaseModel):
 # NUEVO: Schema para respuesta de devolución
 # Incluye la multa generada si el préstamo estaba vencido
 # =============================================
+ 
+class SolicitudDevolucionResponse(BaseModel):
+    """
+    Respuesta cuando el usuario solicita la devolución.
+    Contiene el número de ticket para presentar en el CID.
+    Formato del ticket: YYYYMMDDHHMMSS + id (ej: 20260425143022015)
+    """
+    prestamo_id: int
+    numero_ticket: int
+    fecha_solicitud: datetime
+    libro_titulo: Optional[str] = None
+    mensaje: str
+ 
+    class Config:
+        from_attributes = True
+ 
+class AprobacionDevolucionRequest(BaseModel):
+    observaciones: Optional[str] = None
+ 
+    class Config:
+        from_attributes = True
 
 class MultaResumenEnDevolucion(BaseModel):
     """Resumen de la multa generada al devolver un libro vencido"""
