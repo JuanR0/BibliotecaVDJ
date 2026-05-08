@@ -18,8 +18,6 @@ import BookCreate from '@/views/admin/CrearLibro.vue'
 import BookEdit from '@/views/admin/BookEdit.vue'
 
 import MobiliarioManagementView from '@/views/admin/FurnitureManagement.vue'
-import MobiliarioCreateView from '@/views/admin/FurnitureCreate.vue'
-import MobiliarioEditView from '@/views/admin/EditFurniture.vue'
 
 import AreasManagement from '@/views/admin/AreasManagement.vue'
 import AreasEstudio from '@/views/user/AreasEstudio.vue'
@@ -143,27 +141,6 @@ const routes = [
       requiresAuth: true,
       requiresAdminAdvanced: true
     }
-  },
-  {
-    path: '/admin/mobiliario/crear',
-    name: 'FurnitureCreate',
-    component: MobiliarioCreateView,
-    meta: {
-      title: 'Agregar Mobiliario',
-      requiresAuth: true,
-      requiresAdminAdvanced: true
-    }
-  },
-  {
-    path: '/admin/mobiliario/editar/:id',
-    name: 'FurnitureEdit',
-    component: MobiliarioEditView,
-    meta: {
-      title: 'Editar Mobiliario',
-      requiresAuth: true,
-      requiresAdminAdvanced: true,
-    },
-    props: true
   },
 
   // ========== RUTAS DE AREAS ==========

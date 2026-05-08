@@ -104,14 +104,8 @@ export const mobiliarioService = {
 
   // ELIMINAR PERMANENTEMENTE
   async deleteMobiliario(id) {
-    try {
-      console.log(`📤 Eliminando permanentemente mobiliario ${id}`)
-      const response = await api.delete(`/api/mobiliario/${id}/eliminar-permanente`)
-      return response.data
-    } catch (error) {
-      console.error(`Error eliminando mobiliario ${id}:`, error)
-      throw error
-    }
+    const response = await api.delete(`/api/mobiliario/${id}`)
+    return response.data
   },
 
   // OBTENER CATÁLOGOS

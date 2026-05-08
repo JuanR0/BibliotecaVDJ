@@ -32,4 +32,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_prestamos_ticket
     ON prestamos_libro (numero_ticket)
     WHERE numero_ticket IS NOT NULL;
 
+UPDATE estados_prestamo
+## CAMBIAR "Expirado" POR "Pendiente" PARA LOS ESTADOS DE PRESTAMO 
+SET estado = 'Pendiente'
+WHERE id = 2;
+
+-- Verificar
+SELECT id, estado FROM estados_prestamo ORDER BY id;    
+
 Ejecucion en PGAdmin4

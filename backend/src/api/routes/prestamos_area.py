@@ -420,15 +420,16 @@ async def rechazar_solicitud_area(
     db: AsyncSession = Depends(get_db),
     usuario_actual: Usuario = Depends(requerir_puede_gestionar_recursos)
 ):
-    """
-    El admin rechaza una solicitud pendiente.
-    - Préstamo pasa a Terminado (3)
-    - Área vuelve a Disponible (1)
-    """
     try:
         result = await db.execute(
             select(PrestamoArea)
-            .options(selectinload(PrestamoArea.area))
+            .options(
+                selectinload(PrestamoArea.area),
+                selectinload(PrestamoArea.usuario_presta),       # ← agregar
+                selectinload(PrestamoArea.usuario_prestado),     # ← agregar
+                selectinload(PrestamoArea.estado_prestamo),      # ← agregar
+                selectinload(PrestamoArea.usuario_ultimo_cambio) # ← agregar
+            )
             .filter(PrestamoArea.id == prestamo_id)
         )
         prestamo = result.scalar_one_or_none()
@@ -444,18 +445,16 @@ async def rechazar_solicitud_area(
 
         fecha_actual = datetime.utcnow() - timedelta(hours=6)
 
-        # Área → Disponible
         if prestamo.area:
-            prestamo.area.estado_id                = ESTADO_AREA_DISPONIBLE
+            prestamo.area.estado_id                 = ESTADO_AREA_DISPONIBLE
             prestamo.area.fecha_ultimo_cambio_estado = fecha_actual
 
-        # Préstamo → Terminado
         prestamo.estado_prestamo_id         = ESTADO_PRESTAMO_TERMINADO
         prestamo.fecha_devolucion_real       = fecha_actual
         prestamo.usuario_ultimo_cambio_id    = usuario_actual.id
         prestamo.fecha_ultimo_cambio_estado  = fecha_actual
         prestamo.observaciones               = (
-            f"[RECHAZADO por admin] {prestamo.observaciones or ''}"
+            f"[RECHAZADO] {prestamo.observaciones or ''}"
         ).strip()
 
         await db.commit()
@@ -468,7 +467,6 @@ async def rechazar_solicitud_area(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al rechazar solicitud: {str(e)}")
-
 
 # =============================================
 # DEVOLVER ÁREA (admin o usuario)

@@ -318,3 +318,35 @@ async def listar_estados_mobiliario(
     result = await db.execute(select(EstadoMobiliario).order_by(EstadoMobiliario.estado))
     estados = result.scalars().all()
     return estados
+
+
+# =============================================
+# ENDPOINT PARA ELIMINAR PERMANENTEMENTE
+# =============================================
+
+
+@router.delete("/{mobiliario_id}", response_model=dict)
+async def eliminar_mobiliario_permanente(
+    mobiliario_id: int,
+    db: AsyncSession = Depends(get_db),
+    usuario_actual: Usuario = Depends(requerir_puede_gestionar_recursos)
+):
+    """Eliminar mobiliario permanentemente. Solo si está dado de baja."""
+    result = await db.execute(
+        select(Mobiliario).filter(Mobiliario.id == mobiliario_id)
+    )
+    mobiliario = result.scalar_one_or_none()
+
+    if not mobiliario:
+        raise HTTPException(status_code=404, detail="Mobiliario no encontrado")
+
+    if mobiliario.estado_id != ESTADO_DADO_DE_BAJA:
+        raise HTTPException(
+            status_code=400,
+            detail="Solo se puede eliminar mobiliario dado de baja"
+        )
+
+    await db.delete(mobiliario)
+    await db.commit()
+
+    return {"message": "Mobiliario eliminado permanentemente"}

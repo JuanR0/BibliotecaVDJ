@@ -224,34 +224,37 @@ async def eliminar_usuario(
     usuario_actual: Usuario = Depends(requerir_puede_gestionar_usuarios)
 ):
     """
-    Eliminar usuario (solo super admin)
-    En realidad desactiva el usuario por seguridad
+    Eliminar usuario permanentemente.
+    Solo funciona si el usuario ya está inactivo.
     """
-    # No permitir auto-eliminación
     if usuario_id == usuario_actual.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No puedes eliminar tu propia cuenta"
         )
-    
+
     result = await db.execute(
         select(Usuario).filter(Usuario.id == usuario_id)
     )
     usuario = result.scalar_one_or_none()
-    
+
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuario no encontrado"
         )
-    
-    # En lugar de eliminar, desactivamos (DELETE lógico)
-    usuario.esta_activo = False
-    usuario.fecha_ultimo_cambio_estado = datetime.utcnow()
-    
+
+    # Solo se pueden eliminar usuarios ya inactivos
+    if usuario.esta_activo:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario debe estar inactivo antes de eliminarse"
+        )
+
+    await db.delete(usuario)
     await db.commit()
-    
-    return {"message": "Usuario desactivado exitosamente"}
+
+    return {"message": f"Usuario {usuario.nombre_completo} eliminado permanentemente"}
 
 @router.patch("/{usuario_id}/reset-password")
 async def resetear_contrasena(

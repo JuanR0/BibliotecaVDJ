@@ -14,10 +14,6 @@
             <span class="hstat-num">{{ disponibles }}</span>
             <span class="hstat-lbl">Disponibles</span>
           </div>
-          <div class="hstat hstat-gold" v-if="ocupadas > 0">
-            <span class="hstat-num">{{ ocupadas }}</span>
-            <span class="hstat-lbl">Ocupadas</span>
-          </div>
           <button class="btn-refresh" @click="refrescar" title="Actualizar">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -243,7 +239,7 @@ const toast         = ref({ visible: false, mensaje: '', tipo: '' })
 
 // ── Computed ───────────────────────────────────────────────────────────────
 const areasPrestables = computed(() =>
-  areas.value.filter(a => a.es_prestable && a.estado_id !== 5)
+  areas.value.filter(a => a.es_prestable && a.estado_id === 1)
 )
 
 const areasFiltradas = computed(() => {
@@ -253,7 +249,6 @@ const areasFiltradas = computed(() => {
 })
 
 const disponibles = computed(() => areasPrestables.value.filter(a => a.estado_id === 1).length)
-const ocupadas    = computed(() => areasPrestables.value.filter(a => a.estado_id === 2).length)
 
 const fechaMinima = computed(() => {
   const ahora = new Date()

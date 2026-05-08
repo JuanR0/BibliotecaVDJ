@@ -156,9 +156,7 @@ export const userService = {
       { id: 1, nombre: 'Estudiante' },
       { id: 2, nombre: 'Docente' },
       { id: 3, nombre: 'Directivo' },
-      { id: 4, nombre: 'Administrativo' },
-      { id: 5, nombre: 'Investigador' },
-      { id: 6, nombre: 'Externo' }
+      { id: 4, nombre: 'Administrativo' }
     ]
   },
 

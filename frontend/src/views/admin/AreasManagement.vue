@@ -288,7 +288,7 @@
           <div class="form-field" v-if="isEditing">
             <label class="form-label">Estado</label>
             <select v-model="formData.estado_id" class="form-select">
-              <option v-for="estado in estadosArea" :key="estado.id" :value="estado.id">
+              <option v-for="estado in estadosArea.filter(e => e.id !== 5)" :key="estado.id" :value="estado.id">
                 {{ estado.estado }}
               </option>
             </select>

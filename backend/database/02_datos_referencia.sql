@@ -24,7 +24,7 @@ INSERT INTO estados_equipo (estado) VALUES
 -- Estados para mobiliario
 INSERT INTO estados_mobiliario (estado) VALUES 
 ('En uso'),
-('En reparación'),
+('En reparacion'),
 ('Almacenado'),
 ('Dado de baja');
 
