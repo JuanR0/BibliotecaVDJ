@@ -36,9 +36,10 @@ INSERT INTO estados_multa (estado) VALUES
 -- Insertar estados básicos de préstamo
 INSERT INTO estados_prestamo (estado) VALUES 
 ('Vigente'),
-('Expirado'),
+('Pendiente'),
 ('Terminado'),
-('Otros');
+('Otros'),
+('Pendiente devolución');
 
 -- Estados para recursos virtuales
 INSERT INTO estados_virtual (estado) VALUES 
