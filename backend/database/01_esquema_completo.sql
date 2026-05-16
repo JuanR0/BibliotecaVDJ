@@ -246,24 +246,34 @@ CREATE TABLE tesis (
 
 CREATE TABLE prestamos_libro (
     id SERIAL PRIMARY KEY,
-    -- Relaciones principales (sin cambios)
+    -- Relaciones principales 
     libro_id INTEGER NOT NULL REFERENCES libros(id),
     usuario_presta_id INTEGER NOT NULL REFERENCES usuarios(id),
     usuario_prestado_id INTEGER NOT NULL REFERENCES usuarios(id),
     estado_prestamo_id INTEGER NOT NULL REFERENCES estados_prestamo(id),
     
-    -- Fechas del ciclo de préstamo (sin cambios)
+    -- Fechas del ciclo de préstamo 
     fecha_prestamo TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_devolucion_esperada TIMESTAMP NOT NULL,
     fecha_devolucion_real TIMESTAMP,
     dias_excedidos INTEGER DEFAULT 0,
     
-    -- Auditoría (sin cambios)
+    -- Gestión de devoluciones
+    numero_ticket BIGINT UNIQUE,
+    fecha_solicitud_dev TIMESTAMP,
+    aprobado_por_id INTEGER REFERENCES usuarios(id),
+
+    -- Auditoría 
     usuario_ultimo_cambio_id INTEGER REFERENCES usuarios(id),
     fecha_ultimo_cambio_estado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     observaciones TEXT
 );
+
+-- Índice único parcial para tickets no nulos
+CREATE UNIQUE INDEX IF NOT EXISTS idx_prestamos_ticket
+    ON prestamos_libro (numero_ticket)
+    WHERE numero_ticket IS NOT NULL;
 
 CREATE TABLE prestamos_area (
     id SERIAL PRIMARY KEY,
