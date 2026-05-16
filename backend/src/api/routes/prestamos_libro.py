@@ -241,12 +241,13 @@ async def mis_prestamos(
             selectinload(PrestamoLibro.estado_prestamo),
             selectinload(PrestamoLibro.usuario_presta),
             selectinload(PrestamoLibro.usuario_prestado),
+            selectinload(PrestamoLibro.aprobado_por),       # ← AGREGAR
+            selectinload(PrestamoLibro.usuario_ultimo_cambio) # ← AGREGAR
         )
         .where(PrestamoLibro.usuario_prestado_id == usuario_actual.id)
     )
 
     if solo_vigentes:
-        # Vigentes Y pendientes de devolución (el usuario debe ver ambos)
         query = query.where(
             PrestamoLibro.estado_prestamo_id.in_(
                 [ESTADO_VIGENTE, ESTADO_PENDIENTE_DEVOLUCION]

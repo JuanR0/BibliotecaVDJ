@@ -1,60 +1,52 @@
+// composables/usePermissions.js
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
 export const usePermissions = () => {
   const authStore = useAuthStore()
 
-  
-  
-  // Permisos específicos para BookCatalog
   const permissions = computed(() => ({
-    // CRUD de libros
-    canCreateBooks: authStore.puedeCrearLibros,
-    canEditBooks: authStore.puedeEditarLibros,
-    canDeleteBooks: authStore.puedeEliminarLibros,
-    canRecoverBooks: authStore.puedeReactivarLibros,
-    
-
-    // CRUD Mobiliario
-    canCreateFurniture: authStore.puedeGestionarRecursos,
-    canEditFurniture: authStore.puedeGestionarRecursos,
-    canDeleteFurniture: authStore.puedeGestionarRecursos,
-    canRecoverFurniture: authStore.puedeGestionarRecursos,
-    canDesactivateFurniture: authStore.puedeGestionarRecursos,
-    canViewMobiliario: authStore.puedeGestionarRecursos,
-    
-    // Visualización
+    // ── Libros ──────────────────────────────────────────────────────────────
     canSeeRetiredBooks: authStore.puedeVerLibrosRetirados,
-    
-    // Préstamos
-    canRequestLoans: authStore.puedePrestar,
-    
-    // Tipo de usuario
-    isCommonUser: authStore.esUsuarioComun,
-    isAdmin: authStore.esCualquierAdmin,
+    canCreateBooks:     authStore.puedeCrearLibros,
+    canEditBooks:       authStore.puedeEditarLibros,
+    canDeleteBooks:     authStore.puedeEliminarLibros,
+    canRecoverBooks:    authStore.puedeReactivarLibros,
+    canRequestLoans:    authStore.puedePrestar,
+
+    // ── Mobiliario ───────────────────────────────────────────────────────────
+    canViewFurniture:       authStore.puedeVerMobiliario,
+    canCreateFurniture:     authStore.puedeCrearMobiliario,
+    canEditFurniture:       authStore.puedeEditarMobiliario,
+    canDeleteFurniture:     authStore.puedeEliminarMobiliario,
+    canReactivatFurniture:  authStore.puedeReactivarMobiliario,
+    canDesactivateFurniture: authStore.puedeDesactivarMobiliario,
+
+    // ── Áreas ────────────────────────────────────────────────────────────────
+    canViewAreas:        authStore.puedeVerAreas,
+    canCreateAreas:      authStore.puedeCrearAreas,
+    canEditAreas:        authStore.puedeEditarAreas,
+    canDeleteAreas:      authStore.puedeEliminarAreas,
+    canReactivateAreas:  authStore.puedeReactivarAreas,
+    canDesactivateAreas: authStore.puedeDesactivarAreas,
+
+    // ── Multas ───────────────────────────────────────────────────────────────
+    canViewFines:    authStore.puedeVerMultas,
+    canManageFines:  authStore.puedeGestionarMultas,
+    canCreateFines:  authStore.puedeCrearMultas,
+    canSettleFines:  authStore.puedeLiquidarMultas,
+
+    // ── Roles (atajos para v-if en templates) ────────────────────────────────
+    isStudent:       authStore.esEstudiante,
+    isBasicAdmin:    authStore.esAdminBasico,
     isAdvancedAdmin: authStore.esAdminAvanzado,
-    isSuperAdmin: authStore.esSuperAdmin
+    isSuperAdmin:    authStore.esSuperAdmin,
+    isAnyAdmin:      authStore.esCualquierAdmin,
   }))
 
-  const hasPermission = (permissionName) => {
-    return permissions.value[permissionName] === true
-  }
+  const hasPermission    = (name) => permissions.value[name] === true
+  const hasAnyPermission = (list) => list.some(p  => permissions.value[p] === true)
+  const hasAllPermissions = (list) => list.every(p => permissions.value[p] === true)
 
-  const hasAnyPermission = (permissionsList) => {
-    return permissionsList.some(p => permissions.value[p] === true)
-  }
-
-  const hasAllPermissions = (permissionsList) => {
-    return permissionsList.every(p => permissions.value[p] === true)
-}
-
-
-  
-  return {
-    permissions,
-    hasPermission,
-    authStore,
-    hasAnyPermission,
-    hasAllPermissions
-  }
+  return { permissions, hasPermission, hasAnyPermission, hasAllPermissions, authStore }
 }

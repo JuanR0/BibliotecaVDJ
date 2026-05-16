@@ -183,6 +183,13 @@ async def obtener_usuario_actual_optcional(
         return None
 
 # =============================================
+# PERMISO UNICO PARA VISUALIZAR CATALOGO
+# =============================================
+
+def puede_ver_catalogos(usuario): 
+    return usuario.esta_activo
+
+# =============================================
 # SISTEMA SIMPLIFICADO DE PERMISOS
 # =============================================
 

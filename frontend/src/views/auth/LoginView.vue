@@ -1,120 +1,3 @@
-<script>
-import { useAuthStore } from '@/stores/auth'
-
-export default {
-  name: 'Login',
-  data() {
-    return {
-      isRegister: false,
-      isLoading: false,
-      showPassword: false,
-      errorMessage: '',
-      successMessage: '',
-      relacionesInstitucionales: [
-        { id: 1, nombre: 'Estudiante' },
-        { id: 2, nombre: 'Docente' },
-        { id: 3, nombre: 'Administrativo' },
-        { id: 4, nombre: 'Investigador' },
-        { id: 5, nombre: 'Externo' }
-      ],
-      form: {
-        codigo_universitario: '',
-        clave_acceso: '',
-        nombre_completo: '',
-        relacion_institucional_id: null
-      }
-    }
-  },
-  computed: {
-    isFormValid() {
-      if (this.isRegister) {
-        return this.form.codigo_universitario &&
-               this.form.clave_acceso &&
-               this.form.nombre_completo &&
-               this.form.relacion_institucional_id &&
-               this.form.clave_acceso.length >= 6
-      }
-      return this.form.codigo_universitario && this.form.clave_acceso
-    }
-  },
-  methods: {
-    toggleMode() {
-      this.isRegister = !this.isRegister
-      this.errorMessage = ''
-      this.successMessage = ''
-      this.form.clave_acceso = ''
-      if (!this.isRegister) {
-        this.form.nombre_completo = ''
-        this.form.relacion_institucional_id = null
-      }
-    },
-
-    async handleSubmit(event) {
-      if (event) event.preventDefault()
-      if (this.isLoading) return
-      this.isLoading = true
-      this.errorMessage = ''
-      this.successMessage = ''
-
-      try {
-        const authStore = useAuthStore()
-        let result
-
-        if (this.isRegister) {
-          result = await authStore.register({
-            codigo_universitario:      this.form.codigo_universitario.trim(),
-            clave_acceso:              this.form.clave_acceso,
-            nombre_completo:           this.form.nombre_completo.trim(),
-            relacion_institucional_id: this.form.relacion_institucional_id
-          })
-
-          if (result.success) {
-            this.successMessage = `¡Bienvenido ${authStore.userName}!`
-            this.form.codigo_universitario = ''
-            this.form.clave_acceso = ''
-            setTimeout(() => this.redirectBasedOnUserType(authStore.tipoUsuarioId), 1500)
-          } else {
-            // Mantener código universitario — solo limpiar contraseña
-            this.form.clave_acceso = ''
-            this.errorMessage = result.error
-          }
-
-        } else {
-          result = await authStore.login({
-            codigo_universitario: this.form.codigo_universitario.trim(),
-            clave_acceso:         this.form.clave_acceso
-          })
-
-          if (result.success) {
-            this.successMessage = `¡Bienvenido, ${authStore.userName}!`
-            this.form.codigo_universitario = ''
-            this.form.clave_acceso = ''
-            setTimeout(() => this.redirectBasedOnUserType(authStore.tipoUsuarioId), 1500)
-          } else {
-            // Restaurar código explícitamente + limpiar contraseña + foco
-            this.form.clave_acceso = ''
-            this.errorMessage = result.error
-            this.$nextTick(() => this.$refs.passwordInput?.focus())
-          }
-        }
-
-      } catch (error) {
-        console.error('Error inesperado:', error)
-        this.errorMessage = 'Error inesperado. Intenta nuevamente.'
-        this.form.clave_acceso = ''
-        // codigo_universitario NO se limpia — se mantiene siempre
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    redirectBasedOnUserType(tipoUsuarioId) {
-      this.$router.push('/user/menu')
-    }
-  }
-}
-</script>
-
 <template>
   <div class="login-page">
 
@@ -355,6 +238,125 @@ export default {
     </div>
   </div>
 </template>
+
+<script>
+import { useAuthStore } from '@/stores/auth'
+
+export default {
+  name: 'Login',
+  data() {
+    return {
+      isRegister: false,
+      isLoading: false,
+      showPassword: false,
+      errorMessage: '',
+      successMessage: '',
+      relacionesInstitucionales: [
+        { id: 1, nombre: 'Estudiante' },
+        { id: 2, nombre: 'Docente' },
+        { id: 3, nombre: 'Administrativo' },
+        { id: 4, nombre: 'Investigador' },
+        { id: 5, nombre: 'Externo' }
+      ],
+      form: {
+        codigo_universitario: '',
+        clave_acceso: '',
+        nombre_completo: '',
+        relacion_institucional_id: null
+      }
+    }
+  },
+  computed: {
+    isFormValid() {
+      if (this.isRegister) {
+        return this.form.codigo_universitario &&
+               this.form.clave_acceso &&
+               this.form.nombre_completo &&
+               this.form.relacion_institucional_id &&
+               this.form.clave_acceso.length >= 6
+      }
+      return this.form.codigo_universitario && this.form.clave_acceso
+    }
+  },
+  methods: {
+    toggleMode() {
+      this.isRegister = !this.isRegister
+      this.errorMessage = ''
+      this.successMessage = ''
+      this.form.clave_acceso = ''
+      if (!this.isRegister) {
+        this.form.nombre_completo = ''
+        this.form.relacion_institucional_id = null
+      }
+    },
+
+    async handleSubmit(event) {
+      if (event) event.preventDefault()
+      if (this.isLoading) return
+      this.isLoading = true
+      this.errorMessage = ''
+      this.successMessage = ''
+
+      try {
+        const authStore = useAuthStore()
+        let result
+
+        if (this.isRegister) {
+          result = await authStore.register({
+            codigo_universitario:      this.form.codigo_universitario.trim(),
+            clave_acceso:              this.form.clave_acceso,
+            nombre_completo:           this.form.nombre_completo.trim(),
+            relacion_institucional_id: this.form.relacion_institucional_id
+          })
+
+          if (result.success) {
+            this.successMessage = `¡Bienvenido ${authStore.userName}!`
+            this.form.codigo_universitario = ''
+            this.form.clave_acceso = ''
+            setTimeout(() => this.redirectBasedOnUserType(authStore.tipoUsuarioId), 1500)
+          } else {
+            // Mantener código universitario — solo limpiar contraseña
+            this.form.clave_acceso = ''
+            this.errorMessage = result.error
+          }
+
+        } else {
+          result = await authStore.login({
+            codigo_universitario: this.form.codigo_universitario.trim(),
+            clave_acceso:         this.form.clave_acceso
+          })
+
+          if (result.success) {
+            this.successMessage = `¡Bienvenido, ${authStore.userName}!`
+            this.form.codigo_universitario = ''
+            this.form.clave_acceso = ''
+            setTimeout(() => this.redirectBasedOnUserType(authStore.tipoUsuarioId), 1500)
+          } else {
+            // Restaurar código explícitamente + limpiar contraseña + foco
+            this.form.clave_acceso = ''
+            this.errorMessage = result.error
+            this.$nextTick(() => this.$refs.passwordInput?.focus())
+          }
+        }
+
+      } catch (error) {
+        console.error('Error inesperado:', error)
+        this.errorMessage = 'Error inesperado. Intenta nuevamente.'
+        this.form.clave_acceso = ''
+        // codigo_universitario NO se limpia — se mantiene siempre
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    redirectBasedOnUserType(tipoUsuarioId) {
+      this.$router.push('/catalogo')
+    }
+  }
+}
+</script>
+
+
 
 <style scoped>
 /* ── Fuentes — idénticas a BookCatalog ──────────────────────────────────── */
