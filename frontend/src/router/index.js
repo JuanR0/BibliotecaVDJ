@@ -2,28 +2,27 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 // ── Vistas públicas ────────────────────────────────────────────────────────
-import LandingPage  from '@/views/LandingPAge.vue'
+import LandingPage  from '@/views/LandingPage.vue'
 import LoginView    from '@/views/auth/LoginView.vue'
 import HealthCheck  from '@/views/HealthCheckView.vue'
 import NotFound     from '@/views/NotFoundView.vue'
 
 // ── Nivel 1: Estudiante ───────────────────────────────────────────────────
-import BookCatalog  from '@/views/user/BookCatalog.vue'
+import BookCatalog  from '@/views/user/CatalogoLibros.vue'
 import AreasEstudio from '@/views/user/AreasEstudio.vue'
-import LaptopsView  from '@/views/user/LaptopsView.vue'
-import MisMultas    from '@/views/user/Multas.vue'
+import LaptopsView  from '@/views/user/Laptops.vue'
+import MisMultas    from '@/views/user/MisMultas.vue'
 import UserMenu     from '@/views/user/UserMenu.vue'
 
 // ── Nivel 2: Bibliotecario ────────────────────────────────────────────────
-import DevolucionesPendientes from '@/views/admin/DevolucionesPendientes.vue'
 import MultasPendientes       from '@/views/admin/MultasPendientes.vue'
+import GestionPrestamos       from '@/views/admin/PrestamoLibros.vue'
+import PrestamoEquiposComputo from '@/views/admin/PrestamoEquiposComputo.vue'
+import PrestamoAreas          from '@/views/admin/PrestamoAreas.vue'
 
 // ── Nivel 3: Admin Avanzado ───────────────────────────────────────────────
-import BookCreate         from '@/views/admin/CrearLibro.vue'
-import BookEdit           from '@/views/admin/BookEdit.vue'
 import FurnitureManagement from '@/views/admin/FurnitureManagement.vue'
 import AreasManagement    from '@/views/admin/AreasManagement.vue'
-import SolicitudesArea    from '@/views/admin/SolicitudesArea.vue'
 
 // ── Nivel 4: Super Admin ──────────────────────────────────────────────────
 import UserManagement from '@/views/SuperAdmin/UserManagement.vue'
@@ -90,32 +89,37 @@ const routes = [
   },
 
   // ── Nivel 2: Bibliotecario ────────────────────────────────────────────────
-  {
-    path: '/admin/devoluciones-pendientes',
-    name: 'DevolucionesPendientes',
-    component: DevolucionesPendientes,
-    meta: { minLevel: 2, title: 'Devoluciones Pendientes' }
+
+  // router
+  { 
+    path: '/admin/prestamos', 
+    name: 'GestionPrestamos', 
+    component: GestionPrestamos, 
+    meta: { minLevel: 2, title: 'Gestión de Préstamos' } 
+  
   },
+
   {
     path: '/admin/multas',
     name: 'MultasPendientes',
     component: MultasPendientes,
     meta: { minLevel: 2, title: 'Gestión de Multas' }
   },
+  { 
+    path: '/admin/prestamos/equipos', 
+    name: 'GestionPrestamosEquipos', 
+    component: PrestamoEquiposComputo, 
+    meta: { minLevel: 2 } 
+  },
+  
+  { 
+    path: '/admin/prestamos/areas',   
+    name: 'GestionPrestamosAreas',   
+    component: PrestamoAreas,   
+    meta: { minLevel: 2 } 
+  },
 
   // ── Nivel 3: Admin Avanzado ───────────────────────────────────────────────
-  {
-    path: '/admin/libros/crear',
-    name: 'BookCreate',
-    component: BookCreate,
-    meta: { minLevel: 3, title: 'Crear Libro' }
-  },
-  {
-    path: '/admin/libros/editar/:id',
-    name: 'BookEdit',
-    component: BookEdit,
-    meta: { minLevel: 3, title: 'Editar Libro' }
-  },
   {
     path: '/admin/mobiliario',
     name: 'FurnitureManagement',
@@ -127,12 +131,6 @@ const routes = [
     name: 'AreasManagement',
     component: AreasManagement,
     meta: { minLevel: 3, title: 'Gestión de Áreas' }
-  },
-  {
-    path: '/admin/solicitudes-areas',
-    name: 'SolicitudesAreas',
-    component: SolicitudesArea,
-    meta: { minLevel: 3, title: 'Solicitudes de Áreas' }
   },
 
   // ── Nivel 4: Super Admin ──────────────────────────────────────────────────

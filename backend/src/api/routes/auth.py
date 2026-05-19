@@ -2,19 +2,43 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
 from sqlalchemy import select
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional
 
 from config.database import get_db
 from schemas.auth import UsuarioLogin, Token
 from schemas.usuarios import UsuarioResponse, UsuarioRegister
 from core.security import (
-    autenticar_usuario, 
-    crear_token_acceso, 
+    autenticar_usuario,
+    crear_token_acceso,
     obtener_usuario_actual,
     obtener_hash_clave,
+    verificar_clave,
     ACCESS_TOKEN_EXPIRE_MINUTES,
-    obtener_permisos_frontend  # ✅ AGREGAR esta importación
+    obtener_permisos_frontend
 )
 from models import Usuario
+
+
+# ── Schema cambiar contraseña ──────────────────────────────────────────────
+class CambiarPasswordRequest(BaseModel):
+    clave_actual:    str = Field(..., min_length=1)
+    clave_nueva:     str = Field(..., min_length=8, max_length=100)
+    clave_confirmar: str = Field(..., min_length=8, max_length=100)
+
+    @field_validator('clave_nueva')
+    @classmethod
+    def no_puede_ser_temporal(cls, v):
+        if v == 'biblioteca2025':
+            raise ValueError('La nueva contraseña no puede ser la contraseña temporal')
+        return v
+
+    @field_validator('clave_confirmar')
+    @classmethod
+    def claves_coinciden(cls, v, info):
+        if 'clave_nueva' in info.data and v != info.data['clave_nueva']:
+            raise ValueError('Las contraseñas no coinciden')
+        return v
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
@@ -104,3 +128,44 @@ async def register_user(usuario_data: UsuarioRegister, db: AsyncSession = Depend
     await db.refresh(nuevo_usuario)
     
     return nuevo_usuario
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# CAMBIAR CONTRASEÑA — el usuario cambia su propia contraseña
+# ══════════════════════════════════════════════════════════════════════════
+
+@router.patch("/cambiar-password")
+async def cambiar_password(
+    data: CambiarPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
+):
+    """
+    El usuario autenticado cambia su propia contraseña.
+    Flujo esperado: SuperAdmin resetea a 'biblioteca2025' → usuario entra
+    y la cambia aquí por una de su elección.
+
+    Validaciones:
+    - La contraseña actual debe ser correcta
+    - La nueva no puede ser igual a la actual
+    - La nueva no puede ser la contraseña temporal 'biblioteca2025'
+    - La confirmación debe coincidir con la nueva (validado en schema)
+    """
+    # Verificar que la contraseña actual es correcta
+    if not verificar_clave(data.clave_actual, usuario_actual.clave_acceso):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La contraseña actual es incorrecta"
+        )
+
+    # Evitar reusar la misma contraseña
+    if verificar_clave(data.clave_nueva, usuario_actual.clave_acceso):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La nueva contraseña no puede ser igual a la contraseña actual"
+        )
+
+    usuario_actual.clave_acceso = obtener_hash_clave(data.clave_nueva)
+    await db.commit()
+
+    return {"mensaje": "Contraseña actualizada correctamente"}

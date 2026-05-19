@@ -130,33 +130,31 @@ async def verificar_relaciones_libro(db: AsyncSession, libro_data: dict):
 @router.get("/", response_model=LibroListResponse)
 async def listar_libros(
     pagina: int = Query(1, ge=1, description="Página actual"),
-    por_pagina: int = Query(10, ge=1, le=100, description="Elementos por página"),
+    por_pagina: int = Query(10, ge=1, le=500, description="Elementos por página"),
     titulo: Optional[str] = Query(None, description="Filtrar por título"),
     autor: Optional[str] = Query(None, description="Filtrar por autor"),
     editorial_id: Optional[int] = Query(None, description="Filtrar por editorial"),
     area_conocimiento_id: Optional[int] = Query(None, description="Filtrar por área de conocimiento"),
-    metodo_adquisicion_id: Optional[int] = Query(None, description="Filtrar por método de adquisición"),  # ← Nuevo filtro
+    metodo_adquisicion_id: Optional[int] = Query(None, description="Filtrar por método de adquisición"),
     estado_id: Optional[int] = Query(None, description="Filtrar por estado"),
     es_prestable: Optional[bool] = Query(None, description="Filtrar por prestable"),
     incluir_retirados: bool = Query(False, description="Incluir libros retirados"),
+    # ── NUEVOS ────────────────────────────────────────────────────────────
+    numero_ejemplar: Optional[int] = Query(None, description="Filtrar por número de ejemplar"),
+    codigo_decimal_exacto: Optional[str] = Query(None, description="Filtro exacto de código decimal"),
+    # ─────────────────────────────────────────────────────────────────────
     db: AsyncSession = Depends(get_db),
     usuario_actual: Usuario = Depends(requerir_puede_consultar),
-
     current_user: Usuario = Depends(obtener_usuario_actual),
 ):
-    """
-    Listar libros con filtros (todos los usuarios autenticados)
-    """
-    # Construir query base con joins para relaciones
     query = select(Libro).options(
         selectinload(Libro.editorial),
         selectinload(Libro.area_conocimiento),
         selectinload(Libro.estado),
         selectinload(Libro.usuario_registro),
-        selectinload(Libro.metodo_adquisicion)  # ← Nueva relación
+        selectinload(Libro.metodo_adquisicion)
     )
-    
-    # Aplicar filtros
+ 
     if titulo:
         query = query.filter(Libro.titulo.ilike(f"%{titulo}%"))
     if autor:
@@ -165,41 +163,37 @@ async def listar_libros(
         query = query.filter(Libro.editorial_id == editorial_id)
     if area_conocimiento_id:
         query = query.filter(Libro.area_conocimiento_id == area_conocimiento_id)
-    if metodo_adquisicion_id:  # ← Nuevo filtro
+    if metodo_adquisicion_id:
         query = query.filter(Libro.metodo_adquisicion_id == metodo_adquisicion_id)
     if estado_id:
         query = query.filter(Libro.estado_id == estado_id)
     if es_prestable is not None:
-        query = query.filter(Libro.es_prestable == es_prestable and Libro.edicion !=1)
-
-    ##NO PERMITIR QUE USUARIO TIPO 1 PUEDA VER LIBROS RETIRADOS EN LISTADO
+        query = query.filter(Libro.es_prestable == es_prestable and Libro.edicion != 1)
+    # ── NUEVOS filtros ────────────────────────────────────────────────────
+    if numero_ejemplar is not None:
+        query = query.filter(Libro.numero_ejemplar == numero_ejemplar)
+    if codigo_decimal_exacto:
+        query = query.filter(Libro.codigo_decimal == codigo_decimal_exacto)
+    # ─────────────────────────────────────────────────────────────────────
+ 
     if current_user.tipo_usuario_id == 1:
         query = query.where(Libro.estado_id != 4)
-    
-    ##EVITAR QUE PUEDA REALIZAR FILTRADO
+ 
     if estado_id is not None:
-        # Validar que usuario tipo 1 no pueda filtrar por retirados
         if estado_id == 4 and current_user.tipo_usuario_id == 1:
-            raise HTTPException(
-                status_code=403,
-                detail="No tiene permisos para ver libros retirados"
-            )
+            raise HTTPException(status_code=403, detail="No tiene permisos para ver libros retirados")
         query = query.where(Libro.estado_id == estado_id)
-
-    # Contar total
+ 
     total_query = select(func.count()).select_from(query.subquery())
     total_result = await db.execute(total_query)
     total = total_result.scalar_one()
-    
-    # Aplicar paginación
+ 
     offset = (pagina - 1) * por_pagina
     query = query.offset(offset).limit(por_pagina)
-    
-    # Ejecutar query
+ 
     result = await db.execute(query)
     libros = result.scalars().all()
-    
-    # Construir respuesta con nombres de relaciones
+ 
     libros_con_relaciones = []
     for libro in libros:
         libro_dict = LibroConRelacionesResponse.model_validate(libro)
@@ -207,9 +201,9 @@ async def listar_libros(
         libro_dict.area_conocimiento_nombre = libro.area_conocimiento.nombre
         libro_dict.estado_nombre = libro.estado.estado
         libro_dict.usuario_registro_nombre = libro.usuario_registro.nombre_completo
-        libro_dict.metodo_adquisicion_nombre = libro.metodo_adquisicion.tipo  # ← Nuevo campo
+        libro_dict.metodo_adquisicion_nombre = libro.metodo_adquisicion.tipo
         libros_con_relaciones.append(libro_dict)
-    
+ 
     return LibroListResponse(
         libros=libros_con_relaciones,
         total=total,
@@ -579,3 +573,4 @@ async def eliminar_libro(
     await db.commit()
 
     return {"message": "Libro retirado exitosamente (soft delete)"}
+

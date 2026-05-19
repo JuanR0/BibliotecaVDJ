@@ -71,6 +71,7 @@ class PrestamoLibroConRelaciones(BaseModel):
 
 class PrestamoLibroUpdate(BaseModel):
     estado_prestamo_id: Optional[int] = None
+    fecha_devolucion_esperada: Optional[datetime] = None
     fecha_devolucion_real: Optional[datetime] = None
     observaciones: Optional[str] = None
 

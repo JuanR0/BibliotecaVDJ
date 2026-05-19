@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------
 # Environment configuration (same style as database.py)
 # ------------------------------------------------------------------
-CHATBOT_HOST = os.getenv("CHATBOT_HOST", "localhost")
+CHATBOT_HOST = os.getenv("CHATBOT_HOST","127.0.0.1")
 CHATBOT_PORT = os.getenv("CHATBOT_PORT", "8001")
 CHATBOT_BASE_URL = f"http://{CHATBOT_HOST}:{CHATBOT_PORT}"
 CHATBOT_TIMEOUT = float(os.getenv("CHATBOT_TIMEOUT", "15.0"))

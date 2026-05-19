@@ -23,26 +23,6 @@
       </div>
     </header>
 
-    <!-- ══ BANNER: ya tienes área activa ══ -->
-    <div v-if="miAreaActiva" class="banner-activa">
-      <div class="banner-ico">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-      </div>
-      <div class="banner-body">
-        <strong>
-          {{ miAreaActiva.estado_prestamo_id === 2
-            ? `Tienes una reserva pendiente de aprobación: ${miAreaActiva.area_nombre}`
-            : `Estás usando: ${miAreaActiva.area_nombre}` }}
-        </strong>
-        <p>
-          {{ miAreaActiva.estado_prestamo_id === 2
-            ? 'Un administrador debe aprobar tu solicitud antes de que puedas acceder al área.'
-            : `Hasta: ${formatFecha(miAreaActiva.fecha_devolucion_esperada)}` }}
-        </p>
-      </div>
-    </div>
 
     <!-- ══ LEYENDA + BÚSQUEDA ══ -->
     <div class="leyenda">
@@ -108,103 +88,15 @@
           </div>
 
           <div class="card-footer">
-            <!-- Disponible y el usuario no tiene área activa -->
-            <button
-              v-if="area.estado_id === 1 && !miAreaActiva"
-              class="btn-reservar"
-              @click="abrirModalReservar(area)"
-            >
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              Reservar
-            </button>
-
-            <!-- Disponible pero ya tiene área activa -->
-            <span v-else-if="area.estado_id === 1 && miAreaActiva" class="btn-estado btn-bloqueada">
-              Ya tienes un área activa
-            </span>
-
-            <!-- Ocupada -->
-            <span v-else-if="area.estado_id === 2" class="btn-estado btn-ocupada">
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-              </svg>
-              En uso
-            </span>
-
-            <!-- Mantenimiento -->
-            <span v-else-if="area.estado_id === 3" class="btn-estado btn-mantenimiento">
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-              </svg>
-              Mantenimiento
-            </span>
-
-            <!-- Reservada (esperando aprobación) -->
-            <span v-else-if="area.estado_id === 4" class="btn-estado btn-reservada">
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-              </svg>
-              Pendiente aprobación
-            </span>
-
+            <span v-if="area.estado_id === 1"  class="btn-estado btn-disponible">Disponible para préstamo</span>
+            <span v-else-if="area.estado_id === 2" class="btn-estado btn-ocupada">En uso</span>
+            <span v-else-if="area.estado_id === 3" class="btn-estado btn-mantenimiento">Mantenimiento</span>
             <span v-else class="btn-estado btn-nodisponible">No disponible</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ══ MODAL RESERVAR ══ -->
-    <div v-if="modalReservar.visible" class="modal-overlay" @click.self="cerrarModalReservar">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>Solicitar Reserva</h3>
-          <button class="modal-close" @click="cerrarModalReservar" :disabled="reservando">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="reserva-info">
-            <div class="reserva-ico">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-              </svg>
-            </div>
-            <div>
-              <p class="reserva-nombre">{{ modalReservar.area?.nombre }}</p>
-              <p class="reserva-cap">Capacidad: {{ modalReservar.area?.capacidad || 'N/A' }} personas</p>
-            </div>
-          </div>
-
-          <!-- Aviso del nuevo flujo -->
-          <div class="flujo-aviso">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <p>Tu solicitud quedará <strong>pendiente de aprobación</strong>. Un administrador del CID deberá aprobarla para que el área quede disponible para ti.</p>
-          </div>
-
-          <div class="form-field">
-            <label class="form-label">Hasta qué hora la utilizarás <span class="req">*</span></label>
-            <input
-              type="datetime-local"
-              v-model="reservaForm.fecha_devolucion_esperada"
-              class="form-input"
-              :min="fechaMinima"
-            />
-          </div>
-
-          <div v-if="modalReservar.error" class="form-error">{{ modalReservar.error }}</div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-modal-cancel" @click="cerrarModalReservar" :disabled="reservando">Cancelar</button>
-          <button class="btn-reservar-confirm" @click="confirmarReserva" :disabled="reservando">
-            <span v-if="reservando" class="spinner-mini"></span>
-            {{ reservando ? 'Enviando...' : 'Enviar Solicitud' }}
-          </button>
-        </div>
-      </div>
-    </div>
 
     <!-- ══ TOAST ══ -->
     <transition name="toast-in">
@@ -219,23 +111,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
 import { useAreas } from '@/composables/useAreas'
-import { prestamoAreasService } from '@/services/prestamoAreas'
-
 import '@/styles/buttons.css'
 
-const authStore = useAuthStore()
 const { areas, isLoading, error, cargarAreas } = useAreas()
 
 // ── State ──────────────────────────────────────────────────────────────────
-const busqueda    = ref('')
-const reservando  = ref(false)
-const miAreaActiva = ref(null)   // solicitud activa del usuario (vigente o pendiente)
-
-const modalReservar = ref({ visible: false, area: null, error: '' })
-const reservaForm   = ref({ fecha_devolucion_esperada: null })
-const toast         = ref({ visible: false, mensaje: '', tipo: '' })
+const busqueda = ref('')
+const toast    = ref({ visible: false, mensaje: '', tipo: '' })
 
 // ── Computed ───────────────────────────────────────────────────────────────
 const areasPrestables = computed(() =>
@@ -250,18 +133,11 @@ const areasFiltradas = computed(() => {
 
 const disponibles = computed(() => areasPrestables.value.filter(a => a.estado_id === 1).length)
 
-const fechaMinima = computed(() => {
-  const ahora = new Date()
-  ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset())
-  return ahora.toISOString().slice(0, 16)
-})
 
-// ── Clases ─────────────────────────────────────────────────────────────────
 const getCardClass = (area) => ({
   'card-disponible':    area.estado_id === 1,
   'card-ocupada':       area.estado_id === 2,
   'card-mantenimiento': area.estado_id === 3,
-  'card-reservada':     area.estado_id === 4,
 })
 
 const getIndicatorClass = (area) => ({
@@ -286,73 +162,10 @@ const getChipClass = (area) => ({
 })
 
 // ── Carga ──────────────────────────────────────────────────────────────────
-const refrescar = async () => {
-  await cargarAreas()
-  await verificarAreaActiva()
-}
+const refrescar = () => cargarAreas()
 
-const verificarAreaActiva = async () => {
-  try {
-    const solicitudes = await prestamoAreasService.getMisSolicitudes()
-    miAreaActiva.value = Array.isArray(solicitudes) && solicitudes.length > 0
-      ? solicitudes[0]
-      : null
-  } catch {
-    miAreaActiva.value = null
-  }
-}
+onMounted(cargarAreas)
 
-// ── Modal reservar ─────────────────────────────────────────────────────────
-const abrirModalReservar = (area) => {
-  modalReservar.value = { visible: true, area, error: '' }
-  reservaForm.value   = { fecha_devolucion_esperada: null }
-}
-
-const cerrarModalReservar = () => {
-  if (!reservando.value) modalReservar.value.visible = false
-}
-
-const confirmarReserva = async () => {
-  if (!reservaForm.value.fecha_devolucion_esperada) {
-    modalReservar.value.error = 'Selecciona la hora de devolución'
-    return
-  }
-
-  reservando.value = true
-  try {
-    await prestamoAreasService.crearPrestamo({
-      area_id:                   modalReservar.value.area.id,
-      usuario_prestado_id:       authStore.userId,
-      fecha_devolucion_esperada: reservaForm.value.fecha_devolucion_esperada,
-    })
-
-    modalReservar.value.visible = false
-    mostrarToast(`Solicitud enviada para "${modalReservar.value.area?.nombre}". Espera la aprobación del administrador.`)
-    await refrescar()
-  } catch (err) {
-    modalReservar.value.error = err.response?.data?.detail || 'Error al enviar la solicitud'
-  } finally {
-    reservando.value = false
-  }
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-const formatFecha = (d) => {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('es-MX', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-  })
-}
-
-const mostrarToast = (mensaje, tipo = 'toast-success') => {
-  toast.value = { visible: true, mensaje, tipo }
-  setTimeout(() => { toast.value.visible = false }, 4000)
-}
-
-onMounted(async () => {
-  await cargarAreas()
-  await verificarAreaActiva()
-})
 </script>
 
 <style scoped>

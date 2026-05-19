@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_, or_
 from typing import List, Optional
 from datetime import datetime
 
@@ -17,6 +17,7 @@ from core.security import (
     obtener_usuario_actual, 
     requerir_puede_gestionar_usuarios,
     requerir_puede_gestionar_recursos,
+    requerir_puede_prestar,
     obtener_hash_clave
 )
 from models import Usuario, RelacionInstitucional, TipoUsuario
@@ -68,6 +69,34 @@ async def listar_usuarios(
         pagina=pagina,
         por_pagina=por_pagina
     )
+
+###################################
+# BUSQUEDA DE USUARIOS PARA NVL 2 #
+###################################
+
+@router.get("/buscar")
+async def buscar_usuarios(
+    q: str = Query(..., min_length=2),
+    db: AsyncSession = Depends(get_db),
+    _: Usuario = Depends(requerir_puede_prestar)
+):
+    """Búsqueda ligera para autocomplete — solo devuelve nombre, código e id."""
+    result = await db.execute(
+        select(Usuario.id, Usuario.nombre_completo, Usuario.codigo_universitario)
+        .where(
+            and_(
+                Usuario.esta_activo == True,
+                Usuario.tipo_usuario_id == 1,
+                or_(
+                    Usuario.nombre_completo.ilike(f"%{q}%"),
+                    Usuario.codigo_universitario.ilike(f"%{q}%")
+                )
+            )
+        )
+        .limit(8)
+    )
+    rows = result.all()
+    return [{"id": r.id, "nombre_completo": r.nombre_completo, "codigo_universitario": r.codigo_universitario} for r in rows]
 
 @router.get("/{usuario_id}", response_model=UsuarioDetailResponse)
 async def obtener_usuario(
@@ -295,3 +324,4 @@ async def resetear_contrasena(
         "usuario_id": usuario_id,
         "usuario_nombre": usuario.nombre_completo
     }
+

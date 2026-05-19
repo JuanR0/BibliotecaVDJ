@@ -2,6 +2,7 @@ from config.database import Base
 from sqlalchemy import Column, Integer, Text, TIMESTAMP, ForeignKey, Interval
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from datetime import timedelta
 
 class PrestamoArea(Base):
     __tablename__ = 'prestamos_area'
@@ -22,7 +23,7 @@ class PrestamoArea(Base):
     fecha_ultimo_cambio_estado = Column(TIMESTAMP, server_default=func.now())
     
     # Tiempo excedido en la devolución
-    tiempo_excedido = Column(Interval, default='0 seconds')
+    tiempo_excedido = Column(Interval, default=None, nullable=True)
     
     # Observaciones
     observaciones = Column(Text)
