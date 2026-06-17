@@ -411,7 +411,7 @@ const showInactiveUsers = ref(false)
 const currentPage       = ref(1)
 const itemsPerPage      = ref(10)
 const searchQuery       = ref('')
-const sortBy            = ref('nombre')
+const sortBy            = ref('')
 const filters           = ref({ tipo_usuario_id: '' })
 
 // ── Modales ────────────────────────────────────────────────────────────────
@@ -456,7 +456,7 @@ const filteredUsers = computed(() => {
       case 'codigo':         return a.codigo_universitario?.localeCompare(b.codigo_universitario)
       case 'fecha_registro': return new Date(b.fecha_registro) - new Date(a.fecha_registro)
       case 'tipo':           return a.tipo_usuario_id - b.tipo_usuario_id
-      default:               return 0
+      default:               return a.id - b.id
     }
   })
   return result
@@ -494,7 +494,7 @@ const loadUsers = async () => {
   isLoading.value = true; error.value = null
   try {
     const response = await userService.getUsers({ pagina: 1, por_pagina: 100, activos_only: false })
-    users.value = Array.isArray(response) ? response : (response.usuarios ?? [])
+    users.value = (Array.isArray(response) ? response : (response.usuarios ?? [])).sort((a, b) => a.id - b.id)
   } catch (err) {
     error.value = err.message
   } finally {

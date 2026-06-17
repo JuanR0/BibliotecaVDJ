@@ -30,18 +30,11 @@
         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="search-icon-inner">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Buscar por título, autor, editorial..."
-          class="search-input"
-          @keyup.enter="handleSearch"
-        />
+        <input v-model="searchQuery" type="text" placeholder="Buscar por título, autor, editorial..." class="search-input" @keyup.enter="handleSearch"/>
         <button v-if="esAdmin" @click="showAdvancedFilters = !showAdvancedFilters" class="btn-filter">
           {{ showAdvancedFilters ? '▲' : '▼' }} Filtros
         </button>
         <button @click="handleSearch" class="btn-search">Buscar</button>
-        <!-- Botón nuevo libro — solo admin -->
         <button v-if="esAdmin" @click="abrirModalCrear" class="btn-nuevo-libro">
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
@@ -50,7 +43,6 @@
         </button>
       </div>
 
-      <!-- Filtros avanzados — solo admin -->
       <div v-if="esAdmin && showAdvancedFilters" class="advanced-filters">
         <div class="filters-grid">
           <div class="filter-group">
@@ -96,6 +88,7 @@
         <div class="sort-options">
           <label>Ordenar por:</label>
           <select v-model="sortBy" @change="currentPage = 1" class="sort-select">
+            <option value="codigo_decimal">Código Decimal</option>
             <option value="titulo">Título (A-Z)</option>
             <option value="autor">Autor (A-Z)</option>
             <option value="edicion">Edición</option>
@@ -103,89 +96,31 @@
         </div>
       </div>
 
-      <div v-if="isLoading" class="loading-state">
-        <div class="spinner"></div>
-        <p>Cargando catálogo...</p>
-      </div>
-      <div v-if="error" class="error-state">
-        <p>{{ error }}</p>
-        <button @click="loadBooks" class="btn btn-primary">Reintentar</button>
-      </div>
+      <div v-if="isLoading" class="loading-state"><div class="spinner"></div><p>Cargando catálogo...</p></div>
+      <div v-if="error" class="error-state"><p>{{ error }}</p><button @click="loadBooks" class="btn btn-primary">Reintentar</button></div>
 
       <!-- ── CUADRÍCULA ── -->
       <div v-if="viewMode === 'grid' && !isLoading && !error" class="books-grid">
         <div v-for="book in paginatedBooks" :key="book.id" class="book-card">
-
           <div class="book-card-top" :class="getCardColorClass(book.id)">
             <span class="book-icon-lg">📖</span>
             <div class="badge-status" :class="getStatusClass(book)">{{ getStatusText(book) }}</div>
             <div class="card-code-badge">{{ book.codigo_decimal || 'N/A' }}</div>
             <div v-if="book.es_prestable" class="badge-prestable">Prestable</div>
           </div>
-
           <div class="book-body">
             <h3 class="book-title">{{ book.titulo }}</h3>
             <p class="book-author">✍️ {{ book.autor }}</p>
             <div class="book-details">
-              <!-- ISBN solo para admin -->
-              <p v-if="esAdmin"><strong>ISBN:</strong> {{ book.isbn || '—' }}</p>
               <p><strong>Etiqueta:</strong> {{ book.etiqueta }}</p>
               <p><strong>Edición:</strong> {{ book.edicion || '—' }}</p>
               <p v-if="book.editorial_nombre"><strong>Editorial:</strong> {{ book.editorial_nombre }}</p>
               <p v-if="book.area_conocimiento_nombre"><strong>Área:</strong> {{ book.area_conocimiento_nombre }}</p>
             </div>
           </div>
-
+          <!-- Solo botón Detalles para todos los niveles -->
           <div class="book-actions">
-            <!-- Detalles — todos los niveles -->
             <button @click="abrirModalDetalles(book)" class="btn-detail">Detalles</button>
-
-            <!-- Solicitar préstamo — nivel 2 (bibliotecario, desde catálogo no aplica el self-service) -->
-            <!-- El préstamo lo gestiona GestionPrestamos, no el catálogo -->
-
-            <!-- Acciones admin — nivel 3+ -->
-            <template v-if="esAdmin">
-              <button @click="abrirModalEditarLibro(book)" class="btn-editar">Editar</button>
-              <button
-                v-if="book.estado_id !== 4"
-                @click="confirmarRetirar(book)"
-                class="btn-eliminar"
-                :disabled="book.estado_id === 2"
-                :title="book.estado_id === 2 ? 'No se puede retirar: está prestado' : 'Retirar libro'"
-              >Retirar</button>
-              <button v-if="book.estado_id === 4" @click="reactivarLibro(book)" class="btn-recuperar">Recuperar</button>
-            </template>
-          </div>
-        </div>
-
-        <!-- Modal eliminar (retirar) -->
-        <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeModal">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3>Confirmar Retiro</h3>
-              <button @click="closeModal" class="modal-close-btn" :disabled="isDeleting">×</button>
-            </div>
-            <div class="modal-body">
-              <p>¿Retirar el siguiente libro del catálogo?</p>
-              <div class="book-to-delete">
-                <div class="book-info-modal">
-                  <h4>{{ bookToDelete?.titulo }}</h4>
-                  <p><strong>Autor:</strong> {{ bookToDelete?.autor }}</p>
-                  <p><strong>Código:</strong> {{ bookToDelete?.codigo_decimal }} — Ej. {{ bookToDelete?.numero_ejemplar }}</p>
-                </div>
-                <div class="warning-message">
-                  <div class="warning-icon">⚠️</div>
-                  <p>El libro pasará a estado <strong>Retirado</strong> (soft delete).</p>
-                </div>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button @click="closeModal" class="btn-modal-cancel" :disabled="isDeleting">Cancelar</button>
-              <button @click="deleteBook" class="btn-modal-delete" :disabled="isDeleting">
-                <span v-if="isDeleting" class="spinner-small"></span>
-                {{ isDeleting ? 'Retirando...' : 'Sí, Retirar' }}
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -218,22 +153,10 @@
                 <td><div class="td-sub">{{ book.editorial_nombre || '—' }}</div></td>
                 <td>
                   <span :class="getStatusClass(book)" class="status-pill">{{ getStatusText(book) }}</span>
-                  <div class="td-sub" v-if="book.es_prestable" style="margin-top:.25rem">🔄 Prestable</div>
                 </td>
                 <td>
                   <div class="td-actions">
                     <button @click="abrirModalDetalles(book)" class="tbl-btn" title="Detalles">🔍</button>
-                    <template v-if="esAdmin">
-                      <button @click="abrirModalEditarLibro(book)" class="tbl-btn tbl-gold" title="Editar">✏️</button>
-                      <button
-                        v-if="book.estado_id !== 4"
-                        @click="confirmarRetirar(book)"
-                        class="tbl-btn tbl-red"
-                        :disabled="book.estado_id === 2"
-                        title="Retirar"
-                      >🗑️</button>
-                      <button v-if="book.estado_id === 4" @click="reactivarLibro(book)" class="tbl-btn tbl-green" title="Recuperar">♻️</button>
-                    </template>
                   </div>
                 </td>
               </tr>
@@ -242,20 +165,16 @@
         </div>
       </div>
 
-      <!-- Toasts -->
+      <!-- Toast -->
       <div v-if="showSuccessToast" class="toast">
         <span class="toast-icon">✅</span>
-        <div class="toast-content">
-          <strong>{{ toastMsg }}</strong>
-        </div>
+        <div class="toast-content"><strong>{{ toastMsg }}</strong></div>
         <button @click="showSuccessToast = false" class="toast-close">×</button>
       </div>
 
       <!-- Paginación -->
       <div v-if="!isLoading && !error && filteredBooks.length > 0" class="pagination-section">
-        <div class="pagination-info">
-          Mostrando {{ startItem }}–{{ endItem }} de {{ filteredBooks.length }} libros
-        </div>
+        <div class="pagination-info">Mostrando {{ startItem }}–{{ endItem }} de {{ filteredBooks.length }} libros</div>
         <div class="pagination-controls">
           <button @click="prevPage" :disabled="currentPage === 1" class="pbtn">← Anterior</button>
           <div class="page-numbers">
@@ -282,6 +201,7 @@
 
     <!-- ══════════════════════════════════════════════
          MODAL: DETALLES + EJEMPLARES
+         — Para nivel 3+: botones de acción por ejemplar
     ══════════════════════════════════════════════ -->
     <div v-if="modalDetalles.visible" class="modal-overlay" @click.self="cerrarModalDetalles">
       <div class="modal-content modal-detalles">
@@ -291,7 +211,7 @@
         </div>
         <div class="modal-body">
           <div class="detalles-grid">
-            <!-- Info del libro -->
+            <!-- Info general del libro -->
             <div class="detalles-info">
               <div class="detalle-titulo-wrap">
                 <h4 class="detalle-titulo">{{ modalDetalles.libro?.titulo }}</h4>
@@ -308,12 +228,11 @@
               </div>
             </div>
 
-            <!-- Ejemplares -->
+            <!-- Ejemplares — con acciones para nivel 3+ -->
             <div class="detalles-ejemplares">
               <h5 class="ejemplares-titulo">Ejemplares</h5>
               <div v-if="modalDetalles.cargandoEjemplares" class="ejemplares-loading">
-                <div class="spinner-sm"></div>
-                <span>Cargando ejemplares...</span>
+                <div class="spinner-sm"></div><span>Cargando ejemplares...</span>
               </div>
               <div v-else-if="modalDetalles.ejemplares.length === 0" class="ejemplares-vacio">
                 Sin ejemplares registrados
@@ -322,11 +241,34 @@
                 <div
                   v-for="ej in modalDetalles.ejemplares"
                   :key="ej.id"
-                  class="ejemplar-badge"
+                  class="ejemplar-row"
                   :class="getEjemplarBadgeClass(ej)"
                 >
-                  <span class="ejemplar-num">Ejemplar {{ ej.numero_ejemplar }}</span>
-                  <span class="ejemplar-estado">{{ getEjemplarEstadoText(ej) }}</span>
+                  <div class="ejemplar-info">
+                    <span class="ejemplar-num">Ejemplar {{ ej.numero_ejemplar }}</span>
+                    <span class="ejemplar-estado">{{ getEjemplarEstadoText(ej) }}</span>
+                  </div>
+                  <!-- Botones de acción por ejemplar — solo nivel 3+ -->
+                  <div v-if="esAdmin" class="ejemplar-acciones">
+                    <button
+                      @click="abrirModalEditarLibro(ej)"
+                      class="ej-btn ej-btn-edit"
+                      title="Editar este ejemplar"
+                    >✏️</button>
+                    <button
+                      v-if="ej.estado_id !== 4"
+                      @click="confirmarRetirar(ej)"
+                      class="ej-btn ej-btn-delete"
+                      :disabled="ej.estado_id === 2"
+                      :title="ej.estado_id === 2 ? 'No se puede retirar: está prestado' : 'Retirar ejemplar'"
+                    >🗑️</button>
+                    <button
+                      v-if="ej.estado_id === 4"
+                      @click="reactivarLibro(ej)"
+                      class="ej-btn ej-btn-recover"
+                      title="Recuperar ejemplar"
+                    >♻️</button>
+                  </div>
                 </div>
               </div>
               <p class="ejemplares-resumen" v-if="modalDetalles.ejemplares.length > 0">
@@ -337,7 +279,6 @@
         </div>
         <div class="modal-footer">
           <button @click="cerrarModalDetalles" class="btn-modal-cancel">Cerrar</button>
-          <!-- Botón crear otro ejemplar — solo admin -->
           <button v-if="esAdmin" @click="abrirModalEjemplarExtra(modalDetalles.libro)" class="btn-modal-confirm">
             + Agregar ejemplar
           </button>
@@ -347,7 +288,41 @@
 
 
     <!-- ══════════════════════════════════════════════
-         MODAL: CREAR LIBRO (individual o múltiple)
+         MODAL: CONFIRMAR RETIRO
+    ══════════════════════════════════════════════ -->
+    <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Confirmar Retiro</h3>
+          <button @click="closeModal" class="modal-close-btn" :disabled="isDeleting">×</button>
+        </div>
+        <div class="modal-body">
+          <p>¿Retirar el siguiente libro del catálogo?</p>
+          <div class="book-to-delete">
+            <div class="book-info-modal">
+              <h4>{{ bookToDelete?.titulo }}</h4>
+              <p><strong>Autor:</strong> {{ bookToDelete?.autor }}</p>
+              <p><strong>Código:</strong> {{ bookToDelete?.codigo_decimal }} — Ej. {{ bookToDelete?.numero_ejemplar }}</p>
+            </div>
+            <div class="warning-message">
+              <div class="warning-icon">⚠️</div>
+              <p>El libro pasará a estado <strong>Retirado</strong> (soft delete).</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeModal" class="btn-modal-cancel" :disabled="isDeleting">Cancelar</button>
+          <button @click="deleteBook" class="btn-modal-delete" :disabled="isDeleting">
+            <span v-if="isDeleting" class="spinner-small"></span>
+            {{ isDeleting ? 'Retirando...' : 'Sí, Retirar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         MODAL: CREAR LIBRO
     ══════════════════════════════════════════════ -->
     <div v-if="modalCrear.visible" class="modal-overlay" @click.self="cerrarModalCrear">
       <div class="modal-content modal-crear">
@@ -356,48 +331,24 @@
           <button @click="cerrarModalCrear" class="modal-close-btn" :disabled="procesandoCrear">×</button>
         </div>
         <div class="modal-body">
-
-          <!-- Toggle modo -->
           <div class="modo-toggle">
             <button :class="{ 'modo-active': modalCrear.modo === 'individual' }" @click="modalCrear.modo = 'individual'" class="modo-btn">Individual</button>
             <button :class="{ 'modo-active': modalCrear.modo === 'multiple' }" @click="modalCrear.modo = 'multiple'" class="modo-btn">Múltiples ejemplares</button>
           </div>
-
           <div class="crear-grid">
-            <div class="form-field">
-              <label class="form-label">Título <span class="req">*</span></label>
-              <input v-model="crearForm.titulo" type="text" class="form-input" placeholder="Título del libro"/>
-            </div>
-            <div class="form-field">
-              <label class="form-label">Autor <span class="req">*</span></label>
-              <input v-model="crearForm.autor" type="text" class="form-input" placeholder="Nombre del autor"/>
-            </div>
-            <div class="form-field">
-              <label class="form-label">Código Decimal <span class="req">*</span></label>
-              <input v-model="crearForm.codigo_decimal" type="text" class="form-input" placeholder="Ej: 540.1"/>
-            </div>
-            <div class="form-field">
-              <label class="form-label">Etiqueta <span class="req">*</span></label>
-              <input v-model="crearForm.etiqueta" type="text" class="form-input" maxlength="3" placeholder="3 letras"/>
-            </div>
+            <div class="form-field"><label class="form-label">Título <span class="req">*</span></label><input v-model="crearForm.titulo" type="text" class="form-input" placeholder="Título del libro"/></div>
+            <div class="form-field"><label class="form-label">Autor <span class="req">*</span></label><input v-model="crearForm.autor" type="text" class="form-input" placeholder="Nombre del autor"/></div>
+            <div class="form-field"><label class="form-label">Código Decimal <span class="req">*</span></label><input v-model="crearForm.codigo_decimal" type="text" class="form-input" placeholder="Ej: 540.1"/></div>
+            <div class="form-field"><label class="form-label">Etiqueta <span class="req">*</span></label><input v-model="crearForm.etiqueta" type="text" class="form-input" maxlength="3" placeholder="3 letras"/></div>
             <div class="form-field" v-if="modalCrear.modo === 'individual'">
               <label class="form-label">Nº Ejemplar <span class="req">*</span></label>
               <input v-model.number="crearForm.numero_ejemplar" type="number" class="form-input" min="1" placeholder="1"/>
             </div>
             <template v-if="modalCrear.modo === 'multiple'">
-              <div class="form-field">
-                <label class="form-label">Cantidad de ejemplares <span class="req">*</span></label>
-                <input v-model.number="crearForm.cantidad_ejemplares" type="number" class="form-input" min="1" max="50" placeholder="Ej: 3"/>
-              </div>
-              <div class="form-field">
-                <label class="form-label">Nº ejemplar inicial</label>
-                <input v-model.number="crearForm.numero_ejemplar_inicial" type="number" class="form-input" min="1" placeholder="1"/>
-              </div>
+              <div class="form-field"><label class="form-label">Cantidad <span class="req">*</span></label><input v-model.number="crearForm.cantidad_ejemplares" type="number" class="form-input" min="1" max="50" placeholder="Ej: 3"/></div>
+              <div class="form-field"><label class="form-label">Nº inicial</label><input v-model.number="crearForm.numero_ejemplar_inicial" type="number" class="form-input" min="1" placeholder="1"/></div>
             </template>
-            <div class="form-field">
-              <label class="form-label">ISBN</label>
-              <input v-model="crearForm.isbn" type="text" class="form-input" placeholder="Opcional"/>
-            </div>
+            <div class="form-field"><label class="form-label">ISBN</label><input v-model="crearForm.isbn" type="text" class="form-input" placeholder="Opcional"/></div>
             <div class="form-field">
               <label class="form-label">Editorial <span class="req">*</span></label>
               <select v-model.number="crearForm.editorial_id" class="form-input">
@@ -406,7 +357,7 @@
               </select>
             </div>
             <div class="form-field">
-              <label class="form-label">Área de conocimiento <span class="req">*</span></label>
+              <label class="form-label">Área <span class="req">*</span></label>
               <select v-model.number="crearForm.area_conocimiento_id" class="form-input">
                 <option value="">Seleccionar...</option>
                 <option v-for="a in catalogosAux.areas" :key="a.id" :value="a.id">{{ a.nombre }}</option>
@@ -420,36 +371,20 @@
               </select>
             </div>
             <div class="form-field">
-              <label class="form-label">Método adquisición <span class="req">*</span></label>
+              <label class="form-label">Adquisición <span class="req">*</span></label>
               <select v-model.number="crearForm.metodo_adquisicion_id" class="form-input">
                 <option value="">Seleccionar...</option>
                 <option v-for="m in catalogosAux.metodos" :key="m.id" :value="m.id">{{ m.tipo }}</option>
               </select>
             </div>
-            <div class="form-field">
-              <label class="form-label">Edición</label>
-              <input v-model.number="crearForm.edicion" type="number" class="form-input" min="1" placeholder="Opcional"/>
-            </div>
-            <div class="form-field">
-              <label class="form-label">Páginas</label>
-              <input v-model.number="crearForm.numero_paginas" type="number" class="form-input" min="1" placeholder="Opcional"/>
-            </div>
-            <div class="form-field">
-              <label class="form-label">Precio</label>
-              <input v-model.number="crearForm.precio" type="number" class="form-input" min="0" step="0.01" placeholder="Opcional"/>
-            </div>
-            <div class="form-field">
-              <label class="form-label">Proveedor</label>
-              <input v-model="crearForm.proveedor_nombre" type="text" class="form-input" placeholder="Opcional"/>
-            </div>
+            <div class="form-field"><label class="form-label">Edición</label><input v-model.number="crearForm.edicion" type="number" class="form-input" min="1" placeholder="Opcional"/></div>
+            <div class="form-field"><label class="form-label">Páginas</label><input v-model.number="crearForm.numero_paginas" type="number" class="form-input" min="1" placeholder="Opcional"/></div>
+            <div class="form-field"><label class="form-label">Precio</label><input v-model.number="crearForm.precio" type="number" class="form-input" min="0" step="0.01" placeholder="Opcional"/></div>
+            <div class="form-field"><label class="form-label">Proveedor</label><input v-model="crearForm.proveedor_nombre" type="text" class="form-input" placeholder="Opcional"/></div>
             <div class="form-field form-field-check">
-              <label class="form-label-check">
-                <input type="checkbox" v-model="crearForm.es_prestable"/>
-                Es prestable
-              </label>
+              <label class="form-label-check"><input type="checkbox" v-model="crearForm.es_prestable"/> Es prestable</label>
             </div>
           </div>
-
           <div v-if="modalCrear.error" class="form-error">{{ modalCrear.error }}</div>
           <div v-if="modalCrear.advertencia" class="form-warning">{{ modalCrear.advertencia }}</div>
         </div>
@@ -470,23 +405,14 @@
     <div v-if="modalEditar.visible" class="modal-overlay" @click.self="cerrarModalEditar">
       <div class="modal-content modal-crear">
         <div class="modal-header">
-          <h3>Editar Libro</h3>
+          <h3>Editar Ejemplar {{ modalEditar.numeroEjemplar }}</h3>
           <button @click="cerrarModalEditar" class="modal-close-btn" :disabled="procesandoEditar">×</button>
         </div>
         <div class="modal-body">
           <div class="crear-grid">
-            <div class="form-field">
-              <label class="form-label">Título</label>
-              <input v-model="editarForm.titulo" type="text" class="form-input"/>
-            </div>
-            <div class="form-field">
-              <label class="form-label">Autor</label>
-              <input v-model="editarForm.autor" type="text" class="form-input"/>
-            </div>
-            <div class="form-field">
-              <label class="form-label">ISBN</label>
-              <input v-model="editarForm.isbn" type="text" class="form-input"/>
-            </div>
+            <div class="form-field"><label class="form-label">Título</label><input v-model="editarForm.titulo" type="text" class="form-input"/></div>
+            <div class="form-field"><label class="form-label">Autor</label><input v-model="editarForm.autor" type="text" class="form-input"/></div>
+            <div class="form-field"><label class="form-label">ISBN</label><input v-model="editarForm.isbn" type="text" class="form-input"/></div>
             <div class="form-field">
               <label class="form-label">Editorial</label>
               <select v-model.number="editarForm.editorial_id" class="form-input">
@@ -499,23 +425,11 @@
                 <option v-for="e in catalogosAux.estados.filter(s => s.id !== 4)" :key="e.id" :value="e.id">{{ e.estado }}</option>
               </select>
             </div>
-            <div class="form-field">
-              <label class="form-label">Edición</label>
-              <input v-model.number="editarForm.edicion" type="number" class="form-input" min="1"/>
-            </div>
-            <div class="form-field">
-              <label class="form-label">Páginas</label>
-              <input v-model.number="editarForm.numero_paginas" type="number" class="form-input" min="1"/>
-            </div>
-            <div class="form-field">
-              <label class="form-label">Precio</label>
-              <input v-model.number="editarForm.precio" type="number" class="form-input" min="0" step="0.01"/>
-            </div>
+            <div class="form-field"><label class="form-label">Edición</label><input v-model.number="editarForm.edicion" type="number" class="form-input" min="1"/></div>
+            <div class="form-field"><label class="form-label">Páginas</label><input v-model.number="editarForm.numero_paginas" type="number" class="form-input" min="1"/></div>
+            <div class="form-field"><label class="form-label">Precio</label><input v-model.number="editarForm.precio" type="number" class="form-input" min="0" step="0.01"/></div>
             <div class="form-field form-field-check">
-              <label class="form-label-check">
-                <input type="checkbox" v-model="editarForm.es_prestable"/>
-                Es prestable
-              </label>
+              <label class="form-label-check"><input type="checkbox" v-model="editarForm.es_prestable"/> Es prestable</label>
             </div>
           </div>
           <div v-if="modalEditar.error" class="form-error">{{ modalEditar.error }}</div>
@@ -543,15 +457,13 @@ import '@/styles/buttons.css'
 
 const authStore = useAuthStore()
 
-// ── Permisos ───────────────────────────────────────────────────────────────
-const nivel  = computed(() => authStore.tipoUsuarioId)
+const nivel   = computed(() => authStore.tipoUsuarioId)
 const esAdmin = computed(() => nivel.value >= 3)
 
-// ── Estado UI ──────────────────────────────────────────────────────────────
 const searchQuery         = ref('')
 const showAdvancedFilters = ref(false)
 const viewMode            = ref('grid')
-const sortBy              = ref('titulo')
+const sortBy              = ref('codigo_decimal')
 const isLoading           = ref(false)
 const error               = ref(null)
 const currentPage         = ref(1)
@@ -567,20 +479,15 @@ const procesandoEditar    = ref(false)
 const books       = ref([])
 const editoriales = ref([])
 const stats       = ref({ totalBooks: 0, availableBooks: 0, prestableBooks: 0 })
-
-const filters = ref({ estado_id: '', es_prestable: '', editorial_id: '' })
-
-// ── Catálogos auxiliares (admin) ────────────────────────────────────────────
+const filters     = ref({ estado_id: '', es_prestable: '', editorial_id: '' })
 const catalogosAux = ref({ editoriales: [], areas: [], estados: [], metodos: [] })
 
-// ── Modal detalles ─────────────────────────────────────────────────────────
-const modalDetalles = ref({
-  visible: false, libro: null,
-  ejemplares: [], cargandoEjemplares: false
-})
+// Modales
+const modalDetalles = ref({ visible: false, libro: null, ejemplares: [], cargandoEjemplares: false })
+const modalCrear    = ref({ visible: false, modo: 'individual', error: '', advertencia: '' })
+const modalEditar   = ref({ visible: false, libroId: null, numeroEjemplar: null, error: '' })
+const editarForm    = ref({})
 
-// ── Modal crear ────────────────────────────────────────────────────────────
-const modalCrear = ref({ visible: false, modo: 'individual', error: '', advertencia: '' })
 const crearFormInicial = () => ({
   titulo: '', autor: '', codigo_decimal: '', etiqueta: '', numero_ejemplar: 1,
   isbn: '', editorial_id: '', area_conocimiento_id: '', estado_id: '',
@@ -590,20 +497,14 @@ const crearFormInicial = () => ({
 })
 const crearForm = ref(crearFormInicial())
 
-// ── Modal editar ────────────────────────────────────────────────────────────
-const modalEditar = ref({ visible: false, libroId: null, error: '' })
-const editarForm  = ref({})
-
 // ── Computed ───────────────────────────────────────────────────────────────
 const filteredBooks = computed(() => {
-  let r = books.value
+  // TODOS los niveles ven solo el ejemplar 1 de cada grupo en el listado
+  let r = books.value.filter(b => b.numero_ejemplar === 1)
 
-  // Nivel 1: solo ver ejemplar 1 de cada libro (los demás ejemplares se ven en el modal)
-  if (nivel.value === 1) r = r.filter(b => b.numero_ejemplar === 1)
-
-  if (filters.value.estado_id)    r = r.filter(b => b.estado_id === parseInt(filters.value.estado_id))
+  if (filters.value.estado_id)         r = r.filter(b => b.estado_id === parseInt(filters.value.estado_id))
   if (filters.value.es_prestable !== '') r = r.filter(b => b.es_prestable === (filters.value.es_prestable === 'true'))
-  if (filters.value.editorial_id) r = r.filter(b => b.editorial_id === parseInt(filters.value.editorial_id))
+  if (filters.value.editorial_id)      r = r.filter(b => b.editorial_id === parseInt(filters.value.editorial_id))
 
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
@@ -618,7 +519,9 @@ const filteredBooks = computed(() => {
   return [...r].sort((a, b) => {
     if (sortBy.value === 'autor')   return (a.autor||'').localeCompare(b.autor||'')
     if (sortBy.value === 'edicion') return (b.edicion||0) - (a.edicion||0)
-    return (a.titulo||'').localeCompare(b.titulo||'')
+    if (sortBy.value === 'titulo')  return (a.titulo||'').localeCompare(b.titulo||'')
+    // default: código decimal con orden numérico
+    return (a.codigo_decimal||'').localeCompare(b.codigo_decimal||'', undefined, { numeric: true })
   })
 })
 
@@ -635,12 +538,11 @@ const visiblePages   = computed(() => {
   return Array.from({length:e-s+1}, (_,i) => s+i)
 })
 
-// ── Carga de datos ─────────────────────────────────────────────────────────
+// ── Carga ──────────────────────────────────────────────────────────────────
 const loadBooks = async () => {
   isLoading.value = true; error.value = null
   try {
-    const params = esAdmin.value ? { por_pagina: 200 } : { por_pagina: 200 }
-    const response = await bookService.getBooks(params)
+    const response = await bookService.getBooks({ por_pagina: 500 })
     books.value = response?.libros ?? (Array.isArray(response) ? response : [])
     calculateStats()
     extractEditoriales()
@@ -653,7 +555,7 @@ const calculateStats = () => {
   stats.value = {
     totalBooks:     books.value.filter(b => b.numero_ejemplar === 1).length,
     availableBooks: books.value.filter(b => b.estado_id === 1).length,
-    prestableBooks: books.value.filter(b => b.es_prestable).length
+    prestableBooks: books.value.filter(b => b.es_prestable && b.numero_ejemplar === 1).length
   }
 }
 
@@ -674,22 +576,12 @@ const cargarCatalogosAux = async () => {
       api.get('/api/libros/auxiliares/estados-libro'),
       api.get('/api/libros/auxiliares/metodos-adquisicion'),
     ])
-    catalogosAux.value = {
-      editoriales: eds.data,
-      areas:       areas.data,
-      estados:     estados.data,
-      metodos:     metodos.data,
-    }
+    catalogosAux.value = { editoriales: eds.data, areas: areas.data, estados: estados.data, metodos: metodos.data }
   } catch { /* silencioso */ }
 }
 
 const handleSearch = () => { currentPage.value = 1 }
-
-const resetFilters = () => {
-  searchQuery.value = ''
-  filters.value = { estado_id: '', es_prestable: '', editorial_id: '' }
-  currentPage.value = 1
-}
+const resetFilters = () => { searchQuery.value = ''; filters.value = { estado_id: '', es_prestable: '', editorial_id: '' }; currentPage.value = 1 }
 
 // ── Helpers visuales ────────────────────────────────────────────────────────
 const CARD_COLORS = ['card-c1','card-c2','card-c3']
@@ -700,27 +592,19 @@ const getStatusClass = (book) => STATUS_CLASS[book.estado_id] || 'status-unknown
 const getStatusText  = (book) => STATUS_TEXT[book.estado_id]  || book.estado_nombre || 'Desconocido'
 
 const getEjemplarBadgeClass = (ej) => ({
-  'ejemplar-disponible':    ej.estado_id === 1,
-  'ejemplar-prestado':      ej.estado_id === 2,
-  'ejemplar-reparacion':    ej.estado_id === 3,
-  'ejemplar-retirado':      ej.estado_id === 4,
+  'ejemplar-disponible': ej.estado_id === 1,
+  'ejemplar-prestado':   ej.estado_id === 2,
+  'ejemplar-reparacion': ej.estado_id === 3,
+  'ejemplar-retirado':   ej.estado_id === 4,
 })
-const getEjemplarEstadoText = (ej) => ({
-  1: 'Disponible', 2: 'Prestado', 3: 'En reparación', 4: 'Retirado'
-})[ej.estado_id] || '—'
+const getEjemplarEstadoText = (ej) => ({ 1:'Disponible', 2:'Prestado', 3:'En reparación', 4:'Retirado' })[ej.estado_id] || '—'
 
 // ── Modal detalles ─────────────────────────────────────────────────────────
 const abrirModalDetalles = async (book) => {
   modalDetalles.value = { visible: true, libro: book, ejemplares: [], cargandoEjemplares: true }
   try {
-    const r = await api.get('/api/libros/', {
-      params: {
-        codigo_decimal_exacto: book.codigo_decimal,
-        por_pagina: 100
-      }
-    })
+    const r = await api.get('/api/libros/', { params: { codigo_decimal_exacto: book.codigo_decimal, por_pagina: 100 } })
     const todos = r.data?.libros ?? []
-    // Filtrar por misma etiqueta para no mezclar libros distintos con el mismo código
     modalDetalles.value.ejemplares = todos
       .filter(l => l.etiqueta === book.etiqueta)
       .sort((a, b) => a.numero_ejemplar - b.numero_ejemplar)
@@ -732,29 +616,20 @@ const abrirModalDetalles = async (book) => {
 }
 const cerrarModalDetalles = () => { modalDetalles.value.visible = false }
 
-// Desde modal detalles → abrir crear con datos pre-rellenados
 const abrirModalEjemplarExtra = (libro) => {
   cerrarModalDetalles()
-  // Calcular el siguiente número de ejemplar
   const maxEj = modalDetalles.value.ejemplares.length
-    ? Math.max(...modalDetalles.value.ejemplares.map(e => e.numero_ejemplar))
-    : 1
+    ? Math.max(...modalDetalles.value.ejemplares.map(e => e.numero_ejemplar)) : 1
   crearForm.value = {
     ...crearFormInicial(),
-    titulo:                libro.titulo,
-    autor:                 libro.autor,
-    codigo_decimal:        libro.codigo_decimal,
-    etiqueta:              libro.etiqueta,
-    isbn:                  libro.isbn || '',
-    editorial_id:          libro.editorial_id,
-    area_conocimiento_id:  libro.area_conocimiento_id,
-    estado_id:             1,
+    titulo: libro.titulo, autor: libro.autor,
+    codigo_decimal: libro.codigo_decimal, etiqueta: libro.etiqueta,
+    isbn: libro.isbn || '', editorial_id: libro.editorial_id,
+    area_conocimiento_id: libro.area_conocimiento_id, estado_id: 1,
     metodo_adquisicion_id: libro.metodo_adquisicion_id,
-    edicion:               libro.edicion,
-    numero_paginas:        libro.numero_paginas,
-    es_prestable:          libro.es_prestable,
-    numero_ejemplar:       maxEj + 1,
-    numero_ejemplar_inicial: maxEj + 1,
+    edicion: libro.edicion, numero_paginas: libro.numero_paginas,
+    es_prestable: libro.es_prestable,
+    numero_ejemplar: maxEj + 1, numero_ejemplar_inicial: maxEj + 1,
   }
   modalCrear.value = { visible: true, modo: 'individual', error: '', advertencia: '' }
 }
@@ -814,17 +689,12 @@ const guardarLibro = async () => {
 // ── Modal editar ────────────────────────────────────────────────────────────
 const abrirModalEditarLibro = (book) => {
   editarForm.value = {
-    titulo:        book.titulo,
-    autor:         book.autor,
-    isbn:          book.isbn || '',
-    editorial_id:  book.editorial_id,
-    estado_id:     book.estado_id,
-    edicion:       book.edicion,
-    numero_paginas: book.numero_paginas,
-    precio:        book.precio,
-    es_prestable:  book.es_prestable,
+    titulo: book.titulo, autor: book.autor, isbn: book.isbn || '',
+    editorial_id: book.editorial_id, estado_id: book.estado_id,
+    edicion: book.edicion, numero_paginas: book.numero_paginas,
+    precio: book.precio, es_prestable: book.es_prestable,
   }
-  modalEditar.value = { visible: true, libroId: book.id, error: '' }
+  modalEditar.value = { visible: true, libroId: book.id, numeroEjemplar: book.numero_ejemplar, error: '' }
 }
 const cerrarModalEditar = () => { if (!procesandoEditar.value) modalEditar.value.visible = false }
 
@@ -832,10 +702,14 @@ const guardarEdicion = async () => {
   procesandoEditar.value = true
   try {
     await api.put(`/api/libros/${modalEditar.value.libroId}`, editarForm.value)
+    // Actualizar en el array local
     const idx = books.value.findIndex(b => b.id === modalEditar.value.libroId)
     if (idx !== -1) Object.assign(books.value[idx], editarForm.value)
+    // Actualizar en los ejemplares del modal de detalles si está abierto
+    const ejIdx = modalDetalles.value.ejemplares.findIndex(e => e.id === modalEditar.value.libroId)
+    if (ejIdx !== -1) Object.assign(modalDetalles.value.ejemplares[ejIdx], editarForm.value)
     modalEditar.value.visible = false
-    mostrarToast('Libro actualizado correctamente')
+    mostrarToast(`Ejemplar ${modalEditar.value.numeroEjemplar} actualizado correctamente`)
   } catch (e) {
     modalEditar.value.error = e.response?.data?.detail || 'Error al guardar cambios'
   } finally { procesandoEditar.value = false }
@@ -843,7 +717,7 @@ const guardarEdicion = async () => {
 
 // ── Retirar / Recuperar ────────────────────────────────────────────────────
 const confirmarRetirar = (book) => { bookToDelete.value = book; showDeleteModal.value = true }
-const closeModal       = () => { if (!isDeleting.value) { showDeleteModal.value = false; bookToDelete.value = null } }
+const closeModal = () => { if (!isDeleting.value) { showDeleteModal.value = false; bookToDelete.value = null } }
 
 const deleteBook = async () => {
   if (!bookToDelete.value?.id || isDeleting.value) return
@@ -851,8 +725,10 @@ const deleteBook = async () => {
   try {
     await bookService.deleteBook(bookToDelete.value.id)
     books.value = books.value.filter(b => b.id !== bookToDelete.value.id)
+    // Quitar del modal de detalles si está abierto
+    modalDetalles.value.ejemplares = modalDetalles.value.ejemplares.filter(e => e.id !== bookToDelete.value.id)
     showDeleteModal.value = false
-    mostrarToast('Libro retirado correctamente')
+    mostrarToast('Ejemplar retirado correctamente')
   } catch (e) {
     alert(e.response?.data?.detail || 'Error al retirar el libro')
   } finally { isDeleting.value = false; bookToDelete.value = null }
@@ -863,11 +739,12 @@ const reactivarLibro = async (book) => {
     await bookService.reactivateBook(book.id)
     const t = books.value.find(b => b.id === book.id)
     if (t) { t.estado_id = 1; t.estado_nombre = 'Disponible' }
-    mostrarToast(`"${book.titulo}" recuperado correctamente`)
+    const ej = modalDetalles.value.ejemplares.find(e => e.id === book.id)
+    if (ej) { ej.estado_id = 1 }
+    mostrarToast(`Ejemplar ${book.numero_ejemplar} recuperado correctamente`)
   } catch { alert('Error al recuperar el libro') }
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
 const mostrarToast = (msg) => {
   toastMsg.value = msg; showSuccessToast.value = true
   setTimeout(() => { showSuccessToast.value = false }, 3500)
@@ -875,7 +752,7 @@ const mostrarToast = (msg) => {
 
 const prevPage = () => { if (currentPage.value > 1) currentPage.value-- }
 const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++ }
-const goToPage = (p)  => { if (p >= 1 && p <= totalPages.value) currentPage.value = p }
+const goToPage = (p) => { if (p >= 1 && p <= totalPages.value) currentPage.value = p }
 
 watch(searchQuery, () => { currentPage.value = 1 })
 watch(filters, () => { currentPage.value = 1 }, { deep: true })
@@ -889,10 +766,6 @@ onMounted(async () => {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap');
-/*
- * Botones: btn-detail, btn-loan, btn-editar, btn-eliminar, btn-recuperar,
- * btn-primary, btn-outline, tbl-btn → src/styles/buttons.css
- */
 :root {
   --green-dark:#1a4731; --green-mid:#2d6a4f; --green-light:#52b788;
   --green-pale:#d8f3dc; --gold-mid:#c9900c; --gold-light:#f4c542;
@@ -903,7 +776,6 @@ onMounted(async () => {
 
 .book-catalog { font-family:'DM Sans',sans-serif; padding:1.5rem; max-width:1400px; margin:0 auto; background:radial-gradient(ellipse 80% 40% at 10% 0%,rgba(82,183,136,.13) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 90% 100%,rgba(201,144,12,.10) 0%,transparent 55%),#f5f0e8; min-height:100vh; }
 
-/* ── Header ─────────────────────────────────────────────────────────────── */
 .catalog-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; padding:1.5rem 2rem; background:linear-gradient(135deg,#1a4731 0%,#2d6a4f 60%,#3a7d5e 100%); border-radius:16px; position:relative; overflow:hidden; }
 .catalog-header::before { content:''; position:absolute; inset:0; background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23fff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E"); pointer-events:none; }
 .header-sup   { font-size:.72rem; font-weight:600; color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.1em; margin-bottom:.2rem; position:relative; }
@@ -916,7 +788,6 @@ onMounted(async () => {
 .stat-num { font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:700; color:#fff; line-height:1; }
 .stat-lbl { font-size:.62rem; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.07em; margin-top:2px; white-space:nowrap; }
 
-/* ── Búsqueda ────────────────────────────────────────────────────────────── */
 .search-section { margin-bottom:1.25rem; }
 .search-bar { display:flex; align-items:center; gap:.5rem; background:var(--card-bg); border:1.5px solid var(--cream-border); border-radius:12px; padding:.5rem .875rem; box-shadow:var(--shadow-sm); }
 .search-icon-inner { color:#9ab5a0; flex-shrink:0; }
@@ -932,10 +803,9 @@ onMounted(async () => {
 .filters-grid { display:flex; gap:1rem; flex-wrap:wrap; }
 .filter-group { display:flex; flex-direction:column; gap:4px; min-width:160px; }
 .filter-group label { font-size:.72rem; font-weight:700; color:var(--green-dark); text-transform:uppercase; letter-spacing:.07em; }
-.filter-select,.filter-input { padding:.45rem .625rem; border:1.5px solid var(--cream-border); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:.82rem; color:#1a2e1a; background:#fff; outline:none; }
+.filter-select { padding:.45rem .625rem; border:1.5px solid var(--cream-border); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:.82rem; color:#1a2e1a; background:#fff; outline:none; }
 .filter-actions { display:flex; gap:.5rem; margin-top:.75rem; }
 
-/* ── Controles ───────────────────────────────────────────────────────────── */
 .results-section { }
 .view-controls { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:.75rem; }
 .view-options { display:flex; gap:.375rem; }
@@ -944,12 +814,10 @@ onMounted(async () => {
 .sort-options { display:flex; align-items:center; gap:.5rem; font-size:.8rem; color:#5a7a5a; }
 .sort-select { padding:.35rem .625rem; border:1.5px solid var(--cream-border); border-radius:8px; font-size:.8rem; background:#fff; color:#1a2e1a; cursor:pointer; }
 
-/* ── Estado carga ────────────────────────────────────────────────────────── */
 .loading-state,.error-state { display:flex; flex-direction:column; align-items:center; padding:4rem 2rem; gap:.75rem; text-align:center; background:var(--card-bg); border-radius:14px; }
 .spinner { width:32px; height:32px; border:3px solid var(--green-pale); border-top-color:var(--green-mid); border-radius:50%; animation:spin .7s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
 
-/* ── Grid de libros ──────────────────────────────────────────────────────── */
 .books-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:1.25rem; }
 .book-card { background:var(--card-bg); border:1.5px solid var(--cream-border); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; transition:box-shadow .2s,transform .18s; }
 .book-card:hover { box-shadow:var(--shadow-md); transform:translateY(-2px); }
@@ -972,7 +840,6 @@ onMounted(async () => {
 .book-details p { margin:0; }
 .book-actions { padding:.625rem .875rem .875rem; display:flex; gap:.375rem; flex-wrap:wrap; border-top:1px solid #eef5f0; margin-top:auto; }
 
-/* ── Lista ───────────────────────────────────────────────────────────────── */
 .books-list .table-wrap { overflow-x:auto; }
 .table-ui { width:100%; border-collapse:collapse; font-size:.82rem; background:var(--card-bg); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-sm); }
 .table-ui thead { background:linear-gradient(135deg,#1a4731,#2d6a4f); }
@@ -986,10 +853,10 @@ onMounted(async () => {
 .td-actions { display:flex; gap:.35rem; }
 .status-pill { font-size:.7rem; font-weight:700; padding:.2rem .55rem; border-radius:20px; white-space:nowrap; }
 
-/* ── Modal base ──────────────────────────────────────────────────────────── */
+/* ── Modal base ─────────────────────────────────────────────────────────── */
 .modal-overlay { position:fixed; inset:0; background:rgba(26,47,26,.55); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; z-index:2000; }
 .modal-content { background:var(--card-bg); border-radius:16px; width:90%; max-width:520px; border:1.5px solid var(--cream-border); box-shadow:0 24px 64px rgba(0,0,0,.2); animation:modalIn .25s cubic-bezier(.22,1,.36,1); max-height:90vh; overflow-y:auto; }
-.modal-detalles { max-width:640px; }
+.modal-detalles { max-width:660px; }
 .modal-crear    { max-width:680px; }
 @keyframes modalIn { from{opacity:0;transform:translateY(-14px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
 .modal-header { display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1.375rem .875rem; border-bottom:1.5px solid #eef5f0; position:sticky; top:0; background:var(--card-bg); z-index:1; }
@@ -1002,7 +869,7 @@ onMounted(async () => {
 .btn-modal-confirm:hover { background:#111; }
 .btn-modal-delete  { padding:.5rem 1.1rem; background:#dc2626; color:#fff; border:none; border-radius:8px; font-size:.82rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:.4rem; }
 
-/* ── Modal Detalles ──────────────────────────────────────────────────────── */
+/* ── Modal Detalles ─────────────────────────────────────────────────────── */
 .detalles-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
 @media (max-width:540px) { .detalles-grid { grid-template-columns:1fr; } }
 .detalle-titulo { font-family:'Playfair Display',serif; font-size:1.05rem; font-weight:700; color:var(--green-dark); margin:0 0 .25rem; }
@@ -1017,13 +884,21 @@ onMounted(async () => {
 .spinner-sm { width:16px; height:16px; border:2px solid var(--green-pale); border-top-color:var(--green-mid); border-radius:50%; animation:spin .7s linear infinite; }
 .ejemplares-vacio { font-size:.8rem; color:#9ab5a0; font-style:italic; }
 .ejemplares-lista { display:flex; flex-direction:column; gap:.5rem; }
-.ejemplar-badge { display:flex; justify-content:space-between; align-items:center; padding:.5rem .75rem; border-radius:9px; font-size:.8rem; font-weight:600; border:1.5px solid; }
+
+/* Fila de ejemplar con acciones opcionales */
+.ejemplar-row { display:flex; justify-content:space-between; align-items:center; padding:.5rem .75rem; border-radius:9px; border:1.5px solid; }
 .ejemplar-disponible { background:var(--green-pale); color:var(--green-dark); border-color:#b8ddc8; }
 .ejemplar-prestado   { background:#fff0f0; color:#b91c1c; border-color:#fca5a5; }
 .ejemplar-reparacion { background:#fef3c7; color:#92400e; border-color:#fcd34d; }
 .ejemplar-retirado   { background:#f1f5f9; color:#64748b; border-color:#cbd5e1; }
-.ejemplar-num   { font-weight:700; }
-.ejemplar-estado{ font-size:.72rem; opacity:.85; }
+.ejemplar-info { display:flex; flex-direction:column; gap:1px; }
+.ejemplar-num   { font-size:.82rem; font-weight:700; }
+.ejemplar-estado{ font-size:.7rem; opacity:.8; }
+.ejemplar-acciones { display:flex; gap:.25rem; flex-shrink:0; }
+.ej-btn { width:26px; height:26px; background:rgba(255,255,255,.6); border:1px solid rgba(0,0,0,.08); border-radius:6px; cursor:pointer; font-size:.75rem; display:flex; align-items:center; justify-content:center; transition:background .15s; }
+.ej-btn:hover { background:#fff; }
+.ej-btn:disabled { opacity:.35; cursor:not-allowed; }
+
 .ejemplares-resumen { font-size:.75rem; color:#9ab5a0; margin:.625rem 0 0; text-align:right; }
 
 /* ── Modal Crear ─────────────────────────────────────────────────────────── */
@@ -1042,7 +917,7 @@ onMounted(async () => {
 .form-error   { padding:.6rem .875rem; background:#fff3f3; border:1px solid #f5c0c0; border-radius:9px; color:#d62828; font-size:.82rem; font-weight:600; }
 .form-warning { padding:.6rem .875rem; background:#fef3c7; border:1px solid #fcd34d; border-radius:9px; color:#92400e; font-size:.82rem; font-weight:600; }
 
-/* ── Modal Eliminar ──────────────────────────────────────────────────────── */
+/* ── Modal Eliminar ─────────────────────────────────────────────────────── */
 .book-to-delete { display:flex; flex-direction:column; gap:.875rem; }
 .book-info-modal h4 { margin:0 0 .375rem; font-family:'Playfair Display',serif; color:var(--green-dark); }
 .book-info-modal p  { font-size:.82rem; margin:.2rem 0; color:#334155; }
@@ -1051,14 +926,14 @@ onMounted(async () => {
 .warning-message p { font-size:.82rem; margin:0; color:#7f1d1d; }
 .spinner-small { width:12px; height:12px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; display:inline-block; }
 
-/* ── Toast ───────────────────────────────────────────────────────────────── */
+/* ── Toast ──────────────────────────────────────────────────────────────── */
 .toast { position:fixed; bottom:2rem; right:2rem; display:flex; align-items:center; gap:.75rem; padding:.875rem 1.1rem; background:#16a34a; border-radius:12px; color:#fff; font-size:.82rem; font-weight:600; z-index:9999; box-shadow:0 8px 30px rgba(0,0,0,.15); animation:slideIn .3s ease; }
 .toast-icon    { font-size:1.1rem; }
 .toast-content { flex:1; }
 .toast-close   { background:none; border:none; color:rgba(255,255,255,.7); font-size:1.1rem; cursor:pointer; }
 @keyframes slideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
 
-/* ── Empty / Pagination ──────────────────────────────────────────────────── */
+/* ── Paginación ─────────────────────────────────────────────────────────── */
 .empty-state { display:flex; flex-direction:column; align-items:center; padding:4rem 2rem; gap:.75rem; text-align:center; background:var(--card-bg); border-radius:14px; }
 .empty-icon  { font-size:3rem; }
 .empty-state h3 { font-family:'Playfair Display',serif; color:var(--green-dark); margin:0; }

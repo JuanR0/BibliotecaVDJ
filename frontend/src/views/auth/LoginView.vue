@@ -31,14 +31,14 @@
           <div class="brand-divider"></div>
 
           <!-- Tagline tipográfico -->
-          <p class="brand-tagline">
+          <!-- <p class="brand-tagline">
             Gestiona préstamos,<br>
             explora el catálogo<br>
             y disfruta la lectura.
-          </p>
+          </p> -->
 
           <!-- Stats -->
-          <div class="brand-stats">
+          <!-- <div class="brand-stats">
             <div class="brand-stat">
               <span class="stat-val">∞</span>
               <span class="stat-lbl">Recursos</span>
@@ -51,7 +51,7 @@
               <span class="stat-val">100%</span>
               <span class="stat-lbl">Digital</span>
             </div>
-          </div>
+          </div> -->
         </div>
       </div>
 
@@ -66,12 +66,6 @@
             @click="!isRegister || toggleMode()"
             role="tab"
           >Iniciar Sesión</button>
-          <button
-            class="tab"
-            :class="{ 'tab-active': isRegister }"
-            @click="isRegister || toggleMode()"
-            role="tab"
-          >Registrarse</button>
           <div class="tab-slider" :class="{ 'tab-slider-right': isRegister }"></div>
         </div>
 

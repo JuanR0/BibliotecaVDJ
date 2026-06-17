@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------
 CHATBOT_HOST = os.getenv("CHATBOT_HOST","127.0.0.1")
 CHATBOT_PORT = os.getenv("CHATBOT_PORT", "8001")
-CHATBOT_BASE_URL = f"http://{CHATBOT_HOST}:{CHATBOT_PORT}"
+CHATBOT_BASE_URL = f"http://192.168.1.101:{CHATBOT_PORT}"
 CHATBOT_TIMEOUT = float(os.getenv("CHATBOT_TIMEOUT", "15.0"))
 CHATBOT_MAX_RETRIES = int(os.getenv("CHATBOT_MAX_RETRIES", "2"))
 

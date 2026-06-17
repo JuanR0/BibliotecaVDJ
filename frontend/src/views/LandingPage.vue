@@ -48,13 +48,13 @@
           </router-link>
         </div>
 
-        <div class="hero-stats">
+        <!-- <div class="hero-stats">
           <div class="hero-stat"><span class="hs-num">{{ stats.libros }}</span><span class="hs-lbl">Títulos</span></div>
           <div class="hs-sep"></div>
           <div class="hero-stat"><span class="hs-num">{{ stats.cubiculos }}</span><span class="hs-lbl">Cubículos</span></div>
           <div class="hs-sep"></div>
           <div class="hero-stat"><span class="hs-num">{{ stats.laptops }}</span><span class="hs-lbl">Laptops</span></div>
-        </div>
+        </div> -->
       </div>
 
       <!-- Decorativo — scroll hint -->
